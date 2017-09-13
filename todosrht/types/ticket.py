@@ -20,21 +20,17 @@ class Ticket(Base):
     user_agent = sa.Column(sa.Unicode(2048))
 
     user_perms = sa.Column(FlagType(TicketAccess),
-            nullable=False,
             default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
     """Permissions given to any logged in user"""
 
     submitter_perms = sa.Column(FlagType(TicketAccess),
-            nullable=False,
             default=TicketAccess.browse + TicketAccess.edit + TicketAccess.comment)
     """Permissions granted to submitters for their own tickets"""
 
     committer_perms = sa.Column(FlagType(TicketAccess),
-            nullable=False,
             default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
     """Permissions granted to people who have authored commits in the linked git repo"""
 
     anonymous_perms = sa.Column(FlagType(TicketAccess),
-            nullable=False,
             default=TicketAccess.browse)
     """Permissions granted to anonymous (non-logged in) users"""

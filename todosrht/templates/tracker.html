@@ -12,26 +12,31 @@
       <h3 style="margin-top: 1rem">Submit ticket</h3>
       <form method="POST" action="{{
           url_for(".tracker_submit_GET",
-            owner=tracker.owner.username,
+            owner="~" + tracker.owner.username,
             name=tracker.name
           )
         }}">
-        <div class="form-group">
+        <div class="form-group {{ valid.cls("title") }}">
           <label for="title">Title</label>
           <input
              type="text"
              class="form-control"
+             maxlength="2048"
              id="title"
-             name="title" />
+             name="title"
+             value="{{ title or "" }}" />
+          {{valid.summary("title")}}
         </div>
-        <div class="form-group">
+        <div class="form-group {{ valid.cls("description") }}">
           <label for="description">Description</label>
           <textarea
             class="form-control"
             id="description"
             name="description"
             placeholder="Markdown supported"
-            rows="5"></textarea>
+            maxlength="16384"
+            rows="5">{{ description or "" }}</textarea>
+          {{valid.summary("description")}}
         </div>
         <button
           type="submit"
