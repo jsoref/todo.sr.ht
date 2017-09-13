@@ -1,5 +1,6 @@
 from flask import render_template, request
 from flask_login import LoginManager, current_user
+from jinja2 import Markup
 import locale
 import urllib
 
@@ -27,23 +28,40 @@ try:
 except:
     pass
 
+def oauth_url(return_to):
+    return "{}/oauth/authorize?client_id={}&scopes=profile&state={}".format(
+        meta_sr_ht, meta_client_id, urllib.parse.quote_plus(return_to))
+
 from todosrht.blueprints.html import html
 from todosrht.blueprints.auth import auth
+from todosrht.blueprints.tracker import tracker
 
 app.register_blueprint(html)
 app.register_blueprint(auth)
+app.register_blueprint(tracker)
 
 meta_sr_ht = cfg("network", "meta")
 meta_client_id = cfg("meta.sr.ht", "oauth-client-id")
 
-def oauth_url(return_to):
-    return "{}/oauth/authorize?client_id={}&scopes=profile&state={}".format(
-        meta_sr_ht, meta_client_id, urllib.parse.quote_plus(return_to))
+def tracker_name(tracker):
+    split = tracker.name.split("/")
+    name = split[-1]
+    if len(name) == 0:
+        return name
+    parts = split[:-1]
+    user = "~" + tracker.owner.username
+    return Markup(
+        "/".join([
+            "<a href='/{}/{}'>{}</a>".format(user, "/".join(parts[:i + 1]), p)
+            for i, p in enumerate(parts)
+        ]) + "/" + name
+    )
 
 @app.context_processor
 def inject():
     return {
         "oauth_url": oauth_url(request.full_path),
         "current_user": User.query.filter(User.id == current_user.id).first() \
-                if current_user else None
+                if current_user else None,
+        "format_tracker_name": tracker_name
     }
