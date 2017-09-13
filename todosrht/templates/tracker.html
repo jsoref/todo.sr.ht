@@ -24,6 +24,7 @@
              maxlength="2048"
              id="title"
              name="title"
+             autofocus
              value="{{ title or "" }}" />
           {{valid.summary("title")}}
         </div>
@@ -101,16 +102,23 @@
           {% endfor %}
         </tbody>
       </table>
+      {% if total_pages > 1 %}
       <div class="row">
         <div class="col-md-4">
+        {% if page != 1 %}
+          <a href="?page={{ page - 1 }}{{ '&search=' + search if search else '' }}">[previous]</a>
+        {% endif %}
         </div>
         <div class="col-md-4 text-centered">
-          [ 1 / 23 ]
+          [ {{ page }} / {{ total_pages }} ]
         </div>
         <div class="col-md-4 text-right">
-          <strong><a href="#">[next]</a></strong>
+        {% if page != total_pages %}
+          <a href="?page={{ page + 1 }}{{ '&search=' + search if search else '' }}">[next]</a>
+        {% endif %}
         </div>
       </div>
+      {% endif %}
     </div>
   </div>
 </div>

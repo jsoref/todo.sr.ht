@@ -80,24 +80,49 @@ def get_tracker(owner, name):
         # TODO: org trackers
         return None
 
+def return_tracker(tracker, **kwargs):
+    another = session.get("another") or False
+    if another:
+        del session["another"]
+    # TODO: Apply filtering here
+    page = request.args.get("page")
+    tickets = (Ticket.query
+            .filter(Ticket.tracker_id == tracker.id)
+            .filter(Ticket.status == TicketStatus.reported)
+            .order_by(Ticket.updated.desc())
+        )
+    per_page = 25
+    total_tickets = tickets.count()
+    total_pages = tickets.count() // per_page + 1
+    if total_tickets % per_page == 0:
+        total_pages -= 1
+    if page:
+        try:
+            page = int(page) - 1
+            tickets = tickets.offset(page * per_page)
+        except:
+            page = None
+    else:
+        page = 0
+    tickets = tickets.limit(per_page).all()
+    if "another" in kwargs:
+        anotehr = kwargs["another"]
+        del kwargs["another"]
+    return render_template("tracker.html",
+            tracker=tracker,
+            another=another,
+            tickets=tickets,
+            total_tickets=total_tickets,
+            total_pages=total_pages,
+            page=page + 1,
+            **kwargs)
+
 @tracker.route("/<owner>/<path:name>")
 def tracker_GET(owner, name):
     tracker = get_tracker(owner, name)
     if not tracker:
         abort(404)
-    another = session.get("another") or False
-    if another:
-        del session["another"]
-    # TODO: Apply filtering here
-    tickets = (Ticket.query
-            .filter(Ticket.tracker_id == tracker.id)
-            .filter(Ticket.status == TicketStatus.reported)
-            .order_by(Ticket.updated.desc())
-        ).all()
-    return render_template("tracker.html",
-            tracker=tracker,
-            another=another,
-            tickets=tickets)
+    return return_tracker(tracker)
 
 @tracker.route("/<owner>/<path:name>/configure")
 @loginrequired
@@ -116,7 +141,7 @@ def tracker_submit_GET(owner, name):
     desc = valid.require("description", friendly_name="Description")
     another = valid.optional("another")
 
-    valid.expect(not title or 3 < len(title) < 2048,
+    valid.expect(not title or 3 <= len(title) <= 2048,
             "Title must be between 3 and 2048 characters.",
             field="title")
     valid.expect(not desc or len(desc) < 2048,
@@ -124,9 +149,7 @@ def tracker_submit_GET(owner, name):
             field="description")
 
     if not valid.ok:
-        return render_template("tracker.html",
-                tracker=tracker,
-                **valid.kwargs), 400
+        return return_tracker(tracker, **valid.kwargs), 400
 
     ticket = Ticket()
     ticket.submitter_id = current_user.id
