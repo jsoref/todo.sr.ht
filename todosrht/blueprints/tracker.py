@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
-from todosrht.types import Tracker, User, Ticket
+from todosrht.types import Tracker, User, Ticket, TicketStatus
 from srht.validation import Validation
 from srht.database import db
 
@@ -88,7 +88,16 @@ def tracker_GET(owner, name):
     another = session.get("another") or False
     if another:
         del session["another"]
-    return render_template("tracker.html", tracker=tracker, another=another)
+    # TODO: Apply filtering here
+    tickets = (Ticket.query
+            .filter(Ticket.tracker_id == tracker.id)
+            .filter(Ticket.status == TicketStatus.reported)
+            .order_by(Ticket.updated.desc())
+        ).all()
+    return render_template("tracker.html",
+            tracker=tracker,
+            another=another,
+            tickets=tickets)
 
 @tracker.route("/<owner>/<path:name>/configure")
 @loginrequired

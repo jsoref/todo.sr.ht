@@ -85,7 +85,7 @@
           </tr>
         </thead>
         <tbody>
-          {% for ticket in tracker.tickets %}
+          {% for ticket in tickets %}
           <tr>
             <td><a href="{{url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
