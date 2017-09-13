@@ -1,6 +1,6 @@
 import sqlalchemy as sa
 from srht.database import Base
-from todosrht.types import TicketAccess, FlagType
+from todosrht.types import FlagType, TicketAccess, TicketStatus, TicketResolution
 
 class Tracker(Base):
     __tablename__ = 'tracker'
@@ -17,6 +17,14 @@ class Tracker(Base):
 
     description = sa.Column(sa.Unicode(8192))
     """Markdown"""
+
+    enable_ticket_status = sa.Column(FlagType(TicketStatus),
+            nullable=False,
+            default=TicketStatus.resolved)
+
+    enable_ticket_resolution = sa.Column(FlagType(TicketStatus),
+            nullable=False,
+            default=TicketResolution.fixed | TicketResolution.duplicate)
 
     default_user_perms = sa.Column(FlagType(TicketAccess),
             nullable=False,

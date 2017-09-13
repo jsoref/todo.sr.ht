@@ -74,31 +74,6 @@
             class="nav-link"
             href="#">closed tickets</a>
         </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            href="#">board owner</a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            href="#">can add</a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            href="#">arbitrary tabs</a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            href="#">users can also</a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link"
-            href="#">add personal ones</a>
-        </li>
       </ul>
       <table class="table table-striped">
         <thead>
@@ -110,66 +85,18 @@
           </tr>
         </thead>
         <tbody>
-          {% for n in range(0, 3) %}
+          {% for ticket in tracker.tickets %}
           <tr>
-            <td><a href="#">#1289</a></td>
-            <td>Won't start weston-terminal if WLC_XWAYLAND != 0</td>
-            <td>3 days ago</td>
-            <td><a href="#">johalun</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1287</a></td>
-            <td>Variable prefix of another variable</td>
-            <td>5 days ago</td>
-            <td><a href="#">emersion</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1286</a></td>
-            <td>Remove titlebar in tabbed mode too</td>
-            <td>6 days ago</td>
-            <td><a href="#">ormung</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1284</a></td>
-            <td>Memory leaks in swaybar</td>
-            <td>11 days ago</td>
-            <td><a href="#">4e554c4c</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1278</a></td>
-            <td>Chromium (Aura) context menus do not hold window focus.</td>
-            <td>14 days ago</td>
-            <td><a href="#">Zach-Button</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1266</a></td>
-            <td>Inconsistent Caps Lock behavior</td>
-            <td>19 days ago</td>
-            <td><a href="#">zasma</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1260</a></td>
-            <td>Sway on Void</td>
-            <td>23 days ago</td>
-            <td><a href="#">julio641742</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1245</a></td>
-            <td>swaygrab appears to interpret spaces in filename</td>
-            <td>Jun 19</td>
-            <td><a href="#">louisch</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1230</a></td>
-            <td>Build failure - gcc: fatal error: cannot specify -o with -c, -S, or -E with multiple files</td>
-            <td>May 30</td>
-            <td><a href="#">ng-0</a></td>
-          </tr>
-          <tr>
-            <td><a href="#">#1229</a></td>
-            <td>sway floating &gt; spawns at the top left corner instead of at the middle of the screen</td>
-            <td>May 25</td>
-            <td><a href="#">narutowindy</a></td>
+            <td><a href="{{url_for(".ticket_GET",
+                owner="~" + tracker.owner.username,
+                name=name,
+                ticket_id=ticket.id)}}">#{{ticket.id}}</a></td>
+            <td>{{ ticket.title }}</td>
+            <td>{{ ticket.updated | date }}</td>
+            <td><a href="{{url_for(".ticket_GET",
+                owner="~" + tracker.owner.username,
+                name=name,
+                ticket_id=ticket.id)}}">{{ ticket.submitter.username }}</a></td>
           </tr>
           {% endfor %}
         </tbody>

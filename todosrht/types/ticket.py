@@ -1,7 +1,6 @@
 import sqlalchemy as sa
 from srht.database import Base
-from todosrht.types import FlagType, TicketAccess
-from enum import Enum
+from todosrht.types import FlagType, TicketAccess, TicketStatus, TicketResolution
 
 class Ticket(Base):
     __tablename__ = 'ticket'
@@ -12,12 +11,25 @@ class Ticket(Base):
     tracker_id = sa.Column(sa.Integer, sa.ForeignKey("tracker.id"), nullable=False)
     tracker = sa.orm.relationship("Tracker", backref=sa.orm.backref("tickets"))
 
+    dupe_of_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"))
+    dupe_of = sa.orm.relationship("Ticket",
+            backref=sa.orm.backref("dupes"),
+            remote_side=[id])
+
     submitter_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
     submitter = sa.orm.relationship("User", backref=sa.orm.backref("submitted"))
 
     title = sa.Column(sa.Unicode(2048), nullable=False)
     description = sa.Column(sa.Unicode(16384), nullable=False)
     user_agent = sa.Column(sa.Unicode(2048))
+
+    status = sa.Column(FlagType(TicketStatus),
+            nullable=False,
+            default=TicketStatus.reported)
+
+    resolution = sa.Column(FlagType(TicketResolution),
+            nullable=False,
+            default=TicketStatus.resolved)
 
     user_perms = sa.Column(FlagType(TicketAccess),
             default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
