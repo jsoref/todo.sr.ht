@@ -21,7 +21,7 @@
     <form class="col-md-6">
       {% if ticket.description %}
       <h3>Description</h3>
-      {{ ticket.description | md }}
+      {{ ticket.description | extended_md(baselevel=4) }}
       {% endif %}
       {% if TicketAccess.edit in access %}
       <a href="#" class="btn btn-default pull-right">Edit</a>
