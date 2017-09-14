@@ -14,14 +14,16 @@ setup(
   packages = [
       'todosrht',
       'todosrht.types',
-      'todosrht.blueprints'
+      'todosrht.blueprints',
+      'todosrht.alembic',
+      'todosrht.alembic.versions'
   ],
   version = ver,
   description = 'todo.sr.ht website',
   author = 'Drew DeVault',
   author_email = 'sir@cmpwn.com',
   url = 'https://todo.sr.ht/~sircmpwn/todo.sr.ht',
-  install_requires = ['srht', 'flask-login'],
+  install_requires = ['srht', 'flask-login', 'alembic'],
   license = 'AGPL-3.0',
   package_data={
       'todosrht': [
