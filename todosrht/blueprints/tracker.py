@@ -155,10 +155,13 @@ def tracker_submit_POST(owner, name):
     ticket = Ticket()
     ticket.submitter_id = current_user.id
     ticket.tracker_id = tracker.id
+    ticket.scoped_id = tracker.next_ticket_id
+    tracker.next_ticket_id += 1
     ticket.user_agent = request.headers.get("User-Agent")
     ticket.title = title
     ticket.description = desc
     db.session.add(ticket)
+    # TODO: Handle unique constraint failure (contention) and retry?
     db.session.commit()
 
     if another:
@@ -170,7 +173,7 @@ def tracker_submit_POST(owner, name):
         return redirect(url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
                 name=name,
-                ticket_id=ticket.id))
+                ticket_id=ticket.scoped_id))
 
 def get_access(tracker, ticket):
     # TODO: flesh out
@@ -182,16 +185,25 @@ def get_access(tracker, ticket):
         return ticket.user_perms or tracker.default_user_perms
     return ticket.anonymous_perms or tracker.default_anonymous_perms
 
+def get_ticket(tracker, ticket_id):
+    ticket = (Ticket.query
+            .filter(Ticket.scoped_id == ticket_id)
+            .filter(Ticket.tracker_id == tracker.id)
+        ).first()
+    if not ticket:
+        return None, None
+    access = get_access(tracker, ticket)
+    if not TicketAccess.browse in access:
+        return None, None
+    return ticket, access
+
 @tracker.route("/<owner>/<path:name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):
     tracker = get_tracker(owner, name)
     if not tracker:
         abort(404)
-    ticket = Ticket.query.get(ticket_id)
+    ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
-        abort(404)
-    access = get_access(tracker, ticket)
-    if not TicketAccess.browse in access:
         abort(404)
     return render_template("ticket.html",
             tracker=tracker,
@@ -204,11 +216,8 @@ def ticket_comment_POST(owner, name, ticket_id):
     tracker = get_tracker(owner, name)
     if not tracker:
         abort(404)
-    ticket = Ticket.query.get(ticket_id)
+    ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
-        abort(404)
-    access = get_access(tracker, ticket)
-    if not TicketAccess.browse in access:
         abort(404)
 
     valid = Validation(request)
@@ -264,9 +273,9 @@ def ticket_comment_POST(owner, name, ticket_id):
         return redirect(url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
                 name=tracker.name,
-                ticket_id=ticket.id) + "#comment-" + str(comment.id))
+                ticket_id=ticket.scoped_id) + "#comment-" + str(comment.id))
     else:
         return redirect(url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
                 name=tracker.name,
-                ticket_id=ticket.id))
+                ticket_id=ticket.scoped_id))

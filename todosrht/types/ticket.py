@@ -11,6 +11,11 @@ class Ticket(Base):
     tracker_id = sa.Column(sa.Integer, sa.ForeignKey("tracker.id"), nullable=False)
     tracker = sa.orm.relationship("Tracker", backref=sa.orm.backref("tickets"))
 
+    scoped_id = sa.Column(sa.Integer,
+            nullable=False,
+            index=True,
+            unique=sa.UniqueConstraint('scoped_id', 'tracker_id'))
+
     dupe_of_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"))
     dupe_of = sa.orm.relationship("Ticket",
             backref=sa.orm.backref("dupes"),

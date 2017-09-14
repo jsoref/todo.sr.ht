@@ -14,6 +14,7 @@ class Tracker(Base):
     May include slashes to serve as categories (nesting is supported,
     builds.sr.ht style)
     """
+    next_ticket_id = sa.Column(sa.Integer, nullable=False, default=1)
 
     description = sa.Column(sa.Unicode(8192))
     """Markdown"""

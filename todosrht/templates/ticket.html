@@ -4,7 +4,7 @@
   <div class="row">
     <div class="col-md-12">
       <h2>
-        {{ format_tracker_name(tracker, full=True) }}/#{{ticket.id}}:
+        {{ format_tracker_name(tracker, full=True) }}/#{{ticket.scoped_id}}:
         {{ticket.title}}
       </h2>
     </div>
@@ -61,7 +61,7 @@
           url_for(".ticket_comment_POST",
             owner="~" + tracker.owner.username,
             name=tracker.name,
-            ticket_id=ticket.id
+            ticket_id=ticket.scoped_id
           )
         }}">
         <div class="form-group {{ valid.cls("comment") }}">
