@@ -6,7 +6,6 @@ class TicketStatus(IntFlag):
     in_progress = 2
     pending = 4
     resolved = 8
-    shipped = 16
 
 class TicketResolution(IntFlag):
     unresolved = 0

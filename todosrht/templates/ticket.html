@@ -1,0 +1,99 @@
+{% extends "layout.html" %}
+{% block body %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-12">
+      <h2>
+        {{ format_tracker_name(tracker, full=True) }}/#{{ticket.id}}:
+        {{ticket.title}}
+      </h2>
+    </div>
+  </div>
+  <div class="row">
+    <form class="col-md-6">
+      {% if ticket.description %}
+      <h3>Description</h3>
+      {{ ticket.description | md }}
+      {% endif %}
+      {% if TicketAccess.edit in access %}
+      <a href="#" class="btn btn-default pull-right">Edit</a>
+      {% endif %}
+      <h3>
+        Details
+      </h3>
+      <dl class="row">
+        <dt class="col-md-3">Status</dt>
+        <dd class="col-md-9">
+          <span class="text-danger">{{ ticket.status.name.upper() }}</span>
+        </dd>
+        <dt class="col-md-3">Submitter</dt>
+        <dd class="col-md-9"><a href="#">~{{ ticket.submitter.username }}</a></dd>
+        <dt class="col-md-3">Submitted</dt>
+        <dd class="col-md-9">{{ ticket.created | date }}</dd>
+        <dt class="col-md-3">Updated</dt>
+        <dd class="col-md-9">{{ ticket.updated | date }}</dd>
+        <dt class="col-md-3">User Agent</dt>
+        <dd class="col-md-9 ellipsis" title="{{ ticket.user_agent }}">
+          {{ ticket.user_agent }}
+        </dd>
+      </dl>
+    </form>
+    <div class="col-md-6">
+      {% for comment in ticket.comments %}
+      <h4>
+        <a href="#">~{{ comment.submitter.username }}</a>
+        <span class="pull-right">
+          <small><a href="#">edit</a></small>
+          <small><a href="#">delete</a></small>
+          <small>{{ comment.created | date }}</small>
+        </span>
+      </h4>
+      {{ comment.text | md }}
+      {% endfor %}
+      {% if TicketAccess.comment in access %}
+      <h3 style="margin-top: 1rem">Add comment</h3>
+      <form method="POST" action="{{
+          url_for(".ticket_comment_POST",
+            owner="~" + tracker.owner.username,
+            name=tracker.name,
+            ticket_id=ticket.id
+          )
+        }}">
+        <div class="form-group {{ valid.cls("comment") }}">
+          <textarea
+            class="form-control"
+            id="comment"
+            name="comment"
+            placeholder="Markdown supported"
+            maxlength="16384"
+            rows="5">{{ comment or "" }}</textarea>
+          {{valid.summary("comment")}}
+        </div>
+        <button
+          type="submit"
+          class="btn btn-default"
+        >Comment</button>
+        {% if TicketAccess.edit in access %}
+        <button
+          type="submit"
+          class="btn btn-default"
+          name="resolve"
+        >Resolve</button>
+        <select name="resolution">
+          {% for r in TicketResolution %}
+          {% if r.name != "unresolved" %}
+          <option value="{{ r.name }}">{{ r.name }}</option>
+          {% endif %}
+          {% endfor %}
+        </select>
+        {% endif %}
+      </form>
+      {% else %}
+      {% if not ticket.comments %}
+      <p>It's a bit quiet in here.</p>
+      {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

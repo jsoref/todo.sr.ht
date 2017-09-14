@@ -18,6 +18,8 @@ class Tracker(Base):
     description = sa.Column(sa.Unicode(8192))
     """Markdown"""
 
+    min_desc_length = sa.Column(sa.Integer, nullable=False, default=0)
+
     enable_ticket_status = sa.Column(FlagType(TicketStatus),
             nullable=False,
             default=TicketStatus.resolved)

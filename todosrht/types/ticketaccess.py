@@ -7,3 +7,4 @@ class TicketAccess(IntFlag):
     comment = 4
     edit = 8
     triage = 16
+    all = browse | submit | comment | edit | triage

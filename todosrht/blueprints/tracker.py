@@ -4,7 +4,8 @@ from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
-from todosrht.types import Tracker, User, Ticket, TicketStatus
+from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
+from todosrht.types import TicketComment
 from srht.validation import Validation
 from srht.database import db
 
@@ -131,20 +132,20 @@ def tracker_configure_GET(owner, name):
 
 @tracker.route("/<owner>/<path:name>/submit", methods=["POST"])
 @loginrequired
-def tracker_submit_GET(owner, name):
+def tracker_submit_POST(owner, name):
     tracker = get_tracker(owner, name)
     if not tracker:
         abort(404)
 
     valid = Validation(request)
     title = valid.require("title", friendly_name="Title")
-    desc = valid.require("description", friendly_name="Description")
+    desc = valid.optional("description")
     another = valid.optional("another")
 
     valid.expect(not title or 3 <= len(title) <= 2048,
             "Title must be between 3 and 2048 characters.",
             field="title")
-    valid.expect(not desc or len(desc) < 2048,
+    valid.expect(not desc or len(desc) < 16384,
             "Description must be no more than 16384 characters.",
             field="description")
 
@@ -171,6 +172,67 @@ def tracker_submit_GET(owner, name):
                 name=name,
                 ticket_id=ticket.id))
 
+def get_access(tracker, ticket):
+    # TODO: flesh out
+    if current_user and current_user.id == tracker.owner_id:
+        return TicketAccess.all
+    elif current_user and current_user.id == ticket.submitter_id:
+        return ticket.submitter_perms or tracker.default_submitter_perms
+    elif current_user:
+        return ticket.user_perms or tracker.default_user_perms
+    return ticket.anonymous_perms or tracker.default_anonymous_perms
+
 @tracker.route("/<owner>/<path:name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):
-    pass
+    tracker = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket = Ticket.query.get(ticket_id)
+    if not ticket:
+        abort(404)
+    access = get_access(tracker, ticket)
+    if not TicketAccess.browse in access:
+        abort(404)
+    return render_template("ticket.html",
+            tracker=tracker,
+            ticket=ticket,
+            access=access)
+
+@tracker.route("/<owner>/<path:name>/<int:ticket_id>/comment", methods=["POST"])
+@loginrequired
+def ticket_comment_POST(owner, name, ticket_id):
+    tracker = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket = Ticket.query.get(ticket_id)
+    if not ticket:
+        abort(404)
+    access = get_access(tracker, ticket)
+    if not TicketAccess.browse in access:
+        abort(404)
+
+    valid = Validation(request)
+    text = valid.require("comment", friendly_name="Comment")
+
+    valid.expect(not text or 3 < len(text) < 16384,
+            "Comment must be between 3 and 16384 characters.")
+    
+    if not valid.ok:
+        return render_template("ticket.html",
+                tracker=tracker,
+                ticket=ticket,
+                access=access,
+                **valid.kwargs)
+
+    comment = TicketComment()
+    comment.text = text
+    # TODO: anonymous comments (when configured appropriately)
+    comment.submitter_id = current_user.id
+    comment.ticket_id = ticket.id
+    db.session.add(comment)
+    db.session.commit()
+
+    return redirect(url_for(".ticket_GET",
+            owner="~" + tracker.owner.username,
+            name=tracker.name,
+            ticket_id=ticket.id) + "#comment-" + str(comment.id))

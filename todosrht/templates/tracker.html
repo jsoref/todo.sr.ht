@@ -11,7 +11,7 @@
       {{ tracker.description | md }}
       <h3 style="margin-top: 1rem">Submit ticket</h3>
       <form method="POST" action="{{
-          url_for(".tracker_submit_GET",
+          url_for(".tracker_submit_POST",
             owner="~" + tracker.owner.username,
             name=tracker.name
           )
@@ -76,6 +76,7 @@
             href="#">closed tickets</a>
         </li>
       </ul>
+      {% if len(tickets) %}
       <table class="table table-striped">
         <thead>
           <tr>
@@ -90,18 +91,21 @@
           <tr>
             <td><a href="{{url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
-                name=name,
+                name=tracker.name,
                 ticket_id=ticket.id)}}">#{{ticket.id}}</a></td>
             <td>{{ ticket.title }}</td>
             <td>{{ ticket.updated | date }}</td>
             <td><a href="{{url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
-                name=name,
+                name=tracker.name,
                 ticket_id=ticket.id)}}">{{ ticket.submitter.username }}</a></td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
+      {% else %}
+      <div class="alert alert-info">No tickets found for this search criteria.</div>
+      {% endif %}
       {% if total_pages > 1 %}
       <div class="row">
         <div class="col-md-4">

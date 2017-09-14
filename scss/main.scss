@@ -1,1 +1,11 @@
 @import "base";
+
+.ellipsis {
+  overflow-x: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+select {
+  padding: 0.1rem;
+}
