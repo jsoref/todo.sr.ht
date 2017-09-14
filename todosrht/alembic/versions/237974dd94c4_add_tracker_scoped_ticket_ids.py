@@ -45,6 +45,8 @@ def upgrade():
     session.commit()
 
     for tracker in session.query(Tracker).all():
+        if not any(tracker.tickets):
+            continue
         tracker.next_ticket_id = max(ticket.id for ticket in tracker.tickets) + 1
     session.commit()
 
