@@ -1,4 +1,11 @@
 {% extends "todo.html" %}
+{% block title %}
+<title>
+  {{tracker.name}}
+  &mdash;
+  {{ cfg("sr.ht", "site-name") }} todo
+</title>
+{% endblock %}
 {% block body %}
 <div class="container-fluid">
   <div class="row">

@@ -1,4 +1,12 @@
 {% extends "todo.html" %}
+{% block title %}
+<title>
+  {{tracker.name}}/#{{ticket.scoped_id}}:
+  {{ticket.title}}
+  &mdash;
+  {{ cfg("sr.ht", "site-name") }} todo
+</title>
+{% endblock %}
 {% block body %}
 <div class="container">
   <div class="row">
