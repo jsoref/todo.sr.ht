@@ -5,7 +5,7 @@ from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
-from todosrht.types import TicketComment
+from todosrht.types import TicketComment, TicketResolution
 from srht.validation import Validation
 from srht.database import db
 
@@ -212,10 +212,16 @@ def ticket_comment_POST(owner, name, ticket_id):
         abort(404)
 
     valid = Validation(request)
-    text = valid.require("comment", friendly_name="Comment")
+    text = valid.optional("comment")
+    resolve = valid.optional("resolve")
+    resolution = valid.optional("resolution")
+    reopen = valid.optional("reopen")
 
     valid.expect(not text or 3 < len(text) < 16384,
             "Comment must be between 3 and 16384 characters.")
+
+    valid.expect(text or resolve or reopen,
+            "Comment is required", field="comment")
     
     if not valid.ok:
         return render_template("ticket.html",
@@ -224,15 +230,43 @@ def ticket_comment_POST(owner, name, ticket_id):
                 access=access,
                 **valid.kwargs)
 
-    comment = TicketComment()
-    comment.text = text
-    # TODO: anonymous comments (when configured appropriately)
-    comment.submitter_id = current_user.id
-    comment.ticket_id = ticket.id
-    db.session.add(comment)
+    if text:
+        comment = TicketComment()
+        comment.text = text
+        # TODO: anonymous comments (when configured appropriately)
+        comment.submitter_id = current_user.id
+        comment.ticket_id = ticket.id
+        db.session.add(comment)
+    else:
+        comment = None
+
+    if resolve and TicketAccess.edit in access:
+        try:
+            resolution = TicketResolution(int(resolution))
+            ticket.status = TicketStatus.resolved
+            ticket.resolution = resolution
+        except Exception as ex:
+            valid.expect(text, "Comment is required", field="comment")
+
+    if reopen and TicketAccess.edit in access:
+        ticket.status = TicketStatus.reported
+
+    if not valid.ok:
+        return render_template("ticket.html",
+                tracker=tracker,
+                ticket=ticket,
+                access=access,
+                **valid.kwargs)
+
     db.session.commit()
 
-    return redirect(url_for(".ticket_GET",
-            owner="~" + tracker.owner.username,
-            name=tracker.name,
-            ticket_id=ticket.id) + "#comment-" + str(comment.id))
+    if comment:
+        return redirect(url_for(".ticket_GET",
+                owner="~" + tracker.owner.username,
+                name=tracker.name,
+                ticket_id=ticket.id) + "#comment-" + str(comment.id))
+    else:
+        return redirect(url_for(".ticket_GET",
+                owner="~" + tracker.owner.username,
+                name=tracker.name,
+                ticket_id=ticket.id))

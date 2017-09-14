@@ -24,7 +24,12 @@
       <dl class="row">
         <dt class="col-md-3">Status</dt>
         <dd class="col-md-9">
-          <span class="text-danger">{{ ticket.status.name.upper() }}</span>
+          <strong class="text-success">
+            {{ ticket.status.name.upper() }}
+            {% if ticket.status == TicketStatus.resolved %}
+            {{ ticket.resolution.name.upper() }}
+            {% endif %}
+          </strong>
         </dd>
         <dt class="col-md-3">Submitter</dt>
         <dd class="col-md-9"><a href="#">~{{ ticket.submitter.username }}</a></dd>
@@ -43,9 +48,9 @@
       <h4>
         <a href="#">~{{ comment.submitter.username }}</a>
         <span class="pull-right">
+          <small>{{ comment.created | date }}</small>
           <small><a href="#">edit</a></small>
           <small><a href="#">delete</a></small>
-          <small>{{ comment.created | date }}</small>
         </span>
       </h4>
       {{ comment.text | md }}
@@ -74,18 +79,28 @@
           class="btn btn-default"
         >Comment</button>
         {% if TicketAccess.edit in access %}
+        {% if ticket.status != TicketStatus.resolved %}
         <button
           type="submit"
           class="btn btn-default"
           name="resolve"
+          value="resolve"
         >Resolve</button>
         <select name="resolution">
           {% for r in TicketResolution %}
           {% if r.name != "unresolved" %}
-          <option value="{{ r.name }}">{{ r.name }}</option>
+          <option value="{{ r.value }}">{{ r.name }}</option>
           {% endif %}
           {% endfor %}
         </select>
+        {% else %}
+        <button
+          type="submit"
+          class="btn btn-default"
+          name="reopen"
+          value="reopen"
+        >Re-open</button>
+        {% endif %}
         {% endif %}
       </form>
       {% else %}
