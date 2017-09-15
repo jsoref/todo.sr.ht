@@ -107,7 +107,7 @@ def return_tracker(tracker, **kwargs):
         page = 0
     tickets = tickets.limit(per_page).all()
     if "another" in kwargs:
-        anotehr = kwargs["another"]
+        another = kwargs["another"]
         del kwargs["another"]
     return render_template("tracker.html",
             tracker=tracker,
