@@ -11,6 +11,7 @@ sources:
   - https://git.sr.ht/~sircmpwn/todo.sr.ht
   - https://git.sr.ht/~sircmpwn/sr.ht-pkgbuilds
 environment:
+  project: todo.sr.ht
   repo_server: deploy@mirror.sr.ht
   repo_path: /var/html/mirror/sr.ht/archlinux
   master: deploy@todo.sr.ht
@@ -19,33 +20,40 @@ secrets:
   - 3e65a1a8-a20f-4f6b-a452-df2ac398bc1e # package signing key
 tasks:
   - build: |
-      cd todo.sr.ht
+      cd ${project}
       ./setup.py build
   - archive: |
-      cd todo.sr.ht
+      cd ${project}
       pkgver=$(git describe | sed -e 's/-/_/g')
       echo "pkgver=$pkgver" >> ~/.buildenv
-      git archive -o ~/sr.ht-pkgbuilds/todo.sr.ht/todo.sr.ht-$pkgver.tar.xz \
-        --prefix=todo.sr.ht-$pkgver/ HEAD
+      git archive -o ~/sr.ht-pkgbuilds/${project}/${project}-$pkgver.tar.xz \
+        --prefix=${project}-$pkgver/ HEAD
   - package: |
-      cd sr.ht-pkgbuilds/todo.sr.ht
-      pkgrel=$(pacman -Si todo.sr.ht | grep Version | cut -d'-' -f2)
-      pkgrel=$(expr $pkgrel + 1)
+      cd sr.ht-pkgbuilds/${project}
+      prev_pkgver=$(pacman -Si ${project} | grep Version | cut -d ':' -f2 | cut -d ' ' -f2)
+      prev_pkgrel=$(printf "%s" "$prev_pkgver" | cut -d'-' -f2)
+      prev_pkgver=$(printf "%s" "$prev_pkgver" | cut -d'-' -f1)
+      if [ "$prev_pkgver" == "$pkgver" ]
+      then
+        pkgrel=$(expr $prev_pkgrel + 1)
+      else
+        pkgrel=1
+      fi
       sed -e "s/pkgver=.*/pkgver=$pkgver/" -i PKGBUILD
       sed -e "s/pkgrel=.*/pkgrel=$pkgrel/" -i PKGBUILD
       echo "pkgrel=$pkgrel" >> ~/.buildenv
       updpkgsums
       makepkg --config ../makepkg.conf -s --noconfirm
-      cd ~/todo.sr.ht
+      cd ~/${project}
       git describe --exact-match HEAD || complete-build
   - deploy: |
-      cd sr.ht-pkgbuilds/todo.sr.ht
+      cd sr.ht-pkgbuilds/${project}
       sshopts="-o StrictHostKeyChecking=no" # TODO: remove this when builds run on a tty
       rsync --rsh="ssh $sshopts" -rP *.pkg.tar.xz{,.sig} $repo_server:$repo_path/
       ssh $sshopts $repo_server repo-add -n -R \
         $repo_path/sr.ht.db.tar.gz \
-        $repo_path/todo.sr.ht-$pkgver-$pkgrel-any.pkg.tar.xz
+        $repo_path/${project}-$pkgver-$pkgrel-any.pkg.tar.xz
       ssh $sshopts $repo_server repo-add -n -R \
         $repo_path/sr.ht.db.tar.gz \
-        $repo_path/todo.sr.ht-images-$pkgver-$pkgrel-any.pkg.tar.xz
-      ssh $sshopts $master sudo /usr/local/bin/update-srht todo.sr.ht
+        $repo_path/${project}-images-$pkgver-$pkgrel-any.pkg.tar.xz
+      ssh $sshopts $master sudo /usr/local/bin/update-srht ${project}
