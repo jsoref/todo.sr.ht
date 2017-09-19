@@ -13,6 +13,20 @@ tracker = Blueprint("tracker", __name__)
 
 name_re = re.compile(r"^([a-z][a-z0-9_.-]*/?)+$")
 
+def get_access(tracker, ticket):
+    # TODO: flesh out
+    if current_user and current_user.id == tracker.owner_id:
+        return TicketAccess.all
+    elif current_user:
+        if ticket and current_user.id == ticket.submitter_id:
+            return ticket.submitter_perms or tracker.default_submitter_perms
+        return tracker.default_submitter_perms
+
+    if ticket:
+        return ticket.anonymous_perms
+    return tracker.default_anonymous_perms
+
+
 @tracker.route("/tracker/create")
 @loginrequired
 def create_GET():
@@ -71,17 +85,20 @@ def get_tracker(owner, name):
     if owner.startswith("~"):
         owner = User.query.filter(User.username == owner[1:]).first()
         if not owner:
-            return None
+            return None, None
         tracker = (Tracker.query
                 .filter(Tracker.owner_id == owner.id)
                 .filter(Tracker.name == name.lower())
             ).first()
-        return tracker
-    else:
-        # TODO: org trackers
-        return None
+        access = get_access(tracker, None)
+        if access:
+            return tracker, access
+        return None, None
 
-def return_tracker(tracker, **kwargs):
+    # TODO: org trackers
+    return None, None
+
+def return_tracker(tracker, access, **kwargs):
     another = session.get("another") or False
     if another:
         del session["another"]
@@ -116,14 +133,15 @@ def return_tracker(tracker, **kwargs):
             total_tickets=total_tickets,
             total_pages=total_pages,
             page=page + 1,
+            access=access,
             **kwargs)
 
 @tracker.route("/<owner>/<path:name>")
 def tracker_GET(owner, name):
-    tracker = get_tracker(owner, name)
+    tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
-    return return_tracker(tracker)
+    return return_tracker(tracker, access)
 
 @tracker.route("/<owner>/<path:name>/configure")
 @loginrequired
@@ -133,7 +151,7 @@ def tracker_configure_GET(owner, name):
 @tracker.route("/<owner>/<path:name>/submit", methods=["POST"])
 @loginrequired
 def tracker_submit_POST(owner, name):
-    tracker = get_tracker(owner, name)
+    tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
 
@@ -175,16 +193,6 @@ def tracker_submit_POST(owner, name):
                 name=name,
                 ticket_id=ticket.scoped_id))
 
-def get_access(tracker, ticket):
-    # TODO: flesh out
-    if current_user and current_user.id == tracker.owner_id:
-        return TicketAccess.all
-    elif current_user and current_user.id == ticket.submitter_id:
-        return ticket.submitter_perms or tracker.default_submitter_perms
-    elif current_user:
-        return ticket.user_perms or tracker.default_user_perms
-    return ticket.anonymous_perms or tracker.default_anonymous_perms
-
 def get_ticket(tracker, ticket_id):
     ticket = (Ticket.query
             .filter(Ticket.scoped_id == ticket_id)
@@ -199,7 +207,7 @@ def get_ticket(tracker, ticket_id):
 
 @tracker.route("/<owner>/<path:name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):
-    tracker = get_tracker(owner, name)
+    tracker, _ = get_tracker(owner, name)
     if not tracker:
         abort(404)
     ticket, access = get_ticket(tracker, ticket_id)
@@ -213,7 +221,7 @@ def ticket_GET(owner, name, ticket_id):
 @tracker.route("/<owner>/<path:name>/<int:ticket_id>/comment", methods=["POST"])
 @loginrequired
 def ticket_comment_POST(owner, name, ticket_id):
-    tracker = get_tracker(owner, name)
+    tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
     ticket, access = get_ticket(tracker, ticket_id)
@@ -231,7 +239,7 @@ def ticket_comment_POST(owner, name, ticket_id):
 
     valid.expect(text or resolve or reopen,
             "Comment is required", field="comment")
-    
+
     if not valid.ok:
         return render_template("ticket.html",
                 tracker=tracker,
