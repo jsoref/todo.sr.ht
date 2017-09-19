@@ -90,6 +90,8 @@ def get_tracker(owner, name):
                 .filter(Tracker.owner_id == owner.id)
                 .filter(Tracker.name == name.lower())
             ).first()
+        if not tracker:
+            return None, None
         access = get_access(tracker, None)
         if access:
             return tracker, access
