@@ -1,4 +1,3 @@
-from .flagtype import FlagType
 from .user import User
 from .ticketaccess import TicketAccess
 from .ticketstatus import TicketStatus, TicketResolution

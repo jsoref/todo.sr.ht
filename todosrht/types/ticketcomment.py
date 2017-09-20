@@ -1,6 +1,7 @@
 import sqlalchemy as sa
 from srht.database import Base
-from todosrht.types import FlagType, TicketAccess, TicketStatus, TicketResolution
+from srht.flagtype import FlagType
+from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
 class TicketComment(Base):
     __tablename__ = 'ticket_comment'

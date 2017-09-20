@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from srht.database import Base
-from todosrht.types import FlagType
+from srht.types import FlagType
 from enum import Enum
 
 class TicketSubscription(Base):
