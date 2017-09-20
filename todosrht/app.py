@@ -48,8 +48,7 @@ def tracker_name(tracker, full=False):
     user = "~" + tracker.owner.username
     if full:
         return Markup(
-            "<a href='/{0}'>{0}</a>/".format(user) +
-            "/".join([
+            "/".join(["<a href='/{0}'>{0}</a>".format(user)] + [
                 "<a href='/{}/{}'>{}</a>".format(user, "/".join(split[:i + 1]), p)
                 for i, p in enumerate(split)
         ]))
@@ -58,8 +57,7 @@ def tracker_name(tracker, full=False):
         return name
     parts = split[:-1]
     return Markup(
-        "<a href='/{0}'>{0}</a>/".format(user) +
-        "/".join([
+        "/".join(["<a href='/{0}'>{0}</a>".format(user)] + [
             "<a href='/{}/{}'>{}</a>".format(user, "/".join(parts[:i + 1]), p)
             for i, p in enumerate(parts)
         ]) + "/" + name
