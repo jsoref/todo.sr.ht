@@ -95,6 +95,7 @@
             <th></th>
             <th>Title</th>
             <th>Updated</th>
+            <th>Comments</th>
             <th>Submitter</th>
           </tr>
         </thead>
@@ -107,6 +108,7 @@
                 ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></td>
             <td>{{ ticket.title }}</td>
             <td>{{ ticket.updated | date }}</td>
+            <td>{{ ticket.comments | length }}</td>
             <td><a href="{{url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
                 name=tracker.name,
