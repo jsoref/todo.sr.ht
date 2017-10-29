@@ -256,6 +256,7 @@ def ticket_comment_POST(owner, name, ticket_id):
         comment.submitter_id = current_user.id
         comment.ticket_id = ticket.id
         db.session.add(comment)
+        ticket.updated = comment.created
     else:
         comment = None
 
@@ -284,8 +285,8 @@ def ticket_comment_POST(owner, name, ticket_id):
                 owner="~" + tracker.owner.username,
                 name=tracker.name,
                 ticket_id=ticket.scoped_id) + "#comment-" + str(comment.id))
-    else:
-        return redirect(url_for(".ticket_GET",
-                owner="~" + tracker.owner.username,
-                name=tracker.name,
-                ticket_id=ticket.scoped_id))
+
+    return redirect(url_for(".ticket_GET",
+            owner="~" + tracker.owner.username,
+            name=tracker.name,
+            ticket_id=ticket.scoped_id))
