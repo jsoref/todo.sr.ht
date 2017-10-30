@@ -95,8 +95,8 @@
             <th></th>
             <th>Title</th>
             <th>Updated</th>
-            <th>Comments</th>
             <th>Submitter</th>
+            <th></th>
           </tr>
         </thead>
         <tbody>
@@ -108,11 +108,15 @@
                 ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></td>
             <td>{{ ticket.title }}</td>
             <td>{{ ticket.updated | date }}</td>
-            <td>{{ ticket.comments | length }}</td>
             <td><a href="{{url_for(".ticket_GET",
                 owner="~" + tracker.owner.username,
                 name=tracker.name,
                 ticket_id=ticket.scoped_id)}}">{{ ticket.submitter.username }}</a></td>
+            {% if ticket.new_updates(current_user) %}
+            <td style="text-align: center">{{ ticket.comments | length }}&nbsp;<span class="fa fa-fw fa-comments-o"></span></td>
+            {% else %}
+            <td style="text-align: center">{{ ticket.comments | length }}&nbsp;<span class="fa fa-fw fa-comments"></span></td>
+            {% endif %}
           </tr>
           {% endfor %}
         </tbody>

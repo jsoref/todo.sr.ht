@@ -1,7 +1,7 @@
 import sqlalchemy as sa
 from srht.database import Base
 from srht.flagtype import FlagType
-from todosrht.types import TicketAccess, TicketStatus, TicketResolution
+from todosrht.types import TicketAccess, TicketStatus, TicketResolution, TicketSeen
 
 class Ticket(Base):
     __tablename__ = 'ticket'
@@ -52,3 +52,12 @@ class Ticket(Base):
     anonymous_perms = sa.Column(FlagType(TicketAccess),
             default=TicketAccess.browse)
     """Permissions granted to anonymous (non-logged in) users"""
+
+    view_list = sa.orm.relationship("TicketSeen")
+    def new_updates(self, user):
+        seen = TicketSeen.query.filter(TicketSeen.user_id == user.id, TicketSeen.ticket_id == self.id).one_or_none()
+        if seen:
+            if seen.last_view >= self.updated:
+                return True
+            return False
+        return None

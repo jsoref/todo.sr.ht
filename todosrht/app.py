@@ -8,7 +8,7 @@ from srht.config import cfg, cfgi, load_config
 load_config("todo")
 from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
-from todosrht.types import User, TicketAccess, TicketStatus, TicketResolution
+from todosrht.types import User, TicketAccess, TicketStatus, TicketResolution, TicketSeen
 db.init()
 
 from srht.flask import SrhtFlask

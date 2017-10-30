@@ -4,7 +4,7 @@ from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
-from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
+from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess, TicketSeen
 from todosrht.types import TicketComment, TicketResolution
 from srht.validation import Validation
 from srht.database import db
@@ -215,6 +215,12 @@ def ticket_GET(owner, name, ticket_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
+    seen = TicketSeen.query.filter(TicketSeen.user_id==current_user.id, TicketSeen.ticket_id==ticket.id).one_or_none()
+    if not seen:
+        seen = TicketSeen(user_id=current_user.id, ticket_id=ticket.id)
+    seen.update()
+    db.session.add(seen)
+    db.session.commit()
     return render_template("ticket.html",
             tracker=tracker,
             ticket=ticket,
