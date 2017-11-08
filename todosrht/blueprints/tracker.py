@@ -215,7 +215,10 @@ def ticket_GET(owner, name, ticket_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
-    seen = TicketSeen.query.filter(TicketSeen.user_id==current_user.id, TicketSeen.ticket_id==ticket.id).one_or_none()
+    seen = (TicketSeen.query
+            .filter(TicketSeen.user_id == current_user.id,
+                TicketSeen.ticket_id == ticket.id)
+            .one_or_none()) if current_user else None
     if not seen:
         seen = TicketSeen(user_id=current_user.id, ticket_id=ticket.id)
     seen.update()
