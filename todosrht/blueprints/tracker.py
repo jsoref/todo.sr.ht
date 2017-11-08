@@ -88,7 +88,7 @@ def get_tracker(owner, name):
             return None, None
         tracker = (Tracker.query
                 .filter(Tracker.owner_id == owner.id)
-                .filter(Tracker.name == name.lower())
+                .filter(Tracker.name == name.lower().rstrip("/"))
             ).first()
         if not tracker:
             return None, None
