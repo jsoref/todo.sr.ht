@@ -55,9 +55,12 @@ class Ticket(Base):
 
     view_list = sa.orm.relationship("TicketSeen")
     def new_updates(self, user):
-        seen = TicketSeen.query.filter(TicketSeen.user_id == user.id, TicketSeen.ticket_id == self.id).one_or_none()
+        if not user:
+            return None
+        seen = (TicketSeen.query
+                .filter(TicketSeen.user_id == user.id,
+                    TicketSeen.ticket_id == self.id)
+                .one_or_none())
         if seen:
-            if seen.last_view >= self.updated:
-                return True
-            return False
+            return seen.last_view >= self.updated:
         return None
