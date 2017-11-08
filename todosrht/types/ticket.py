@@ -62,5 +62,5 @@ class Ticket(Base):
                     TicketSeen.ticket_id == self.id)
                 .one_or_none())
         if seen:
-            return seen.last_view >= self.updated:
+            return seen.last_view >= self.updated
         return None
