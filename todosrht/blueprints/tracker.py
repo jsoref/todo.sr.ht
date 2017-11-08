@@ -219,7 +219,7 @@ def ticket_GET(owner, name, ticket_id):
             .filter(TicketSeen.user_id == current_user.id,
                 TicketSeen.ticket_id == ticket.id)
             .one_or_none()) if current_user else None
-    if not seen:
+    if not seen and current_user:
         seen = TicketSeen(user_id=current_user.id, ticket_id=ticket.id)
     seen.update()
     db.session.add(seen)
