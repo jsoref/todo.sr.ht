@@ -11,8 +11,13 @@ class TicketSubscription(Base):
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
 
-    ticket_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"), nullable=False)
+    tracker_id = sa.Column(sa.Integer, sa.ForeignKey("tracker.id"))
+    tracker = sa.orm.relationship("Tracker", backref=sa.orm.backref("subscriptions"))
+    """Used for subscriptions to all tickets on a tracker"""
+
+    ticket_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"))
     ticket = sa.orm.relationship("Ticket", backref=sa.orm.backref("subscriptions"))
+    """Used for subscriptions to specific tickets"""
 
     user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
     user = sa.orm.relationship("User", backref=sa.orm.backref("subscriptions"))

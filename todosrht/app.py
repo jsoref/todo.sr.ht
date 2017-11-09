@@ -35,10 +35,12 @@ def oauth_url(return_to):
 from todosrht.blueprints.html import html
 from todosrht.blueprints.auth import auth
 from todosrht.blueprints.tracker import tracker
+from todosrht.blueprints.ticket import ticket
 
 app.register_blueprint(html)
 app.register_blueprint(auth)
 app.register_blueprint(tracker)
+app.register_blueprint(ticket)
 
 meta_sr_ht = cfg("network", "meta")
 meta_client_id = cfg("meta.sr.ht", "oauth-client-id")
