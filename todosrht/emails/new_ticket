@@ -1,0 +1,9 @@
+{{! vim: set ft=email }}
+{{! TODO: consider wrapping this }}
+{{ticket.description}}
+
+--
+
+View on the web:
+
+{{root}}{{ticket_url}}

@@ -4,14 +4,18 @@ from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
+from todosrht.email import notify
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess, TicketSeen
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
-from srht.validation import Validation
+from srht.config import cfg
 from srht.database import db
+from srht.validation import Validation
 
 tracker = Blueprint("tracker", __name__)
 
 name_re = re.compile(r"^([a-z][a-z0-9_.-]*/?)+$")
+
+smtp_user = cfg("mail", "smtp-user", default=None)
 
 def get_access(tracker, ticket):
     # TODO: flesh out
@@ -190,6 +194,21 @@ def tracker_submit_POST(owner, name):
     db.session.add(ticket)
     # TODO: Handle unique constraint failure (contention) and retry?
     db.session.commit()
+    
+    ticket_url = url_for("ticket.ticket_GET",
+            owner="~" + tracker.owner.username,
+            name=name,
+            ticket_id=ticket.scoped_id)
+
+    for sub in tracker.subscriptions:
+        # TODO: don't notify the submitter
+        notify(sub, "new_ticket", "#{}: {}".format(ticket.id, ticket.title),
+                headers={
+                    "From": "{} <{}>".format(current_user.username,
+                        current_user.email),
+                    "Sender": smtp_user
+                }, ticket=ticket,
+                ticket_url=ticket_url.replace("%7E", "~")) # hack
 
     if another:
         session["another"] = True
@@ -197,7 +216,4 @@ def tracker_submit_POST(owner, name):
                 owner="~" + tracker.owner.username,
                 name=name))
     else:
-        return redirect(url_for("ticket.ticket_GET",
-                owner="~" + tracker.owner.username,
-                name=name,
-                ticket_id=ticket.scoped_id))
+        return redirect(ticket_url)
