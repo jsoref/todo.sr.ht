@@ -19,3 +19,33 @@ select {
     margin-top: 1rem;
   }
 }
+
+blockquote {
+  padding-left: 0.5rem;
+  border-left: 3px solid #aaa;
+  color: #333;
+}
+
+.events {
+  h4 {
+    margin-bottom: 0;
+    padding: 0;
+  }
+
+  .event {
+    padding: 0.5rem;
+    border-bottom: 1px solid #888;
+
+    &:first-child {
+      margin-top: 0.5rem;
+    }
+
+    &:nth-child(2n) {
+      background: #f8f8f8;
+    }
+
+    &:last-child {
+      padding-bottom: 0;
+    }
+  }
+}

@@ -5,7 +5,7 @@ from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess, TicketSeen
-from todosrht.types import TicketComment, TicketResolution
+from todosrht.types import TicketComment, TicketResolution, Event, EventType
 from todosrht.blueprints.tracker import get_access, get_tracker
 from todosrht.email import notify
 from srht.config import cfg
@@ -92,6 +92,9 @@ def ticket_comment_POST(owner, name, ticket_id):
     else:
         comment = None
 
+    old_status = ticket.status
+    old_resolution = ticket.resolution
+
     if resolve and TicketAccess.edit in access:
         try:
             resolution = TicketResolution(int(resolution))
@@ -113,7 +116,7 @@ def ticket_comment_POST(owner, name, ticket_id):
                 **valid.kwargs)
 
     tracker.updated = datetime.utcnow()
-    db.session.commit()
+    db.session.flush()
 
     if comment:
         ticket_url = url_for(".ticket_GET",
@@ -142,13 +145,35 @@ def ticket_comment_POST(owner, name, ticket_id):
                 resolution=resolution.name if resolution else None,
                 ticket_url=ticket_url.replace("%7E", "~")) # hack
 
+    def _add_event(sub):
+        event = Event()
+        event.event_type = 0
+        event.user_id = sub.user_id
+        event.ticket_id = ticket.id
+        if comment:
+            event.event_type |= EventType.comment
+            event.comment_id = comment.id
+        if ticket.status != old_status or ticket.resolution != old_resolution:
+            event.event_type |= EventType.status_change
+            event.old_status = old_status
+            event.old_resolution = old_resolution
+            event.new_status = ticket.status
+            event.new_resolution = ticket.resolution
+        db.session.add(event)
+
+    updated_users = set()
     for sub in tracker.subscriptions:
+        updated_users.update([sub.user_id])
+        _add_event(sub)
         if sub.user_id == current_user.id:
             subscribed = True
             continue
         _notify(sub)
 
     for sub in ticket.subscriptions:
+        if sub.user_id in updated_users:
+            continue
+        _add_event(sub)
         if sub.user_id == current_user.id:
             subscribed = True
             continue
@@ -159,6 +184,8 @@ def ticket_comment_POST(owner, name, ticket_id):
         sub.ticket_id = ticket.id
         sub.user_id = user.id
         db.session.add(sub)
-        db.session.commit()
+        _add_event(sub)
+
+    db.session.commit()
 
     return redirect(ticket_url)

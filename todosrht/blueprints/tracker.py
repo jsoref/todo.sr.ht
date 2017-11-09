@@ -5,8 +5,9 @@ from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
 from todosrht.email import notify
-from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess, TicketSeen
+from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
+from todosrht.types import TicketSeen, Event, EventType
 from srht.config import cfg
 from srht.database import db
 from srht.validation import Validation
@@ -201,7 +202,7 @@ def tracker_submit_POST(owner, name):
     db.session.add(ticket)
     tracker.updated = datetime.utcnow()
     # TODO: Handle unique constraint failure (contention) and retry?
-    db.session.commit()
+    db.session.flush()
     
     ticket_url = url_for("ticket.ticket_GET",
             owner="~" + tracker.owner.username,
@@ -209,6 +210,12 @@ def tracker_submit_POST(owner, name):
             ticket_id=ticket.scoped_id)
 
     for sub in tracker.subscriptions:
+        event = Event()
+        event.event_type = EventType.created
+        event.user_id = sub.user_id
+        event.ticket_id = ticket.id
+        db.session.add(event)
+
         if sub.user_id == ticket.submitter_id:
             subscribed = True
             continue
@@ -225,7 +232,8 @@ def tracker_submit_POST(owner, name):
         sub.ticket_id = ticket.id
         sub.user_id = user.id
         db.session.add(sub)
-        db.session.commit()
+
+    db.session.commit()
 
     if another:
         session["another"] = True
