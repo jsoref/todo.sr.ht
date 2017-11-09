@@ -189,3 +189,53 @@ def ticket_comment_POST(owner, name, ticket_id):
     db.session.commit()
 
     return redirect(ticket_url)
+
+@ticket.route("/<owner>/<path:name>/<int:ticket_id>/edit")
+@loginrequired
+def ticket_edit_GET(owner, name, ticket_id):
+    tracker, _ = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+    if not TicketAccess.edit in access:
+        abort(401)
+    return render_template("edit_ticket.html",
+            tracker=tracker, ticket=ticket)
+
+@ticket.route("/<owner>/<path:name>/<int:ticket_id>/edit", methods=["POST"])
+@loginrequired
+def ticket_edit_POST(owner, name, ticket_id):
+    tracker, _ = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+    if not TicketAccess.edit in access:
+        abort(401)
+
+    valid = Validation(request)
+    title = valid.require("title", friendly_name="Title")
+    desc = valid.optional("description")
+
+    valid.expect(not title or 3 <= len(title) <= 2048,
+            "Title must be between 3 and 2048 characters.",
+            field="title")
+    valid.expect(not desc or len(desc) < 16384,
+            "Description must be no more than 16384 characters.",
+            field="description")
+
+    if not valid.ok:
+        return render_template("edit_ticket.html",
+                tracker=tracker, ticket=ticket, **valid.kwargs)
+
+    ticket.title = title
+    ticket.description = desc
+    db.session.commit()
+
+    return redirect(url_for("ticket.ticket_GET",
+            owner="~" + tracker.owner.username,
+            name=name,
+            ticket_id=ticket.scoped_id))

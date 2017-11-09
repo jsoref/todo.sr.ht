@@ -1,0 +1,72 @@
+{% extends "todo.html" %}
+{% block title %}
+<title>
+  Edit {{tracker.name}}/#{{ticket.scoped_id}}:
+  {{ticket.title}}
+  &mdash;
+  {{ cfg("sr.ht", "site-name") }} todo
+</title>
+{% endblock %}
+{% block body %}
+<div class="container">
+  <div class="row">
+    <form class="col-md-6" method="POST">
+      <h3>Edit Ticket</h3>
+      <div class="form-group {{ valid.cls("title") }}">
+        <label for="title">Title</label>
+        <input
+           type="text"
+           class="form-control"
+           maxlength="2048"
+           id="title"
+           name="title"
+           autofocus
+           value="{{ title or ticket.title or "" }}" />
+        {{valid.summary("title")}}
+      </div>
+      <div class="form-group {{ valid.cls("description") }}">
+        <label for="description">Description</label>
+        <textarea
+          class="form-control"
+          name="description"
+          rows="5"
+          placeholder="Markdown supported"
+          maxlength="16384"
+        >{{ description or ticket.description or "" }}</textarea>
+        {{valid.summary("description")}}
+      </div>
+      <div class="pull-right">
+        <a href="{{ url_for(".ticket_GET",
+          owner="~" + tracker.owner.username,
+          name=tracker.name,
+          ticket_id=ticket.scoped_id) }}" class="btn btn-default"
+        >Cancel</a>
+        <button type="submit" class="btn btn-default">Save changes</button>
+      </div>
+      <div class="clearfix"></div>
+      <h3>Details</h3>
+      <dl class="row">
+        <dt class="col-md-3">Status</dt>
+        <dd class="col-md-9">
+          <strong class="text-success">
+            {{ ticket.status.name.upper() }}
+            {% if ticket.status == TicketStatus.resolved %}
+            {{ ticket.resolution.name.upper() }}
+            {% endif %}
+          </strong>
+        </dd>
+        <dt class="col-md-3">Submitter</dt>
+        <dd class="col-md-9"><a href="#">~{{ ticket.submitter.username }}</a></dd>
+        <dt class="col-md-3">Submitted</dt>
+        <dd class="col-md-9">{{ ticket.created | date }}</dd>
+        <dt class="col-md-3">Updated</dt>
+        <dd class="col-md-9">{{ ticket.updated | date }}</dd>
+        <dt class="col-md-3">User Agent</dt>
+        <dd class="col-md-9 ellipsis" title="{{ ticket.user_agent }}">
+          {{ ticket.user_agent }}
+        </dd>
+      </dl>
+    </div>
+  </div>
+</div>
+{% endblock %}

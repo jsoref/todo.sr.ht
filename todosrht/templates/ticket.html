@@ -20,13 +20,17 @@
 </div>
 <div class="container">
   <div class="row">
-    <form class="col-md-6">
+    <div class="col-md-6">
+      {% if TicketAccess.edit in access %}
+      <a href="{{ url_for(".ticket_edit_GET",
+          owner="~" + tracker.owner.username,
+          name=tracker.name,
+          ticket_id=ticket.scoped_id) }}"
+        class="btn btn-default pull-right">Edit</a>
+      {% endif %}
       {% if ticket.description %}
       <h3>Description</h3>
       {{ ticket.description | extended_md(baselevel=4) }}
-      {% endif %}
-      {% if TicketAccess.edit in access %}
-      <a href="#" class="btn btn-default pull-right">Edit</a>
       {% endif %}
       <h3>
         Details
@@ -52,7 +56,7 @@
           {{ ticket.user_agent }}
         </dd>
       </dl>
-    </form>
+    </div>
     <div class="col-md-6">
       {% for comment in ticket.comments %}
       <h4>
