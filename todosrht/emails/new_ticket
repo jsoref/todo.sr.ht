@@ -1,5 +1,4 @@
 {{! vim: set ft=email }}
-{{! TODO: consider wrapping this }}
 {{ticket.description}}
 
 --

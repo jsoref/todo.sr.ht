@@ -115,6 +115,11 @@ def return_tracker(tracker, access, **kwargs):
     another = session.get("another") or False
     if another:
         del session["another"]
+    is_subscribed = False
+    if current_user:
+        is_subscribed = TicketSubscription.query.filter(
+                TicketSubscription.tracker_id == tracker.id,
+                TicketSubscription.user_id == current_user.id).count() > 0
     # TODO: Apply filtering here
     page = request.args.get("page")
     tickets = (Ticket.query
@@ -147,6 +152,7 @@ def return_tracker(tracker, access, **kwargs):
             total_pages=total_pages,
             page=page + 1,
             access=access,
+            is_subscribed=is_subscribed,
             **kwargs)
 
 @tracker.route("/<owner>/<path:name>")
@@ -201,7 +207,8 @@ def tracker_submit_POST(owner, name):
             ticket_id=ticket.scoped_id)
 
     for sub in tracker.subscriptions:
-        # TODO: don't notify the submitter
+        if sub.user_id == ticket.submitter_id:
+            continue
         notify(sub, "new_ticket", "#{}: {}".format(ticket.id, ticket.title),
                 headers={
                     "From": "{} <{}>".format(current_user.username,

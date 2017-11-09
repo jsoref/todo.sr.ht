@@ -1,0 +1,11 @@
+{{! vim: set ft=email }}
+{{#resolution}}
+Ticket resolved: {{resolution}}
+
+{{/resolution}}{{comment.text}}
+
+--
+
+View on the web:
+
+{{root}}{{ticket_url}}
