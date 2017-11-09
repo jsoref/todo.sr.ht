@@ -11,6 +11,7 @@ from todosrht.email import notify
 from srht.config import cfg
 from srht.database import db
 from srht.validation import Validation
+from datetime import datetime
 
 ticket = Blueprint("ticket", __name__)
 
@@ -68,7 +69,7 @@ def ticket_comment_POST(owner, name, ticket_id):
     reopen = valid.optional("reopen")
 
     valid.expect(not text or 3 < len(text) < 16384,
-            "Comment must be between 3 and 16384 characters.")
+            "Comment must be between 3 and 16384 characters.", field="comment")
 
     valid.expect(text or resolve or reopen,
             "Comment is required", field="comment")
@@ -111,6 +112,7 @@ def ticket_comment_POST(owner, name, ticket_id):
                 access=access,
                 **valid.kwargs)
 
+    tracker.updated = datetime.utcnow()
     db.session.commit()
 
     if comment:

@@ -10,6 +10,7 @@ from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from srht.config import cfg
 from srht.database import db
 from srht.validation import Validation
+from datetime import datetime
 
 tracker = Blueprint("tracker", __name__)
 
@@ -198,6 +199,7 @@ def tracker_submit_POST(owner, name):
     ticket.title = title
     ticket.description = desc
     db.session.add(ticket)
+    tracker.updated = datetime.utcnow()
     # TODO: Handle unique constraint failure (contention) and retry?
     db.session.commit()
     
