@@ -208,6 +208,7 @@ def tracker_submit_POST(owner, name):
 
     for sub in tracker.subscriptions:
         if sub.user_id == ticket.submitter_id:
+            subscribed = True
             continue
         notify(sub, "new_ticket", "#{}: {}".format(ticket.id, ticket.title),
                 headers={
@@ -216,6 +217,13 @@ def tracker_submit_POST(owner, name):
                     "Sender": smtp_user
                 }, ticket=ticket,
                 ticket_url=ticket_url.replace("%7E", "~")) # hack
+
+    if not subscribed:
+        sub = TicketSubscription()
+        sub.ticket_id = ticket.id
+        sub.user_id = user.id
+        db.session.add(sub)
+        db.session.commit()
 
     if another:
         session["another"] = True

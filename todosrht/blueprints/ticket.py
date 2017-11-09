@@ -124,9 +124,9 @@ def ticket_comment_POST(owner, name, ticket_id):
             name=tracker.name,
             ticket_id=ticket.scoped_id)
 
-    for sub in tracker.subscriptions:
-        if sub.user_id == comment.submitter_id:
-            continue
+    subscribed = False
+
+    def _notify(sub):
         notify(sub, "ticket_comment", "Re: #{}: {}".format(
             ticket.id, ticket.title),
                 headers={
@@ -139,5 +139,24 @@ def ticket_comment_POST(owner, name, ticket_id):
                 comment=comment,
                 resolution=resolution.name if resolution else None,
                 ticket_url=ticket_url.replace("%7E", "~")) # hack
+
+    for sub in tracker.subscriptions:
+        if sub.user_id == comment.submitter_id:
+            subscribed = True
+            continue
+        _notify(sub)
+
+    for sub in ticket.subscriptions:
+        if sub.user_id == comment.submitter_id:
+            subscribed = True
+            continue
+        _notify(sub)
+
+    if not subscribed:
+        sub = TicketSubscription()
+        sub.ticket_id = ticket.id
+        sub.user_id = user.id
+        db.session.add(sub)
+        db.session.commit()
 
     return redirect(ticket_url)
