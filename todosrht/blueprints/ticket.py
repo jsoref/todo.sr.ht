@@ -141,13 +141,13 @@ def ticket_comment_POST(owner, name, ticket_id):
                 ticket_url=ticket_url.replace("%7E", "~")) # hack
 
     for sub in tracker.subscriptions:
-        if sub.user_id == comment.submitter_id:
+        if sub.user_id == current_user.id:
             subscribed = True
             continue
         _notify(sub)
 
     for sub in ticket.subscriptions:
-        if sub.user_id == comment.submitter_id:
+        if sub.user_id == current_user.id:
             subscribed = True
             continue
         _notify(sub)
