@@ -98,14 +98,23 @@
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a
-            class="nav-link active"
-            href="#">open tickets</a>
+            class="nav-link {{ "active" if not search else "" }}"
+            href="{{url_for(".tracker_GET",
+                owner="~" + tracker.owner.username,
+                name=tracker.name
+              )}}">open tickets</a>
         </li>
         <li class="nav-item">
           <a
-            class="nav-link"
-            href="#">closed tickets</a>
+            class="nav-link {{
+              "active" if search == "status:closed" or search == "status:resolved" else ""
+            }}" href="?search=status:closed">closed tickets</a>
         </li>
+        {% if search and search != "status:closed" and search != "status:resolved" %}
+        <li class="nav-item">
+          <a class="nav-link active" href="?search={{ search }}">search results</a>
+        </li>
+        {% endif %}
       </ul>
       {% if len(tickets) %}
       <table class="table table-striped">

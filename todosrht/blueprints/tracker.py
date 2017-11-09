@@ -1,5 +1,6 @@
 import re
 import string
+from sqlalchemy import or_
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
@@ -113,6 +114,38 @@ def get_tracker(owner, name):
     # TODO: org trackers
     return None, None
 
+def apply_search(query, search):
+    terms = search.split(" ")
+    for term in terms:
+        term = term.lower()
+        if ":" in term:
+            prop, value = term.split(":")
+        else:
+            prop, value = None, term
+
+        if prop == "status" :
+            status_aliases = {
+                "closed": "resolved"
+            }
+            if value in status_aliases:
+                value = status_aliases[value]
+            if hasattr(TicketStatus, value):
+                status = getattr(TicketStatus, value)
+                query = query.filter(Ticket.status == status)
+                continue
+
+        if prop == "submitter":
+            user = User.query.filter(User.username == value).first()
+            if user:
+                query = query.filter(Ticket.submitter_id == user.id)
+                continue
+
+        query = query.filter(or_(
+            Ticket.description.ilike("%" + value + "%"),
+            Ticket.title.ilike("%" + value + "%")))
+
+    return query
+
 def return_tracker(tracker, access, **kwargs):
     another = session.get("another") or False
     if another:
@@ -122,13 +155,16 @@ def return_tracker(tracker, access, **kwargs):
         is_subscribed = TicketSubscription.query.filter(
                 TicketSubscription.tracker_id == tracker.id,
                 TicketSubscription.user_id == current_user.id).count() > 0
-    # TODO: Apply filtering here
     page = request.args.get("page")
-    tickets = (Ticket.query
-            .filter(Ticket.tracker_id == tracker.id)
-            .filter(Ticket.status == TicketStatus.reported)
-            .order_by(Ticket.updated.desc())
-        )
+    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
+
+    search = request.args.get("search")
+    tickets = tickets.order_by(Ticket.updated.desc())
+    if search:
+        tickets = apply_search(tickets, search)
+    else:
+        tickets = tickets.filter(Ticket.status == TicketStatus.reported)
+
     per_page = 25
     total_tickets = tickets.count()
     total_pages = tickets.count() // per_page + 1
@@ -155,6 +191,7 @@ def return_tracker(tracker, access, **kwargs):
             page=page + 1,
             access=access,
             is_subscribed=is_subscribed,
+            search=search,
             **kwargs)
 
 @tracker.route("/<owner>/<path:name>")
