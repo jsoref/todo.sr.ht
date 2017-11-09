@@ -63,8 +63,10 @@
         <a href="#">~{{ comment.submitter.username }}</a>
         <span class="pull-right">
           <small>{{ comment.created | date }}</small>
+          {# TODO: Do I want to do this?
           <small><a href="#">edit</a></small>
           <small><a href="#">delete</a></small>
+          #}
         </span>
       </h4>
       {{ comment.text | md }}
