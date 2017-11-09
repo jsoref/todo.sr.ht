@@ -42,7 +42,8 @@
             <a href="/~{{ event.ticket.submitter.username }}">
               ~{{ event.ticket.submitter.username }}
             </a>
-            on {{ format_tracker_name(event.ticket.tracker, full=True) }}:
+            on {{ format_tracker_name(event.ticket.tracker, full=True) }}{%
+            if event.ticket.description %}:{% endif %}
           </p>
           {% endif %}
           {% if EventType.comment in event.event_type %}
