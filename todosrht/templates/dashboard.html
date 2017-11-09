@@ -54,7 +54,7 @@
             on {{ format_tracker_name(event.ticket.tracker, full=True) }}:
           </p>
           {% endif %}
-          <blockquote style="margin-bottom: 0">
+          <blockquote>
             {% if event.comment %}
             {{ event.comment.text | md }}
             {% else %}

@@ -34,18 +34,23 @@ blockquote {
 
   .event {
     padding: 0.5rem;
-    border-bottom: 1px solid #888;
-
-    &:first-child {
-      margin-top: 0.5rem;
-    }
-
-    &:nth-child(2n) {
-      background: #f8f8f8;
-    }
+    margin: 0.5rem 0;
+    background: #f0f0f0;
 
     &:last-child {
-      padding-bottom: 0;
+      margin-bottom: 0;
     }
+  }
+
+  blockquote {
+    margin-bottom: 0.5rem;
+
+    *:last-child {
+      margin-bottom: 0;
+    }
+  }
+
+  *:last-child {
+    margin-bottom: 0;
   }
 }
