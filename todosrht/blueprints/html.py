@@ -34,7 +34,7 @@ def user_GET(username):
     if not user:
         abort(404)
     trackers = (Tracker.query
-            .filter(Tracker.owner_id == current_user.id)
+            .filter(Tracker.owner_id == user.id)
             .order_by(Tracker.updated.desc())).all()
     # TODO: only show public events (or events the current user can see)
     events = (Event.query
