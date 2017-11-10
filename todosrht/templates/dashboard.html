@@ -1,9 +1,31 @@
 {% extends "todo.html" %}
 {% block content %}
 <div class="container">
-  <h2 style="margin-bottom: 1rem">todo</h2>
   <div class="row">
     <div class="col-md-4">
+      {% if profile %}
+      <h2 style="margin-bottom: 1rem">
+        ~{{ profile.get("username") }}
+      </h2>
+      {% else %}
+      <h2 style="margin-bottom: 1rem">todo</h2>
+      {% endif %}
+      {% if profile %}
+      {% if profile.get("location") %}
+      <p>{{profile["location"]}}</p>
+      {% endif %}
+      {% if profile.get("url") %}
+      <p>
+        <a href="{{profile["url"]}}" target="_blank">
+          {{profile["url"]}}
+        </a>
+      </p>
+      {% endif %}
+      {% if profile.get("bio") %}
+      <p>{{profile["bio"]}}</p>
+      {% endif %}
+      {% endif %}
+
       <h3>{{ tracker_list_msg }}</h3>
       {% if len(trackers) > 0 %}
       <div class="tracker-list">
