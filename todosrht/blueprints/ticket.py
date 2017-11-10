@@ -168,6 +168,7 @@ def ticket_comment_POST(owner, name, ticket_id):
         notification.event_id = event.id
         db.session.add(notification)
 
+    subscribed = False
     updated_users = set()
     for sub in tracker.subscriptions:
         updated_users.update([sub.user_id])

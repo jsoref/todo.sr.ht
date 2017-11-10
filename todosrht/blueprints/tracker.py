@@ -252,6 +252,7 @@ def tracker_submit_POST(owner, name):
             name=name,
             ticket_id=ticket.scoped_id)
 
+    subscribed = False
     for sub in tracker.subscriptions:
         notification = EventNotification()
         notification.user_id = sub.user_id
