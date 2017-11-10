@@ -36,6 +36,7 @@ def user_GET(username):
     trackers = (Tracker.query
             .filter(Tracker.owner_id == current_user.id)
             .order_by(Tracker.updated.desc())).all()
+    # TODO: only show public events (or events the current user can see)
     events = (Event.query
             .filter(Event.user_id == user.id)
             .order_by(Event.created.desc())
@@ -51,6 +52,6 @@ def user_GET(username):
             user=user,
             profile=profile,
             trackers=trackers,
-            tracker_list_msg="Trackers".format(user.username),
+            tracker_list_msg="Trackers",
             events=events,
             EventType=EventType)

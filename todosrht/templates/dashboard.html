@@ -4,12 +4,16 @@
   <div class="row">
     <div class="col-md-4">
       {% if profile %}
-      <h2 style="margin-bottom: 1rem">
+      <h2>
         ~{{ profile.get("username") }}
       </h2>
       {% else %}
-      <h2 style="margin-bottom: 1rem">todo</h2>
+      <h2>todo</h2>
+      <p>
+        Welcome back, {{ current_user.username }}!
+      </p>
       {% endif %}
+
       {% if profile %}
       {% if profile.get("location") %}
       <p>{{profile["location"]}}</p>
@@ -26,6 +30,12 @@
       {% endif %}
       {% endif %}
 
+      {% if profile and (current_user and user.id == current_user.id) %}
+      <div class="alert alert-info">
+        This is your public profile page.
+      </div>
+      {% endif %}
+
       <h3>{{ tracker_list_msg }}</h3>
       {% if len(trackers) > 0 %}
       <div class="tracker-list">
@@ -34,6 +44,13 @@
         <span class="text-muted">Last active {{ tracker.updated | date }}</span>
         {% endfor %}
       </div>
+      {% if not user or (current_user and user.id == current_user.id) %}
+      <a
+        style="margin-top: 1rem"
+        class="btn btn-default btn-block"
+        href="{{ url_for("tracker.create_GET") }}"
+      >Create new tracker</a>
+      {% endif %}
       {% else %}
       <p>
         Nothing here yet! Would you like to
