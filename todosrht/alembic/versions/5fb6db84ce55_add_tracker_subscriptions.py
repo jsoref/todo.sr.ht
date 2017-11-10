@@ -19,7 +19,6 @@ from sqlalchemy.orm import sessionmaker, Session as BaseSession, relationship
 Session = sessionmaker()
 Base = declarative_base()
 
-
 class Tracker(Base):
     __tablename__ = 'tracker'
     id = sa.Column(sa.Integer, primary_key=True)

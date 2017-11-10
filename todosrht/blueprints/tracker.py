@@ -8,7 +8,7 @@ from todosrht.decorators import loginrequired
 from todosrht.email import notify
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
-from todosrht.types import TicketSeen, Event, EventType
+from todosrht.types import TicketSeen, Event, EventType, EventNotification
 from srht.config import cfg
 from srht.database import db
 from srht.validation import Validation
@@ -240,6 +240,12 @@ def tracker_submit_POST(owner, name):
     tracker.updated = datetime.utcnow()
     # TODO: Handle unique constraint failure (contention) and retry?
     db.session.flush()
+    event = Event()
+    event.event_type = EventType.created
+    event.user_id = current_user.id
+    event.ticket_id = ticket.id
+    db.session.add(event)
+    db.session.flush()
     
     ticket_url = url_for("ticket.ticket_GET",
             owner="~" + tracker.owner.username,
@@ -247,11 +253,10 @@ def tracker_submit_POST(owner, name):
             ticket_id=ticket.scoped_id)
 
     for sub in tracker.subscriptions:
-        event = Event()
-        event.event_type = EventType.created
-        event.user_id = sub.user_id
-        event.ticket_id = ticket.id
-        db.session.add(event)
+        notification = EventNotification()
+        notification.user_id = sub.user_id
+        notification.event_id = event.id
+        db.session.add(notification)
 
         if sub.user_id == ticket.submitter_id:
             subscribed = True

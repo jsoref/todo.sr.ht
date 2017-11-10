@@ -6,4 +6,4 @@ from .ticketseen import TicketSeen
 from .ticket import Ticket
 from .ticketsubscription import TicketSubscription
 from .ticketcomment import TicketComment
-from .event import Event, EventType
+from .event import Event, EventType, EventNotification

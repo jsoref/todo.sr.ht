@@ -37,3 +37,17 @@ class Event(Base):
 
     def __repr__(self):
         return '<Event {}>'.format(self.id)
+
+class EventNotification(Base):
+    __tablename__ = 'event_notification'
+    id = sa.Column(sa.Integer, primary_key=True)
+    created = sa.Column(sa.DateTime, nullable=False)
+
+    event_id = sa.Column(sa.Integer, sa.ForeignKey("event.id"), nullable=False)
+    event = sa.orm.relationship("Event", backref=sa.orm.backref("notifications"))
+
+    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
+    user = sa.orm.relationship("User", backref=sa.orm.backref("notifications"))
+
+    def __repr__(self):
+        return '<EventNotification {} {}>'.format(self.id, self.user.username)

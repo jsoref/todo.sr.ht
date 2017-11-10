@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template
 from flask_login import current_user
-from todosrht.types import Tracker, Event, EventType
+from todosrht.types import Tracker, Event, EventNotification, EventType
 
 html = Blueprint('html', __name__)
 
@@ -12,10 +12,10 @@ def index():
     your_trackers = (Tracker.query
             .filter(Tracker.owner_id == current_user.id)
             .order_by(Tracker.updated.desc())).all()
-    events = (Event.query
-            .filter(Event.user_id == current_user.id)
-            .order_by(Event.created.desc())
-            .limit(10)).all()
+    events = [e.event for e in (EventNotification.query
+            .filter(EventNotification.user_id == current_user.id)
+            .order_by(EventNotification.created.desc())
+            .limit(10)).all()]
     return render_template("dashboard.html",
             your_trackers=your_trackers,
             events=events,
