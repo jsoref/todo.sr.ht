@@ -28,7 +28,8 @@ setup(
   package_data={
       'todosrht': [
           'templates/*.html',
-          'static/*'
+          'static/*',
+          'emails/*'
       ]
   }
 )
