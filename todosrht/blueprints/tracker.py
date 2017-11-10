@@ -273,7 +273,7 @@ def tracker_submit_POST(owner, name):
     if not subscribed:
         sub = TicketSubscription()
         sub.ticket_id = ticket.id
-        sub.user_id = user.id
+        sub.user_id = current_user.id
         db.session.add(sub)
 
     db.session.commit()

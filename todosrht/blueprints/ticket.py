@@ -190,7 +190,7 @@ def ticket_comment_POST(owner, name, ticket_id):
     if not subscribed:
         sub = TicketSubscription()
         sub.ticket_id = ticket.id
-        sub.user_id = user.id
+        sub.user_id = current_user.id
         db.session.add(sub)
         _add_notification(sub)
 
