@@ -47,7 +47,7 @@ def user_GET(username):
     if r.status_code == 200:
         profile = r.json()
     else:
-        profile = None
+        profile = dict()
     return render_template("dashboard.html",
             user=user,
             profile=profile,
