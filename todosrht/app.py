@@ -13,6 +13,7 @@ db.init()
 
 from srht.flask import SrhtFlask
 app = SrhtFlask("todo", __name__)
+app.url_map.strict_slashes = False
 app.secret_key = cfg("server", "secret-key")
 login_manager = LoginManager()
 login_manager.init_app(app)

@@ -102,7 +102,7 @@ def get_tracker(owner, name):
             return None, None
         tracker = (Tracker.query
                 .filter(Tracker.owner_id == owner.id)
-                .filter(Tracker.name == name.lower().rstrip("/"))
+                .filter(Tracker.name == name.lower())
             ).first()
         if not tracker:
             return None, None
@@ -246,7 +246,7 @@ def tracker_submit_POST(owner, name):
     event.ticket_id = ticket.id
     db.session.add(event)
     db.session.flush()
-    
+
     ticket_url = url_for("ticket.ticket_GET",
             owner="~" + tracker.owner.username,
             name=name,
