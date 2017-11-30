@@ -4,10 +4,10 @@ from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
 from todosrht.decorators import loginrequired
+from todosrht.access import get_tracker, get_ticket
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSeen
 from todosrht.types import Event, EventType, EventNotification
-from todosrht.blueprints.tracker import get_access, get_tracker
 from todosrht.email import notify
 from srht.config import cfg
 from srht.database import db
@@ -17,18 +17,6 @@ from datetime import datetime
 ticket = Blueprint("ticket", __name__)
 
 smtp_user = cfg("mail", "smtp-user", default=None)
-
-def get_ticket(tracker, ticket_id):
-    ticket = (Ticket.query
-            .filter(Ticket.scoped_id == ticket_id)
-            .filter(Ticket.tracker_id == tracker.id)
-        ).first()
-    if not ticket:
-        return None, None
-    access = get_access(tracker, ticket)
-    if not TicketAccess.browse in access:
-        return None, None
-    return ticket, access
 
 @ticket.route("/<owner>/<path:name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):

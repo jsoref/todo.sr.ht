@@ -1,5 +1,6 @@
 from flask import Blueprint, render_template
 from flask_login import current_user
+from todosrht.access import get_tracker
 from todosrht.types import Tracker, Event, EventNotification, EventType
 from todosrht.types import User
 from srht.config import cfg
@@ -33,9 +34,7 @@ def user_GET(username):
     user = User.query.filter(User.username == username.lower()).first()
     if not user:
         abort(404)
-    trackers = (Tracker.query
-            .filter(Tracker.owner_id == user.id)
-            .order_by(Tracker.updated.desc())).all()
+    trackers, _ = get_tracker(username, None)
     # TODO: only show public events (or events the current user can see)
     events = (Event.query
             .filter(Event.user_id == user.id)

@@ -4,6 +4,7 @@ from sqlalchemy import or_
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
+from todosrht.access import get_tracker
 from todosrht.decorators import loginrequired
 from todosrht.email import notify
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
@@ -19,20 +20,6 @@ tracker = Blueprint("tracker", __name__)
 name_re = re.compile(r"^([a-z][a-z0-9_.-]*/?)+$")
 
 smtp_user = cfg("mail", "smtp-user", default=None)
-
-def get_access(tracker, ticket):
-    # TODO: flesh out
-    if current_user and current_user.id == tracker.owner_id:
-        return TicketAccess.all
-    elif current_user:
-        if ticket and current_user.id == ticket.submitter_id:
-            return ticket.submitter_perms or tracker.default_submitter_perms
-        return tracker.default_submitter_perms
-
-    if ticket:
-        return ticket.anonymous_perms
-    return tracker.default_anonymous_perms
-
 
 @tracker.route("/tracker/create")
 @loginrequired
@@ -94,25 +81,6 @@ def create_POST():
     return redirect(url_for(".tracker_GET",
             owner="~" + current_user.username,
             name=name))
-
-def get_tracker(owner, name):
-    if owner.startswith("~"):
-        owner = User.query.filter(User.username == owner[1:]).first()
-        if not owner:
-            return None, None
-        tracker = (Tracker.query
-                .filter(Tracker.owner_id == owner.id)
-                .filter(Tracker.name == name.lower())
-            ).first()
-        if not tracker:
-            return None, None
-        access = get_access(tracker, None)
-        if access:
-            return tracker, access
-        return None, None
-
-    # TODO: org trackers
-    return None, None
 
 def apply_search(query, search):
     terms = search.split(" ")
