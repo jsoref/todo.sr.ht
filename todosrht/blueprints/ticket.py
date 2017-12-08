@@ -7,6 +7,7 @@ from todosrht.decorators import loginrequired
 from todosrht.access import get_tracker, get_ticket
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSeen
+from todosrht.types import TicketSubscription
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.email import notify
 from srht.config import cfg
