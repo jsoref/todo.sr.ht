@@ -232,7 +232,7 @@ def tracker_submit_POST(owner, name):
             continue
         notify(sub, "new_ticket", "{}/{}/#{}: {}".format(
             "~" + tracker.owner.username, tracker.name,
-            ticket.id, ticket.title),
+            ticket.scoped_id, ticket.title),
                 headers={
                     "From": "{} <{}>".format(current_user.username,
                         current_user.email),

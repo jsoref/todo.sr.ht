@@ -124,7 +124,7 @@ def ticket_comment_POST(owner, name, ticket_id):
     def _notify(sub):
         notify(sub, "ticket_comment", "Re: {}/{}/#{}: {}".format(
             "~" + tracker.owner.username, tracker.name,
-            ticket.id, ticket.title),
+            ticket.scoped_id, ticket.title),
                 headers={
                     "From": "{} <{}>".format(
                         current_user.username,
