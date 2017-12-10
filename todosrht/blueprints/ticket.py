@@ -122,7 +122,8 @@ def ticket_comment_POST(owner, name, ticket_id):
     subscribed = False
 
     def _notify(sub):
-        notify(sub, "ticket_comment", "Re: #{}: {}".format(
+        notify(sub, "ticket_comment", "Re: {}/{}/#{}: {}".format(
+            "~" + tracker.owner.username, tracker.name,
             ticket.id, ticket.title),
                 headers={
                     "From": "{} <{}>".format(

@@ -230,7 +230,9 @@ def tracker_submit_POST(owner, name):
         if sub.user_id == ticket.submitter_id:
             subscribed = True
             continue
-        notify(sub, "new_ticket", "#{}: {}".format(ticket.id, ticket.title),
+        notify(sub, "new_ticket", "{}/{}/#{}: {}".format(
+            "~" + tracker.owner.username, tracker.name,
+            ticket.id, ticket.title),
                 headers={
                     "From": "{} <{}>".format(current_user.username,
                         current_user.email),
