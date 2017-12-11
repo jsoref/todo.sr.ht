@@ -120,7 +120,7 @@
       <table class="table table-striped">
         <thead>
           <tr>
-            <th></th>
+            <th style="width: 1px"></th>
             <th>Title</th>
             <th>Updated</th>
             <th>Submitter</th>
@@ -130,7 +130,7 @@
         <tbody>
           {% for ticket in tickets %}
           <tr>
-            <td><a href="{{url_for("ticket.ticket_GET",
+            <td style="text-align: right"><a href="{{url_for("ticket.ticket_GET",
                 owner="~" + tracker.owner.username,
                 name=tracker.name,
                 ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></td>
