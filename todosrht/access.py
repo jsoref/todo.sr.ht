@@ -9,7 +9,7 @@ def get_access(tracker, ticket):
     elif current_user:
         if ticket and current_user.id == ticket.submitter_id:
             return ticket.submitter_perms or tracker.default_submitter_perms
-        return tracker.default_submitter_perms
+        return tracker.default_user_perms
 
     if ticket:
         return ticket.anonymous_perms
