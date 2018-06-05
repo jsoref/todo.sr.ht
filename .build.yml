@@ -7,6 +7,7 @@ packages:
   - python-srht
   - python-flask-login
   - rsync
+  - pacman-contrib
 sources:
   - https://git.sr.ht/~sircmpwn/todo.sr.ht
   - https://git.sr.ht/~sircmpwn/sr.ht-pkgbuilds
