@@ -1,0 +1,55 @@
+<div class="events">
+{% for event in events %}
+  <div class="event">
+    <h4>
+      <a href="{{ url_for("ticket.ticket_GET",
+          owner="~" + event.ticket.tracker.owner.username,
+          name=event.ticket.tracker.name,
+          ticket_id=event.ticket.scoped_id) }}">
+        #{{event.ticket.scoped_id}}
+      </a> {{ event.ticket.title }}
+      <small class="pull-right">{{ event.created | date }}</small>
+    </h4>
+    <p>
+    {% if EventType.created in event.event_type %}
+      Ticket created by
+      <a href="/~{{ event.ticket.submitter.username }}">
+        ~{{ event.ticket.submitter.username }}
+      </a>
+    {% elif EventType.comment in event.event_type %}
+      Comment by
+      <a href="/~{{ event.comment.submitter.username }}">
+        ~{{ event.comment.submitter.username }}
+      </a>
+    {% endif %}
+      on {{ format_tracker_name(event.ticket.tracker, full=True) }}:
+    </p>
+    <blockquote>
+      {% if event.comment %}
+      {{ event.comment.text | md }}
+      {% elif EventType.created in event.event_type %}
+      {{ event.ticket.description | md }}
+      {% endif %}
+    </blockquote>
+    {% if EventType.status_change in event.event_type %}
+    <p>
+      <strong class="text-success">
+        {{ event.old_status.name.upper() }}
+        {% if event.old_status == TicketStatus.resolved %}
+        {{ event.old_resolution.name.upper() }}
+        {% endif %}
+      </strong>
+      <span class="fa fa-arrow-right"></span>
+      <strong class="text-success">
+        {{ event.new_status.name.upper() }}
+        {% if event.new_status == TicketStatus.resolved %}
+        {{ event.new_resolution.name.upper() }}
+        {% endif %}
+      </strong>
+    </p>
+    {% endif %}
+  </div>
+{% else %}
+  <p>Nothing here yet!</p>
+{% endfor %}
+</div>
