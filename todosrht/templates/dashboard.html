@@ -8,9 +8,11 @@
         ~{{ profile.get("username") }}
       </h2>
       {% else %}
-      <h2>todo</h2>
       <p>
         Welcome back, {{ current_user.username }}!
+        This is the {{cfg("sr.ht", "site-name")}} ticket tracking service.
+        Documentation for its use is
+        <a href="https://man.sr.ht/todo.sr.ht">available here</a>.
       </p>
       {% endif %}
 
@@ -36,26 +38,21 @@
       </div>
       {% endif %}
 
-      <h3>{{ tracker_list_msg }}</h3>
       {% if len(trackers) > 0 %}
+      <h3>{{ tracker_list_msg }}</h3>
       <div class="tracker-list">
         {% for tracker in trackers %}
         <h4>{{ format_tracker_name(tracker, full=True) }}</h4>
         <span class="text-muted">Last active {{ tracker.updated | date }}</span>
         {% endfor %}
       </div>
+      {% endif %}
       {% if not user or (current_user and user.id == current_user.id) %}
       <a
         style="margin-top: 1rem"
         class="btn btn-default btn-block"
         href="{{ url_for("tracker.create_GET") }}"
       >Create new tracker</a>
-      {% endif %}
-      {% else %}
-      <p>
-        Nothing here yet! Would you like to
-        <a href="{{ url_for("tracker.create_GET") }}">create one</a>?
-      </p>
       {% endif %}
     </div>
     <div class="col-md-8">
