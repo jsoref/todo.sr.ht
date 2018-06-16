@@ -12,11 +12,11 @@
   <div class="row">
     <form class="col-md-6" method="POST">
       <h3>Edit Ticket</h3>
-      <div class="form-group {{ valid.cls("title") }}">
+      <div class="form-group">
         <label for="title">Title</label>
         <input
            type="text"
-           class="form-control"
+           class="form-control {{ valid.cls("title") }}"
            maxlength="2048"
            id="title"
            name="title"
@@ -24,10 +24,10 @@
            value="{{ title or ticket.title or "" }}" />
         {{valid.summary("title")}}
       </div>
-      <div class="form-group {{ valid.cls("description") }}">
+      <div class="form-group">
         <label for="description">Description</label>
         <textarea
-          class="form-control"
+          class="form-control {{ valid.cls("description") }}"
           name="description"
           rows="5"
           placeholder="Markdown supported"

@@ -12,13 +12,13 @@
     <div class="col-md-6">
       <h2>Create new tracker</h2>
       <form method="POST" action="/tracker/create">
-        <div class="form-group {{valid.cls("tracker_name")}}">
+        <div class="form-group">
           <label for="tracker_name">Name</label>
           <input
             type="text"
             name="tracker_name"
             id="tracker_name"
-            class="form-control"
+            class="form-control {{valid.cls("tracker_name")}}"
             value="{{ tracker_name or "" }}"
             aria-describedby="tracker_name-help" />
           {{valid.summary("tracker_name")}}
@@ -26,12 +26,12 @@
             Use slashes to nest trackers (i.e. my-project/linux)
           </p>
         </div>
-        <div class="form-group {{valid.cls("tracker_desc")}}">
+        <div class="form-group">
           <label for="tracker_desc">Description</label>
           <textarea
             name="tracker_desc"
             id="tracker_desc"
-            class="form-control"
+            class="form-control {{valid.cls("tracker_desc")}}"
             value="{{ tracker_desc or "" }}"
             rows="5"
             aria-describedby="tracker_desc-help">{{tracker_desc or ""}}</textarea>

@@ -82,9 +82,9 @@
             ticket_id=ticket.scoped_id
           )
         }}">
-        <div class="form-group {{ valid.cls("comment") }}">
+        <div class="form-group">
           <textarea
-            class="form-control"
+            class="form-control {{ valid.cls("comment") }}"
             id="comment"
             name="comment"
             placeholder="Markdown supported"
