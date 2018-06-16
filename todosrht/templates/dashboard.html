@@ -36,6 +36,15 @@
       <div class="alert alert-info">
         This is your public profile page.
       </div>
+      {% elif not user or (current_user and user.id == current_user.id) %}
+      <a
+        style="margin-bottom: 1rem"
+        class="btn btn-primary btn-block"
+        href="{{ url_for("tracker.create_GET") }}"
+      >
+        Create new tracker
+        <i class="fa fa-caret-right"></i>
+      </a>
       {% endif %}
 
       {% if len(trackers) > 0 %}
@@ -47,16 +56,8 @@
         {% endfor %}
       </div>
       {% endif %}
-      {% if not user or (current_user and user.id == current_user.id) %}
-      <a
-        style="margin-top: 1rem"
-        class="btn btn-default btn-block"
-        href="{{ url_for("tracker.create_GET") }}"
-      >Create new tracker</a>
-      {% endif %}
     </div>
-    <div class="col-md-8">
-      <h3>Recent Activity</h3>
+    <div class="col-md-6">
       {% include 'events.html' with context %}
       </div>
     </div>
