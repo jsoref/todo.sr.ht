@@ -7,8 +7,13 @@
   text-overflow: ellipsis;
 }
 
-select {
+select.form-control {
   padding: 0.1rem;
+  display: inline-block;
+  width: auto;
+  height: 1.7rem !important;
+  position: relative;
+  top: 1px;
 }
 
 .tracker-list h4 {
