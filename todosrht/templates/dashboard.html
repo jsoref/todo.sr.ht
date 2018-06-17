@@ -46,7 +46,6 @@
         <i class="fa fa-caret-right"></i>
       </a>
       {% endif %}
-
       {% if len(trackers) > 0 %}
       <h3>{{ tracker_list_msg }}</h3>
       <div class="tracker-list">
@@ -58,6 +57,7 @@
       {% endif %}
     </div>
     <div class="col-md-8">
+      <hr class="d-md-none" />
       {% include 'events.html' with context %}
       </div>
     </div>
