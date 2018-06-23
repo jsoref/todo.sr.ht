@@ -12,13 +12,18 @@
     <div class="col-md-12">
       <h2>
         {{ format_tracker_name(tracker) }}
+        <small>
+          <a
+            href="/~{{tracker.owner.username}}/{{tracker.name}}/configure"
+          >Configure</a>
+        </small>
       </h2>
     </div>
   </div>
   <div class="row">
     <div class="col-md-4">
       {{ tracker.description | md }}
-      {% if current_user %}
+      {% if TicketAccess.submit in access %}
       <h3 style="margin-top: 1rem">Submit ticket</h3>
       <form method="POST" action="{{
           url_for(".tracker_submit_POST",
