@@ -37,20 +37,16 @@ class Ticket(Base):
             nullable=False,
             default=TicketStatus.resolved)
 
-    user_perms = sa.Column(FlagType(TicketAccess),
-            default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
+    user_perms = sa.Column(FlagType(TicketAccess), nullable=True)
     """Permissions given to any logged in user"""
 
-    submitter_perms = sa.Column(FlagType(TicketAccess),
-            default=TicketAccess.browse + TicketAccess.edit + TicketAccess.comment)
+    submitter_perms = sa.Column(FlagType(TicketAccess), nullable=True)
     """Permissions granted to submitters for their own tickets"""
 
-    committer_perms = sa.Column(FlagType(TicketAccess),
-            default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
+    committer_perms = sa.Column(FlagType(TicketAccess), nullable=True)
     """Permissions granted to people who have authored commits in the linked git repo"""
 
-    anonymous_perms = sa.Column(FlagType(TicketAccess),
-            default=TicketAccess.browse)
+    anonymous_perms = sa.Column(FlagType(TicketAccess), nullable=True)
     """Permissions granted to anonymous (non-logged in) users"""
 
     view_list = sa.orm.relationship("TicketSeen")

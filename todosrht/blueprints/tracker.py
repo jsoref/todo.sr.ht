@@ -169,6 +169,7 @@ def tracker_GET(owner, name):
         abort(404)
     return return_tracker(tracker, access)
 
+
 def parse_html_perms(short, valid):
     result = 0
     for sub_perm in TicketAccess:

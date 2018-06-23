@@ -11,7 +11,7 @@ def get_access(tracker, ticket):
             return ticket.submitter_perms or tracker.default_submitter_perms
         return tracker.default_user_perms
 
-    if ticket:
+    if ticket and ticket.anonymous_perms:
         return ticket.anonymous_perms
     return tracker.default_anonymous_perms
 
