@@ -18,19 +18,21 @@ def get_access(tracker, ticket):
 def get_owner(owner):
     pass
 
-def get_tracker(owner, name=None):
+def get_tracker(owner, name=None, with_for_update=False):
     if not owner:
         return None, None
 
     if owner.startswith("~"):
         owner = owner[1:]
 
-    owner = User.query.filter(User.username == owner).first()
+    owner = User.query.filter(User.username == owner).one_or_none()
     if name:
         tracker = (Tracker.query
-                .filter(Tracker.owner_id == owner.id)
-                .filter(Tracker.name == name.lower())
-            ).first()
+            .filter(Tracker.owner_id == owner.id)
+            .filter(Tracker.name == name.lower()))
+        if with_for_update:
+            tracker = tracker.with_for_update()
+        tracker = tracker.one_or_none()
         if not tracker:
             return None, None
         access = get_access(tracker, None)
@@ -46,8 +48,7 @@ def get_tracker(owner, name=None):
 def get_ticket(tracker, ticket_id):
     ticket = (Ticket.query
             .filter(Ticket.scoped_id == ticket_id)
-            .filter(Ticket.tracker_id == tracker.id)
-        ).first()
+            .filter(Ticket.tracker_id == tracker.id)).one_or_none()
     if not ticket:
         return None, None
     access = get_access(tracker, ticket)

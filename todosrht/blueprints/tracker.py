@@ -239,7 +239,7 @@ def tracker_configure_GET(owner, name):
 @tracker.route("/<owner>/<path:name>/submit", methods=["POST"])
 @loginrequired
 def tracker_submit_POST(owner, name):
-    tracker, access = get_tracker(owner, name)
+    tracker, access = get_tracker(owner, name, True)
     if not tracker:
         abort(404)
     if not TicketAccess.submit in access:
@@ -258,6 +258,7 @@ def tracker_submit_POST(owner, name):
             field="description")
 
     if not valid.ok:
+        db.session.commit() # Unlock tracker row
         return return_tracker(tracker, **valid.kwargs), 400
 
     ticket = Ticket()
@@ -271,7 +272,7 @@ def tracker_submit_POST(owner, name):
     db.session.add(ticket)
     tracker.updated = datetime.utcnow()
     # TODO: Handle unique constraint failure (contention) and retry?
-    db.session.flush()
+    db.session.commit()
     event = Event()
     event.event_type = EventType.created
     event.user_id = current_user.id
