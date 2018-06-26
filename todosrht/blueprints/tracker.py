@@ -176,11 +176,6 @@ def parse_html_perms(short, valid):
         new_perm = valid.optional("perm_{}_{}".format(short, sub_perm.name))
         if new_perm:
             result |= int(new_perm)
-    if result == 0:
-        print(short)
-        valid.expect(result or "perm_{}_none".format(short) in valid,
-                     "{} type permissions are missing".format(short),
-                     field="tracker_{}_access".format(short))
     return result
 
 access_help_map={
