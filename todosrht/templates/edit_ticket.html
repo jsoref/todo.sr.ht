@@ -56,7 +56,12 @@
           </strong>
         </dd>
         <dt class="col-md-3">Submitter</dt>
-        <dd class="col-md-9"><a href="#">~{{ ticket.submitter.username }}</a></dd>
+        <dd class="col-md-9">
+          <a
+            href="{{url_for("html.user_GET",
+              username=ticket.submitter.username)}}"
+          >~{{ ticket.submitter.username }}</a>
+        </dd>
         <dt class="col-md-3">Submitted</dt>
         <dd class="col-md-9">{{ ticket.created | date }}</dd>
         <dt class="col-md-3">Updated</dt>

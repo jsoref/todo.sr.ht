@@ -48,7 +48,12 @@
           </strong>
         </dd>
         <dt class="col-md-3">Submitter</dt>
-        <dd class="col-md-9"><a href="#">~{{ ticket.submitter.username }}</a></dd>
+        <dd class="col-md-9">
+          <a
+            href="{{url_for("html.user_GET",
+              username=ticket.submitter.username)}}"
+          >~{{ ticket.submitter.username }}</a>
+        </dd>
         <dt class="col-md-3">Submitted</dt>
         <dd class="col-md-9">{{ ticket.created | date }}</dd>
         <dt class="col-md-3">Updated</dt>
@@ -62,13 +67,12 @@
     <div class="col-md-6">
       {% for comment in ticket.comments %}
       <h4>
-        <a href="#">~{{ comment.submitter.username }}</a>
+        <a href="{{url_for("html.user_GET",
+              username=comment.submitter.username)}}">
+          ~{{ comment.submitter.username }}
+        </a>
         <span class="pull-right">
           <small>{{ comment.created | date }}</small>
-          {# TODO: Do I want to do this?
-          <small><a href="#">edit</a></small>
-          <small><a href="#">delete</a></small>
-          #}
         </span>
       </h4>
       {{ comment.text | md }}
