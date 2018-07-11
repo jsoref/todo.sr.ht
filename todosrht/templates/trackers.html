@@ -1,0 +1,63 @@
+{% extends "todo.html" %}
+{% block content %}
+<div class="container">
+  <div class="row">
+    <div class="col-md-4">
+      <h2>
+        ~{{ profile.get("username") }}
+      </h2>
+
+      {% if profile.get("location") %}
+      <p>{{profile["location"]}}</p>
+      {% endif %}
+      {% if profile.get("url") %}
+      <p>
+        <a href="{{profile["url"]}}" target="_blank">
+          {{profile["url"]}}
+        </a>
+      </p>
+      {% endif %}
+      {% if profile.get("bio") %}
+      <p>{{profile["bio"]}}</p>
+      {% endif %}
+    </div>
+    <div class="col-md-8">
+      {% if len(trackers) > 0 %}
+      <form>
+        <input
+          name="search"
+          type="text"
+          placeholder="Search"
+          class="form-control"
+          value="{{ search if search else "" }}" />
+      </form>
+      <div class="event-list">
+        {% for tracker in trackers %}
+        <div class="event">
+          <h4>{{ format_tracker_name(tracker, full=True) }}</h4>
+          <span class="text-muted">
+            Last active {{ tracker.updated | date }}
+          </span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      {% if search %}
+      <form>
+        <input
+          name="search"
+          type="text"
+          placeholder="Search"
+          class="form-control"
+          value="{{ search if search else "" }}" />
+      </form>
+      <p>Nothing found.</p>
+      {% else %}
+      <p>This user has no trackers.</p>
+      {% endif %}
+      {% endif %}
+      {{pagination()}}
+    </div>
+  </div>
+</div>
+{% endblock %}

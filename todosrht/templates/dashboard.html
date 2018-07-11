@@ -54,6 +54,14 @@
         <span class="text-muted">Last active {{ tracker.updated | date }}</span>
         {% endfor %}
       </div>
+      {% if more_trackers %}
+      <a
+        href="{{ url_for("html.trackers_for_user",
+          username=(user or current_user).username) }}"
+        class="btn btn-default btn-block"
+        style="margin-top: 1rem"
+      >View more <i class="fa fa-caret-right"></i></a>
+      {% endif %}
       {% endif %}
     </div>
     <div class="col-md-8">

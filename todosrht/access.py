@@ -18,7 +18,7 @@ def get_access(tracker, ticket):
 def get_owner(owner):
     pass
 
-def get_tracker(owner, name=None, with_for_update=False):
+def get_tracker(owner, name, with_for_update=False):
     if not owner:
         return None, None
 
@@ -26,25 +26,18 @@ def get_tracker(owner, name=None, with_for_update=False):
         owner = owner[1:]
 
     owner = User.query.filter(User.username == owner).one_or_none()
-    if name:
-        tracker = (Tracker.query
-            .filter(Tracker.owner_id == owner.id)
-            .filter(Tracker.name == name.lower()))
-        if with_for_update:
-            tracker = tracker.with_for_update()
-        tracker = tracker.one_or_none()
-        if not tracker:
-            return None, None
-        access = get_access(tracker, None)
-        if access:
-            return tracker, access
-    else:
-        all = (Tracker.query
-            .filter(Tracker.owner_id == owner.id)
-            .order_by(Tracker.updated.desc())
-        ).all()
-        allowed = list(filter(lambda x: get_access(x, None), all))
-        return allowed, None
+    tracker = (Tracker.query
+        .filter(Tracker.owner_id == owner.id)
+        .filter(Tracker.name == name.lower()))
+    if with_for_update:
+        tracker = tracker.with_for_update()
+    tracker = tracker.one_or_none()
+    if not tracker:
+        return None, None
+    access = get_access(tracker, None)
+    if access:
+        return tracker, access
+
     # TODO: org trackers
     return None, None
 
