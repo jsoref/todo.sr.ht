@@ -146,10 +146,11 @@
                 ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></td>
             <td>{{ ticket.title }}</td>
             <td>{{ ticket.updated | date }}</td>
-            <td><a href="{{url_for("ticket.ticket_GET",
-                owner="~" + tracker.owner.username,
-                name=tracker.name,
-                ticket_id=ticket.scoped_id)}}">{{ ticket.submitter.username }}</a></td>
+            <td>
+              <a href="{{url_for("html.user_GET",
+                username=ticket.submitter.username)}}"
+              >~{{ ticket.submitter.username }}</a>
+            </td>
             {% if ticket.new_updates(current_user) %}
             <td style="text-align: center">
               {{ ticket.comments | length }}&nbsp;<span class="fa fa-fw fa-comments-o"></span>
