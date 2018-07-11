@@ -113,4 +113,5 @@ def trackers_for_user(username):
         profile = dict()
 
     return render_template("trackers.html",
-            profile=profile, trackers=trackers, search=search, **pagination)
+            user=user, profile=profile,
+            trackers=trackers, search=search, **pagination)
