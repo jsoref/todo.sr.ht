@@ -75,26 +75,25 @@
             {% endif %}> Submit another?
         </label>
       </form>
-      {# TODO
-      <h3>Notifications</h3>
-      {% if is_subscribed %}
-      <p>You are receiving email notifications for this tracker.</p>
-      {% else %}
-      <p>You are not receiving email notifications for this tracker.</p>
-      {% endif %}
       <form method="POST" action="{{url_for("tracker." +
-          "enable_notifications" if is_subscribed else "disable_notifications",
+          ("disable_notifications" if is_subscribed else "enable_notifications"),
           owner=tracker.owner.canonical_name(),
           name=tracker.name)}}">
+        <h3>Notifications</h3>
+        {% if is_subscribed %}
+        <p>You are receiving email notifications for this tracker.</p>
+        {% else %}
+        <p>You are not receiving email notifications for this tracker.</p>
+        {% endif %}
         <button class="btn btn-default btn-block" type="submit">
           {% if is_subscribed %}
           Disable notifications
           {% else %}
           Enable notifications
           {% endif %}
+          <i class="fa fa-caret-right"></i>
         </button>
       </form>
-      #}
       {% else %}
       <hr />
       <p>You need to <a href="{{ oauth_url }}">log in</a> to submit tickets.</p>

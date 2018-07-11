@@ -71,7 +71,6 @@ def create_POST():
     sub.tracker_id = tracker.id
     sub.user_id = current_user.id
     db.session.add(sub)
-
     db.session.commit()
 
     if "create-configure" in valid:
@@ -121,9 +120,12 @@ def return_tracker(tracker, access, **kwargs):
         del session["another"]
     is_subscribed = False
     if current_user:
-        is_subscribed = TicketSubscription.query.filter(
-                TicketSubscription.tracker_id == tracker.id,
-                TicketSubscription.user_id == current_user.id).count() > 0
+        sub = (TicketSubscription.query
+            .filter(TicketSubscription.tracker_id == tracker.id)
+            .filter(TicketSubscription.ticket_id == None)
+            .filter(TicketSubscription.user_id == current_user.id)
+        ).one_or_none()
+        is_subscribed = bool(sub)
 
     tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
     search = request.args.get("search")
@@ -149,6 +151,49 @@ def tracker_GET(owner, name):
     if not tracker:
         abort(404)
     return return_tracker(tracker, access)
+
+@tracker.route("/<owner>/<path:name>/enable_notifications", methods=["POST"])
+@loginrequired
+def enable_notifications(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+
+    sub = (TicketSubscription.query
+        .filter(TicketSubscription.tracker_id == tracker.id)
+        .filter(TicketSubscription.ticket_id == None)
+        .filter(TicketSubscription.user_id == current_user.id)
+    ).one_or_none()
+
+    if sub:
+        return redirect(url_for(".tracker_GET", owner=owner, name=name))
+
+    sub = TicketSubscription()
+    sub.tracker_id = tracker.id
+    sub.user_id = current_user.id
+    db.session.add(sub)
+    db.session.commit()
+    return redirect(url_for(".tracker_GET", owner=owner, name=name))
+
+@tracker.route("/<owner>/<path:name>/disable_notifications", methods=["POST"])
+@loginrequired
+def disable_notifications(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+
+    sub = (TicketSubscription.query
+        .filter(TicketSubscription.tracker_id == tracker.id)
+        .filter(TicketSubscription.ticket_id == None)
+        .filter(TicketSubscription.user_id == current_user.id)
+    ).one_or_none()
+
+    if not sub:
+        return redirect(url_for(".tracker_GET", owner=owner, name=name))
+
+    db.session.delete(sub)
+    db.session.commit()
+    return redirect(url_for(".tracker_GET", owner=owner, name=name))
 
 def parse_html_perms(short, valid):
     result = 0
