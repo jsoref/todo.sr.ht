@@ -39,7 +39,10 @@ def get_tracker(owner, name=None, with_for_update=False):
         if access:
             return tracker, access
     else:
-        all = Tracker.query.filter(Tracker.owner_id == owner.id).all()
+        all = (Tracker.query
+            .filter(Tracker.owner_id == owner.id)
+            .order_by(Tracker.updated.desc())
+        ).all()
         allowed = list(filter(lambda x: get_access(x, None), all))
         return allowed, None
     # TODO: org trackers

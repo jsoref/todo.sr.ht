@@ -30,7 +30,7 @@ def index():
     # TODO: pagination?
     trackers = (Tracker.query
             .filter(Tracker.owner_id == current_user.id)
-            .order_by(Tracker.updated.desc())).all()
+            .order_by(Tracker.updated.desc())).limit(10).all()
     events = collect_events(current_user, 10)
     return render_template("dashboard.html",
         trackers=trackers,
@@ -43,8 +43,10 @@ def user_GET(username):
     user = User.query.filter(User.username == username.lower()).first()
     if not user:
         abort(404)
+
     trackers, _ = get_tracker(username, None)
     events = collect_events(user, 10)
+
     r = requests.get(meta_uri + "/api/user/profile", headers={
         "Authorization": "token " + user.oauth_token
     }) # TODO: cache this
@@ -52,6 +54,7 @@ def user_GET(username):
         profile = r.json()
     else:
         profile = dict()
+
     return render_template("dashboard.html",
         user=user,
         profile=profile,
