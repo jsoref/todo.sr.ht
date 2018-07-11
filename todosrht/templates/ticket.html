@@ -23,7 +23,7 @@
     <div class="col-md-6">
       {% if TicketAccess.edit in access %}
       <a href="{{ url_for(".ticket_edit_GET",
-          owner="~" + tracker.owner.username,
+          owner=tracker.owner.canonical_name(),
           name=tracker.name,
           ticket_id=ticket.scoped_id) }}"
         class="btn btn-default pull-right">
@@ -81,7 +81,7 @@
       <h3 style="margin-top: 1rem">Add comment</h3>
       <form method="POST" action="{{
           url_for(".ticket_comment_POST",
-            owner="~" + tracker.owner.username,
+            owner=tracker.owner.canonical_name(),
             name=tracker.name,
             ticket_id=ticket.scoped_id
           )

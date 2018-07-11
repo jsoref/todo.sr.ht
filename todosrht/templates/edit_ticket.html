@@ -37,7 +37,7 @@
       </div>
       <div class="pull-right">
         <a href="{{ url_for(".ticket_GET",
-          owner="~" + tracker.owner.username,
+          owner=tracker.owner.canonical_name(),
           name=tracker.name,
           ticket_id=ticket.scoped_id) }}" class="btn btn-default"
         >Cancel</a>

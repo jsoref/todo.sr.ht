@@ -75,12 +75,12 @@ def create_POST():
     db.session.commit()
 
     if "create-configure" in valid:
-        return redirect(url_for(".tracker_configure_GET",
+        return redirect(url_for(".configure_GET",
                 owner=current_user.username,
                 name=name))
 
     return redirect(url_for(".tracker_GET",
-            owner="~" + current_user.username,
+            owner=current_user.canonical_name(),
             name=name))
 
 def apply_search(query, search):
@@ -150,7 +150,6 @@ def tracker_GET(owner, name):
         abort(404)
     return return_tracker(tracker, access)
 
-
 def parse_html_perms(short, valid):
     result = 0
     for sub_perm in TicketAccess:
@@ -174,7 +173,7 @@ access_help_map={
 
 @tracker.route("/<owner>/<path:name>/configure", methods=["POST"])
 @loginrequired
-def tracker_configure_POST(owner, name):
+def configure_POST(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
@@ -209,7 +208,7 @@ def tracker_configure_POST(owner, name):
 
 @tracker.route("/<owner>/<path:name>/configure")
 @loginrequired
-def tracker_configure_GET(owner, name):
+def configure_GET(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
@@ -264,7 +263,7 @@ def tracker_submit_POST(owner, name):
     db.session.flush()
 
     ticket_url = url_for("ticket.ticket_GET",
-            owner="~" + tracker.owner.username,
+            owner=tracker.owner.canonical_name(),
             name=name,
             ticket_id=ticket.scoped_id)
 
@@ -279,7 +278,7 @@ def tracker_submit_POST(owner, name):
             subscribed = True
             continue
         notify(sub, "new_ticket", "{}/{}/#{}: {}".format(
-            "~" + tracker.owner.username, tracker.name,
+            tracker.owner.canonical_name(), tracker.name,
             ticket.scoped_id, ticket.title),
                 headers={
                     "From": "{} <{}>".format(current_user.username,
@@ -299,7 +298,7 @@ def tracker_submit_POST(owner, name):
     if another:
         session["another"] = True
         return redirect(url_for(".tracker_GET",
-                owner="~" + tracker.owner.username,
+                owner=tracker.owner.canonical_name(),
                 name=name))
     else:
         return redirect(ticket_url)

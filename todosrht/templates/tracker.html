@@ -14,8 +14,9 @@
         {{ format_tracker_name(tracker) }}
         {% if current_user and current_user.id == tracker.owner_id %}
         <small>
-          <a
-            href="/~{{tracker.owner.username}}/{{tracker.name}}/configure"
+          <a href="{{url_for(".configure_GET",
+            owner=tracker.owner.canonical_name(),
+            name=tracker.name)}}"
           >Configure</a>
         </small>
         {% endif %}
@@ -77,12 +78,15 @@
       {# TODO
       <h3>Notifications</h3>
       {% if is_subscribed %}
-      <p>You are receiving notifications for this tracker.</p>
+      <p>You are receiving email notifications for this tracker.</p>
       {% else %}
-      <p>You are not receiving notifications for this tracker.</p>
+      <p>You are not receiving email notifications for this tracker.</p>
       {% endif %}
-      <form method="POST">
-        <button class="btn btn-default" type="submit">
+      <form method="POST" action="{{url_for("tracker." +
+          "enable_notifications" if is_subscribed else "disable_notifications",
+          owner=tracker.owner.canonical_name(),
+          name=tracker.name)}}">
+        <button class="btn btn-default btn-block" type="submit">
           {% if is_subscribed %}
           Disable notifications
           {% else %}
@@ -110,7 +114,7 @@
           <a
             class="nav-link {{ "active" if not search else "" }}"
             href="{{url_for(".tracker_GET",
-                owner="~" + tracker.owner.username,
+                owner=tracker.owner.canonical_name(),
                 name=tracker.name
               )}}">open tickets</a>
         </li>
@@ -141,7 +145,7 @@
           {% for ticket in tickets %}
           <tr>
             <td style="text-align: right"><a href="{{url_for("ticket.ticket_GET",
-                owner="~" + tracker.owner.username,
+                owner=tracker.owner.canonical_name(),
                 name=tracker.name,
                 ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></td>
             <td>{{ ticket.title }}</td>

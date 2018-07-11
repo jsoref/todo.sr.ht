@@ -3,7 +3,7 @@
   <div class="event">
     <h4>
       <a href="{{ url_for("ticket.ticket_GET",
-          owner="~" + event.ticket.tracker.owner.username,
+          owner=event.ticket.tracker.owner.canonical_name(),
           name=event.ticket.tracker.name,
           ticket_id=event.ticket.scoped_id) }}">
         #{{event.ticket.scoped_id}}

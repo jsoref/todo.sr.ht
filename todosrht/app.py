@@ -48,7 +48,7 @@ meta_client_id = cfg("meta.sr.ht", "oauth-client-id")
 
 def tracker_name(tracker, full=False):
     split = tracker.name.split("/")
-    user = "~" + tracker.owner.username
+    user = tracker.owner.canonical_name()
     if full:
         return Markup(
             "/".join(["<a href='/{0}'>{0}</a>".format(user)] + [

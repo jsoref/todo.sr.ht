@@ -110,12 +110,12 @@ def ticket_comment_POST(owner, name, ticket_id):
 
     if comment:
         ticket_url = url_for(".ticket_GET",
-                owner="~" + tracker.owner.username,
+                owner=tracker.owner.canonical_name(),
                 name=tracker.name,
                 ticket_id=ticket.scoped_id) + "#comment-" + str(comment.id)
     else:
         ticket_url = url_for(".ticket_GET",
-            owner="~" + tracker.owner.username,
+            owner=tracker.owner.canonical_name(),
             name=tracker.name,
             ticket_id=ticket.scoped_id)
 
@@ -123,7 +123,7 @@ def ticket_comment_POST(owner, name, ticket_id):
 
     def _notify(sub):
         notify(sub, "ticket_comment", "Re: {}/{}/#{}: {}".format(
-            "~" + tracker.owner.username, tracker.name,
+            tracker.owner.canonical_name(), tracker.name,
             ticket.scoped_id, ticket.title),
                 headers={
                     "From": "{} <{}>".format(
@@ -234,6 +234,6 @@ def ticket_edit_POST(owner, name, ticket_id):
     db.session.commit()
 
     return redirect(url_for("ticket.ticket_GET",
-            owner="~" + tracker.owner.username,
+            owner=tracker.owner.canonical_name(),
             name=name,
             ticket_id=ticket.scoped_id))

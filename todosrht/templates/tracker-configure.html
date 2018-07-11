@@ -119,7 +119,7 @@
           <a
             href="{{ url_for(
               ".tracker_GET",
-              owner="~" + tracker.owner.username,
+              owner=tracker.owner.canonical_name(),
               name=tracker.name) }}"
             class="btn btn-default"
           >Cancel</a>
