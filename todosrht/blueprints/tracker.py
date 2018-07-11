@@ -197,7 +197,7 @@ def tracker_configure_POST(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
-    if current_user != tracker.owner:
+    if current_user.id != tracker.owner_id:
         abort(403)
 
     valid = Validation(request)
@@ -232,6 +232,8 @@ def tracker_configure_GET(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
     return render_template("tracker-configure.html",
         tracker=tracker, access_type_list=TicketAccess,
         access_help_map=access_help_map)

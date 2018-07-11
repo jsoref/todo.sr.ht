@@ -12,11 +12,13 @@
     <div class="col-md-12">
       <h2>
         {{ format_tracker_name(tracker) }}
+        {% if current_user and current_user.id == tracker.owner_id %}
         <small>
           <a
             href="/~{{tracker.owner.username}}/{{tracker.name}}/configure"
           >Configure</a>
         </small>
+        {% endif %}
       </h2>
     </div>
   </div>
