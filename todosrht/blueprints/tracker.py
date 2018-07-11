@@ -12,6 +12,7 @@ from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
 from srht.config import cfg
 from srht.database import db
+from srht.flask import paginate_query
 from srht.validation import Validation
 from datetime import datetime
 
@@ -123,44 +124,24 @@ def return_tracker(tracker, access, **kwargs):
         is_subscribed = TicketSubscription.query.filter(
                 TicketSubscription.tracker_id == tracker.id,
                 TicketSubscription.user_id == current_user.id).count() > 0
-    page = request.args.get("page")
-    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
 
+    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
     search = request.args.get("search")
     tickets = tickets.order_by(Ticket.updated.desc())
     if search:
         tickets = apply_search(tickets, search)
     else:
         tickets = tickets.filter(Ticket.status == TicketStatus.reported)
+    tickets, pagination = paginate_query(tickets, results_per_page=25)
 
-    per_page = 25
-    total_tickets = tickets.count()
-    total_pages = tickets.count() // per_page + 1
-    if total_tickets % per_page == 0:
-        total_pages -= 1
-    if page:
-        try:
-            page = int(page) - 1
-            tickets = tickets.offset(page * per_page)
-        except:
-            page = None
-    else:
-        page = 0
-    tickets = tickets.limit(per_page).all()
     if "another" in kwargs:
         another = kwargs["another"]
         del kwargs["another"]
+
     return render_template("tracker.html",
-            tracker=tracker,
-            another=another,
-            tickets=tickets,
-            total_tickets=total_tickets,
-            total_pages=total_pages,
-            page=page + 1,
-            access=access,
-            is_subscribed=is_subscribed,
-            search=search,
-            **kwargs)
+            tracker=tracker, another=another, tickets=tickets,
+            access=access, is_subscribed=is_subscribed, search=search,
+            **pagination, **kwargs)
 
 @tracker.route("/<owner>/<path:name>")
 def tracker_GET(owner, name):
