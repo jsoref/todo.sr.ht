@@ -5,14 +5,13 @@ from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
 from todosrht.access import get_tracker
-from todosrht.decorators import loginrequired
 from todosrht.email import notify
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
 from srht.config import cfg
 from srht.database import db
-from srht.flask import paginate_query
+from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from datetime import datetime
 

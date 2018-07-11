@@ -1,50 +1,19 @@
-from flask import render_template, request
-from flask_login import LoginManager, current_user
 from jinja2 import Markup
-import locale
-import urllib
-
-from srht.config import cfg, cfgi, load_config
+from srht.flask import SrhtFlask
+from srht.config import cfg, load_config
 load_config("todo")
+
 from srht.database import DbSession
 db = DbSession(cfg("sr.ht", "connection-string"))
-from todosrht.types import User, TicketAccess, TicketStatus, TicketResolution, TicketSeen
+
+from todosrht.types import User
+from todosrht.types import TicketAccess, TicketStatus, TicketResolution
+from todosrht.types import TicketSeen
 db.init()
 
-from srht.flask import SrhtFlask
-app = SrhtFlask("todo", __name__)
-app.url_map.strict_slashes = False
-app.secret_key = cfg("server", "secret-key")
-login_manager = LoginManager()
-login_manager.init_app(app)
-
-@login_manager.user_loader
-def load_user(username):
-    return User.query.filter(User.username == username).first()
-
-login_manager.anonymous_user = lambda: None
-
-try:
-    locale.setlocale(locale.LC_ALL, 'en_US')
-except:
-    pass
-
-def oauth_url(return_to):
-    return "{}/oauth/authorize?client_id={}&scopes=profile&state={}".format(
-        meta_sr_ht, meta_client_id, urllib.parse.quote_plus(return_to))
-
 from todosrht.blueprints.html import html
-from todosrht.blueprints.auth import auth
 from todosrht.blueprints.tracker import tracker
 from todosrht.blueprints.ticket import ticket
-
-app.register_blueprint(html)
-app.register_blueprint(auth)
-app.register_blueprint(tracker)
-app.register_blueprint(ticket)
-
-meta_sr_ht = cfg("network", "meta")
-meta_client_id = cfg("meta.sr.ht", "oauth-client-id")
 
 def tracker_name(tracker, full=False):
     split = tracker.name.split("/")
@@ -80,15 +49,46 @@ def render_status(ticket, access):
     else:
         return "<span>{}</span>".format(ticket.status.name)
 
-@app.context_processor
-def inject():
-    return {
-        "oauth_url": oauth_url(request.full_path),
-        "current_user": User.query.filter(User.id == current_user.id).first() \
-                if current_user else None,
-        "format_tracker_name": tracker_name,
-        "render_status": render_status,
-        "TicketAccess": TicketAccess,
-        "TicketStatus": TicketStatus,
-        "TicketResolution": TicketResolution
-    }
+class TodoApp(SrhtFlask):
+    def __init__(self):
+        super().__init__("todo", __name__)
+
+        self.url_map.strict_slashes = False
+
+        self.register_blueprint(html)
+        self.register_blueprint(tracker)
+        self.register_blueprint(ticket)
+
+        meta_client_id = cfg("meta.sr.ht", "oauth-client-id")
+        meta_client_secret = cfg("meta.sr.ht", "oauth-client-secret")
+        self.configure_meta_auth(meta_client_id, meta_client_secret)
+
+        @self.context_processor
+        def inject():
+            return {
+                "format_tracker_name": tracker_name,
+                "render_status": render_status,
+                "TicketAccess": TicketAccess,
+                "TicketStatus": TicketStatus,
+                "TicketResolution": TicketResolution
+            }
+
+        @self.login_manager.user_loader
+        def user_loader(username):
+            # TODO: Switch to a session token
+            return User.query.filter(User.username == username).one_or_none()
+
+    def lookup_or_register(self, exchange, profile, scopes):
+        user = User.query.filter(User.username == profile["username"]).first()
+        if not user:
+            user = User()
+            db.session.add(user)
+        user.username = profile.get("username")
+        user.email = profile.get("email")
+        user.oauth_token = exchange["token"]
+        user.oauth_token_expires = exchange["expires"]
+        user.oauth_token_scopes = scopes
+        db.session.commit()
+        return user
+
+app = TodoApp()

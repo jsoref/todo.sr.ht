@@ -3,7 +3,6 @@ import string
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
-from todosrht.decorators import loginrequired
 from todosrht.access import get_tracker, get_ticket
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSeen
@@ -12,6 +11,7 @@ from todosrht.types import Event, EventType, EventNotification
 from todosrht.email import notify
 from srht.config import cfg
 from srht.database import db
+from srht.flask import loginrequired
 from srht.validation import Validation
 from datetime import datetime
 
