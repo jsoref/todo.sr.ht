@@ -9,18 +9,56 @@
 {% block body %}
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 header-tabbed">
       <h2>
         {{ format_tracker_name(tracker) }}
+      </h2>
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a class="nav-link {{ "active" if not search else "" }}"
+            href="{{url_for(".tracker_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name
+              )}}">open tickets</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link {{
+              "active" if search == "status:closed" or search == "status:resolved" else ""
+            }}" href="?search=status:closed">closed tickets</a>
+        </li>
+        {% if search and search != "status:closed" and search != "status:resolved" %}
+        <li class="nav-item">
+          <a class="nav-link active" href="?search={{ search }}">search results</a>
+        </li>
+        {% endif %}
         {% if current_user and current_user.id == tracker.owner_id %}
-        <small>
-          <a href="{{url_for(".configure_GET",
+        <li class="nav-item d-none d-sm-block">
+          <a class="nav-link" href="{{url_for(".configure_GET",
             owner=tracker.owner.canonical_name(),
             name=tracker.name)}}"
-          >Configure</a>
-        </small>
+          >settings</a>
+        </li>
         {% endif %}
-      </h2>
+        {% if current_user %}
+        <li class="flex-grow-1 d-none d-sm-block"></li>
+        <li class="nav-item d-none d-sm-block">
+          <form method="POST" action="{{url_for("tracker." +
+              ("disable_notifications" if is_subscribed else "enable_notifications"),
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name)}}">
+            <button class="nav-link active" type="submit">
+              <i class="fa fa-envelope-o"></i>
+              {% if is_subscribed %}
+              Disable notifications
+              {% else %}
+              Enable notifications
+              {% endif %}
+              <i class="fa fa-caret-right"></i>
+            </button>
+          </form>
+        </li>
+        {% endif %}
+      </ul>
     </div>
   </div>
   <div class="row">
@@ -75,32 +113,13 @@
             {% endif %}> Submit another?
         </label>
       </form>
-      <form method="POST" action="{{url_for("tracker." +
-          ("disable_notifications" if is_subscribed else "enable_notifications"),
-          owner=tracker.owner.canonical_name(),
-          name=tracker.name)}}">
-        <h3>Notifications</h3>
-        {% if is_subscribed %}
-        <p>You are receiving email notifications for this tracker.</p>
-        {% else %}
-        <p>You are not receiving email notifications for this tracker.</p>
-        {% endif %}
-        <button class="btn btn-default btn-block" type="submit">
-          {% if is_subscribed %}
-          Disable notifications
-          {% else %}
-          Enable notifications
-          {% endif %}
-          <i class="fa fa-caret-right"></i>
-        </button>
-      </form>
       {% else %}
       <hr />
       <p>You need to <a href="{{ oauth_url }}">log in</a> to submit tickets.</p>
       {% endif %}
     </div>
     <div class="col-md-8">
-      <form>
+      <form style="margin-bottom: 0.5rem">
         <input
           name="search"
           type="text"
@@ -108,35 +127,14 @@
           class="form-control"
           value="{{ search if search else "" }}" />
       </form>
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a
-            class="nav-link {{ "active" if not search else "" }}"
-            href="{{url_for(".tracker_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}">open tickets</a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="nav-link {{
-              "active" if search == "status:closed" or search == "status:resolved" else ""
-            }}" href="?search=status:closed">closed tickets</a>
-        </li>
-        {% if search and search != "status:closed" and search != "status:resolved" %}
-        <li class="nav-item">
-          <a class="nav-link active" href="?search={{ search }}">search results</a>
-        </li>
-        {% endif %}
-      </ul>
       {% if len(tickets) %}
       <table class="table table-striped">
         <thead>
           <tr>
             <th style="width: 1px"></th>
-            <th>Title</th>
-            <th>Updated</th>
-            <th>Submitter</th>
+            <th></th>
+            <th></th>
+            <th></th>
             <th style="width: 4rem; white-space: nowrap;"></th>
           </tr>
         </thead>

@@ -8,10 +8,35 @@
 </title>
 {% endblock %}
 {% block body %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12 header-tabbed">
+      <h2>
+        {{ format_tracker_name(tracker, full=True) }}/#{{ticket.scoped_id}}:
+        {{ticket.title}}
+      </h2>
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a href="{{ url_for(".ticket_GET",
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name,
+              ticket_id=ticket.scoped_id) }}"
+            class="nav-link">view</a>
+        </li>
+        <li class="nav-item">
+          <a href="{{ url_for(".ticket_edit_GET",
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name,
+              ticket_id=ticket.scoped_id) }}"
+            class="nav-link active">edit</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
 <div class="container">
   <div class="row">
     <form class="col-md-6" method="POST">
-      <h3>Edit Ticket</h3>
       <div class="form-group">
         <label for="title">Title</label>
         <input
@@ -41,36 +66,11 @@
           name=tracker.name,
           ticket_id=ticket.scoped_id) }}" class="btn btn-default"
         >Cancel</a>
-        <button type="submit" class="btn btn-default">Save changes</button>
+        <button
+          type="submit"
+          class="btn btn-primary"
+        >Save changes <i class="fa fa-caret-right"></i></button>
       </div>
-      <div class="clearfix"></div>
-      <h3>Details</h3>
-      <dl class="row">
-        <dt class="col-md-3">Status</dt>
-        <dd class="col-md-9">
-          <strong class="text-success">
-            {{ ticket.status.name.upper() }}
-            {% if ticket.status == TicketStatus.resolved %}
-            {{ ticket.resolution.name.upper() }}
-            {% endif %}
-          </strong>
-        </dd>
-        <dt class="col-md-3">Submitter</dt>
-        <dd class="col-md-9">
-          <a
-            href="{{url_for("html.user_GET",
-              username=ticket.submitter.username)}}"
-          >~{{ ticket.submitter.username }}</a>
-        </dd>
-        <dt class="col-md-3">Submitted</dt>
-        <dd class="col-md-9">{{ ticket.created | date }}</dd>
-        <dt class="col-md-3">Updated</dt>
-        <dd class="col-md-9">{{ ticket.updated | date }}</dd>
-        <dt class="col-md-3">User Agent</dt>
-        <dd class="col-md-9 ellipsis" title="{{ ticket.user_agent }}">
-          {{ ticket.user_agent }}
-        </dd>
-      </dl>
     </div>
   </div>
 </div>

@@ -10,34 +10,46 @@
 {% block body %}
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-12">
+    <div class="col-md-12 header-tabbed">
       <h2>
-        {{ format_tracker_name(tracker, full=True) }}/#{{ticket.scoped_id}}:
-        {{ticket.title}}
+        <span class="d-block d-md-inline">
+          {{ format_tracker_name(
+            tracker, full=True) }}/#{{ticket.scoped_id}}<span
+            class="d-none d-md-inline"
+          >:</span>
+        </span>
+        <span class="d-block d-md-inline">
+          {{ticket.title}}
+        </span>
       </h2>
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a href="{{ url_for(".ticket_GET",
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name,
+              ticket_id=ticket.scoped_id) }}"
+            class="nav-link active">view</a>
+        </li>
+        {% if TicketAccess.edit in access %}
+        <li class="nav-item">
+          <a href="{{ url_for(".ticket_edit_GET",
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name,
+              ticket_id=ticket.scoped_id) }}"
+            class="nav-link">edit</a>
+        </li>
+        {% endif %}
+      </ul>
     </div>
   </div>
 </div>
 <div class="container">
   <div class="row">
     <div class="col-md-6">
-      {% if TicketAccess.edit in access %}
-      <a href="{{ url_for(".ticket_edit_GET",
-          owner=tracker.owner.canonical_name(),
-          name=tracker.name,
-          ticket_id=ticket.scoped_id) }}"
-        class="btn btn-default pull-right">
-        Edit
-      </a>
-      {% endif %}
       {% if ticket.description %}
-      <h3>Description</h3>
       {{ ticket.description | extended_md(baselevel=4) }}
       {% endif %}
-      <h3>
-        Details
-      </h3>
-      <dl class="row">
+      <dl class="row" style="margin-top: 1rem">
         <dt class="col-md-3">Status</dt>
         <dd class="col-md-9">
           <strong class="text-success">
@@ -78,15 +90,19 @@
       {{ comment.text | md }}
       {% endfor %}
       {% if TicketAccess.comment in access %}
-      <h3 style="margin-top: 1rem">Add comment</h3>
-      <form method="POST" action="{{
+      <form
+        {% if any(ticket.comments) %}
+        style="margin-top: 1rem"
+        {% endif %}
+        method="POST"
+        action="{{
           url_for(".ticket_comment_POST",
             owner=tracker.owner.canonical_name(),
             name=tracker.name,
             ticket_id=ticket.scoped_id
           )
         }}">
-        <div class="form-group">
+        <div class="form-group" style="margin-bottom: 0.25rem">
           <textarea
             class="form-control {{ valid.cls("comment") }}"
             id="comment"
