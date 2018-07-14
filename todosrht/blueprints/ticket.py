@@ -19,7 +19,7 @@ ticket = Blueprint("ticket", __name__)
 
 smtp_user = cfg("mail", "smtp-user", default=None)
 
-@ticket.route("/<owner>/<path:name>/<int:ticket_id>")
+@ticket.route("/<owner>/<name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):
     tracker, _ = get_tracker(owner, name)
     if not tracker:
@@ -27,6 +27,7 @@ def ticket_GET(owner, name, ticket_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
+    is_subscribed = False
     if current_user:
         seen = (TicketSeen.query
                 .filter(TicketSeen.user_id == current_user.id,
@@ -37,12 +38,78 @@ def ticket_GET(owner, name, ticket_id):
         seen.update()
         db.session.add(seen)
         db.session.commit()
-    return render_template("ticket.html",
-            tracker=tracker,
-            ticket=ticket,
-            access=access)
 
-@ticket.route("/<owner>/<path:name>/<int:ticket_id>/comment", methods=["POST"])
+        tracker_sub = (TicketSubscription.query
+            .filter(TicketSubscription.ticket_id == None)
+            .filter(TicketSubscription.tracker_id == tracker.id)
+            .filter(TicketSubscription.user_id == current_user.id)
+        ).one_or_none()
+
+        sub = (TicketSubscription.query
+        .filter(TicketSubscription.tracker_id == None)
+            .filter(TicketSubscription.ticket_id == ticket.id)
+            .filter(TicketSubscription.user_id == current_user.id)
+        ).one_or_none()
+
+        is_subscribed = bool(sub)
+
+    return render_template("ticket.html", tracker=tracker, ticket=ticket,
+            access=access, is_subscribed=is_subscribed, tracker_sub=tracker_sub)
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/enable_notifications", methods=["POST"])
+@loginrequired
+def enable_notifications(owner, name, ticket_id):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+
+    sub = (TicketSubscription.query
+        .filter(TicketSubscription.tracker_id == None)
+        .filter(TicketSubscription.ticket_id == ticket.id)
+        .filter(TicketSubscription.user_id == current_user.id)
+    ).one_or_none()
+
+    if sub:
+        return redirect(url_for(".ticket_GET",
+            owner=owner, name=name, ticket_id=ticket.scoped_id))
+
+    sub = TicketSubscription()
+    sub.ticket_id = ticket.id
+    sub.user_id = current_user.id
+    db.session.add(sub)
+    db.session.commit()
+    return redirect(url_for(".ticket_GET",
+        owner=owner, name=name, ticket_id=ticket.scoped_id))
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/disable_notifications", methods=["POST"])
+@loginrequired
+def disable_notifications(owner, name, ticket_id):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+
+    sub = (TicketSubscription.query
+        .filter(TicketSubscription.tracker_id == None)
+        .filter(TicketSubscription.ticket_id == ticket.id)
+        .filter(TicketSubscription.user_id == current_user.id)
+    ).one_or_none()
+
+    if not sub:
+        return redirect(url_for(".ticket_GET",
+            owner=owner, name=name, ticket_id=ticket.scoped_id))
+
+    db.session.delete(sub)
+    db.session.commit()
+    return redirect(url_for(".ticket_GET",
+        owner=owner, name=name, ticket_id=ticket.scoped_id))
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/comment", methods=["POST"])
 @loginrequired
 def ticket_comment_POST(owner, name, ticket_id):
     tracker, access = get_tracker(owner, name)
@@ -188,7 +255,7 @@ def ticket_comment_POST(owner, name, ticket_id):
 
     return redirect(ticket_url)
 
-@ticket.route("/<owner>/<path:name>/<int:ticket_id>/edit")
+@ticket.route("/<owner>/<name>/<int:ticket_id>/edit")
 @loginrequired
 def ticket_edit_GET(owner, name, ticket_id):
     tracker, _ = get_tracker(owner, name)
@@ -202,7 +269,7 @@ def ticket_edit_GET(owner, name, ticket_id):
     return render_template("edit_ticket.html",
             tracker=tracker, ticket=ticket)
 
-@ticket.route("/<owner>/<path:name>/<int:ticket_id>/edit", methods=["POST"])
+@ticket.route("/<owner>/<name>/<int:ticket_id>/edit", methods=["POST"])
 @loginrequired
 def ticket_edit_POST(owner, name, ticket_id):
     tracker, _ = get_tracker(owner, name)

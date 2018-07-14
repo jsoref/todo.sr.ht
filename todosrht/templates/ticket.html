@@ -10,7 +10,7 @@
 {% block body %}
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-12 header-tabbed vertical">
+    <div class="col-md-12">
       <h2>
         <span class="d-block d-md-inline">
           <a href="{{ url_for("html.user_GET",
@@ -27,24 +27,67 @@
           {{ticket.title}}
         </span>
       </h2>
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a href="{{ url_for(".ticket_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name,
-              ticket_id=ticket.scoped_id) }}"
-            class="nav-link active">view</a>
-        </li>
-        {% if TicketAccess.edit in access %}
-        <li class="nav-item">
-          <a href="{{ url_for(".ticket_edit_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name,
-              ticket_id=ticket.scoped_id) }}"
-            class="nav-link">edit</a>
-        </li>
-        {% endif %}
-      </ul>
+    </div>
+  </div>
+</div>
+<div class="header-tabbed">
+  <div class="container">
+    <div class="row">
+      <div class="col-md-12 header-tabbed" style="border: none; margin: 0;">
+        <ul class="nav nav-tabs">
+          <li class="nav-item">
+            <a href="{{ url_for(".ticket_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name,
+                ticket_id=ticket.scoped_id) }}"
+              class="nav-link active">view</a>
+          </li>
+          {% if TicketAccess.edit in access %}
+          <li class="nav-item">
+            <a href="{{ url_for(".ticket_edit_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name,
+                ticket_id=ticket.scoped_id) }}"
+              class="nav-link">edit</a>
+          </li>
+          {% endif %}
+          {% if current_user %}
+          <li class="flex-grow-1 d-none d-sm-block"></li>
+          <li class="nav-item d-none d-sm-block">
+            {% if not tracker_sub %}
+            <form method="POST" action="{{url_for("ticket." +
+                ("disable_notifications" if is_subscribed else "enable_notifications"),
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name,
+                ticket_id=ticket.scoped_id)}}">
+            {% else %}
+            <div>
+            {% endif %}
+              <button
+                class="nav-link active"
+                type="submit"
+                {% if tracker_sub %}
+                title="You are subscribed to all activity on this tracker"
+                disabled
+                {% endif %}
+              >
+                <i class="fa fa-envelope-o"></i>
+                {% if is_subscribed or tracker_sub %}
+                Disable notifications
+                {% else %}
+                Enable notifications
+                {% endif %}
+                <i class="fa fa-caret-right"></i>
+              </button>
+            {% if not tracker_sub %}
+            </form>
+            {% else %}
+            </div>
+            {% endif %}
+          </li>
+          {% endif %}
+        </ul>
+      </div>
     </div>
   </div>
 </div>
