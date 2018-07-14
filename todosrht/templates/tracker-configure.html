@@ -27,11 +27,43 @@
 {% block title %}
 <title>Configure tracker &mdash; {{ cfg("sr.ht", "site-name") }}</title>
 {% endblock %}
+
 {% block content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12 header-tabbed">
+      <h2>
+        <a href="{{ url_for("html.user_GET",
+          username=tracker.owner.username) }}"
+        >{{tracker.owner.canonical_name()}}</a>/{{tracker.name}}
+      </h2>
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a class="nav-link"
+            href="{{url_for(".tracker_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name
+              )}}">open tickets</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{url_for(".tracker_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name
+              )}}?search=status:closed">closed tickets</a>
+        </li>
+        <li class="nav-item d-none d-sm-block">
+          <a class="nav-link active" href="{{url_for(".configure_GET",
+            owner=tracker.owner.canonical_name(),
+            name=tracker.name)}}"
+          >settings</a>
+        </li>
+      </ul>
+    </div>
+  </div>
+</div>
 <div class="container">
   <div class="row">
     <div class="col-md-7">
-      <h2>Configure {{ tracker.name }}</h2>
       <form method="POST">
         <div class="form-group {{valid.cls("tracker_name")}}">
           <label for="tracker_name">
