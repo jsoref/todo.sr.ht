@@ -28,6 +28,7 @@ def ticket_GET(owner, name, ticket_id):
     if not ticket:
         abort(404)
     is_subscribed = False
+    tracker_sub = None
     if current_user:
         seen = (TicketSeen.query
                 .filter(TicketSeen.user_id == current_user.id,
