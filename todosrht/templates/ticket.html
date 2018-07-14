@@ -13,8 +13,13 @@
     <div class="col-md-12 header-tabbed">
       <h2>
         <span class="d-block d-md-inline">
-          {{ format_tracker_name(
-            tracker, full=True) }}/#{{ticket.scoped_id}}<span
+          <a href="{{ url_for("html.user_GET",
+            username=tracker.owner.username) }}"
+          >{{tracker.owner.canonical_name()}}</a>/<a
+            href="{{ url_for("tracker.tracker_GET",
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name) }}"
+          >{{tracker.name}}</a>/#{{ticket.scoped_id}}<span
             class="d-none d-md-inline"
           >:</span>
         </span>

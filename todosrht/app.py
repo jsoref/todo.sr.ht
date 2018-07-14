@@ -15,26 +15,6 @@ from todosrht.blueprints.html import html
 from todosrht.blueprints.tracker import tracker
 from todosrht.blueprints.ticket import ticket
 
-def tracker_name(tracker, full=False):
-    split = tracker.name.split("/")
-    user = tracker.owner.canonical_name()
-    if full:
-        return Markup(
-            "/".join(["<a href='/{0}'>{0}</a>".format(user)] + [
-                "<a href='/{}/{}'>{}</a>".format(user, "/".join(split[:i + 1]), p)
-                for i, p in enumerate(split)
-        ]))
-    name = split[-1]
-    if len(name) == 0:
-        return name
-    parts = split[:-1]
-    return Markup(
-        "/".join(["<a href='/{0}'>{0}</a>".format(user)] + [
-            "<a href='/{}/{}'>{}</a>".format(user, "/".join(parts[:i + 1]), p)
-            for i, p in enumerate(parts)
-        ]) + "/" + name
-    )
-
 def render_status(ticket, access):
     if TicketAccess.edit in access:
         return Markup(
@@ -66,7 +46,6 @@ class TodoApp(SrhtFlask):
         @self.context_processor
         def inject():
             return {
-                "format_tracker_name": tracker_name,
                 "render_status": render_status,
                 "TicketAccess": TicketAccess,
                 "TicketStatus": TicketStatus,

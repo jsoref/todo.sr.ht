@@ -11,7 +11,9 @@
   <div class="row">
     <div class="col-md-12 header-tabbed">
       <h2>
-        {{ format_tracker_name(tracker) }}
+        <a href="{{ url_for("html.user_GET",
+          username=tracker.owner.username) }}"
+        >{{tracker.owner.canonical_name()}}</a>/{{tracker.name}}
       </h2>
       <ul class="nav nav-tabs">
         <li class="nav-item">

@@ -17,7 +17,7 @@ from datetime import datetime
 
 tracker = Blueprint("tracker", __name__)
 
-name_re = re.compile(r"^([a-z][a-z0-9_.-]*/?)+$")
+name_re = re.compile(r"^([a-z][a-z0-9_.-]*?)+$")
 
 smtp_user = cfg("mail", "smtp-user", default=None)
 
@@ -41,7 +41,7 @@ def create_POST():
     valid.expect(not valid.ok or name[0] in string.ascii_lowercase,
             "Must begin with a lowercase letter", field="tracker_name")
     valid.expect(not valid.ok or name_re.match(name),
-            "Only lowercase alphanumeric characters or -./",
+            "Only lowercase alphanumeric characters or -.",
             field="tracker_name")
     valid.expect(not desc or len(desc) < 4096,
             "Must be less than 4096 characters",
@@ -144,14 +144,14 @@ def return_tracker(tracker, access, **kwargs):
             access=access, is_subscribed=is_subscribed, search=search,
             **pagination, **kwargs)
 
-@tracker.route("/<owner>/<path:name>")
+@tracker.route("/<owner>/<name>")
 def tracker_GET(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
     return return_tracker(tracker, access)
 
-@tracker.route("/<owner>/<path:name>/enable_notifications", methods=["POST"])
+@tracker.route("/<owner>/<name>/enable_notifications", methods=["POST"])
 @loginrequired
 def enable_notifications(owner, name):
     tracker, access = get_tracker(owner, name)
@@ -174,7 +174,7 @@ def enable_notifications(owner, name):
     db.session.commit()
     return redirect(url_for(".tracker_GET", owner=owner, name=name))
 
-@tracker.route("/<owner>/<path:name>/disable_notifications", methods=["POST"])
+@tracker.route("/<owner>/<name>/disable_notifications", methods=["POST"])
 @loginrequired
 def disable_notifications(owner, name):
     tracker, access = get_tracker(owner, name)
@@ -215,7 +215,7 @@ access_help_map={
         "Permission to resolve, re-open, or label tickets",
 }
 
-@tracker.route("/<owner>/<path:name>/configure", methods=["POST"])
+@tracker.route("/<owner>/<name>/configure", methods=["POST"])
 @loginrequired
 def configure_POST(owner, name):
     tracker, access = get_tracker(owner, name)
@@ -250,7 +250,7 @@ def configure_POST(owner, name):
     return redirect(url_for(".tracker_GET", owner=owner, name=name))
 
 
-@tracker.route("/<owner>/<path:name>/configure")
+@tracker.route("/<owner>/<name>/configure")
 @loginrequired
 def configure_GET(owner, name):
     tracker, access = get_tracker(owner, name)
@@ -262,7 +262,7 @@ def configure_GET(owner, name):
         tracker=tracker, access_type_list=TicketAccess,
         access_help_map=access_help_map)
 
-@tracker.route("/<owner>/<path:name>/submit", methods=["POST"])
+@tracker.route("/<owner>/<name>/submit", methods=["POST"])
 @loginrequired
 def tracker_submit_POST(owner, name):
     tracker, access = get_tracker(owner, name, True)

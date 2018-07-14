@@ -22,7 +22,13 @@
         ~{{ event.comment.submitter.username }}
       </a>
     {% endif %}
-      on {{ format_tracker_name(event.ticket.tracker, full=True) }}:
+      on <a href="{{ url_for("html.user_GET",
+        username=event.ticket.tracker.owner.username) }}"
+      >{{event.ticket.tracker.owner.canonical_name()}}</a>/<a
+        href="{{ url_for("tracker.tracker_GET",
+          owner=event.ticket.tracker.owner.canonical_name(),
+          name=event.ticket.tracker.name) }}"
+      >{{event.ticket.tracker.name}}</a>:
     </p>
     <blockquote>
       {% if event.comment %}
