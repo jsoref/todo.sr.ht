@@ -65,10 +65,11 @@
             {% endif %}
               <button
                 class="nav-link active"
-                type="submit"
                 {% if tracker_sub %}
                 title="You are subscribed to all activity on this tracker"
                 disabled
+                {% else %}
+                type="submit"
                 {% endif %}
               >
                 <i class="fa fa-envelope-o"></i>
