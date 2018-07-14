@@ -32,6 +32,11 @@ select.form-control {
   align-items: flex-end;
   flex-wrap: wrap;
 
+  &.vertical {
+    align-items: inherit;
+    flex-direction: column;
+  }
+
   h2 {
     margin: 0;
 
