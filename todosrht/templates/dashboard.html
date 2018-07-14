@@ -53,7 +53,7 @@
         <h4>
           <a href="{{ url_for("html.user_GET",
             username=tracker.owner.username) }}"
-          >{{tracker.owner.username}}</a>/<a
+          >{{tracker.owner.canonical_name()}}</a>/<a
             href="{{ url_for("tracker.tracker_GET",
               owner=tracker.owner.canonical_name(),
               name=tracker.name) }}"
