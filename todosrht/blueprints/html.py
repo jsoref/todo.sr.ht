@@ -1,28 +1,53 @@
 from flask import Blueprint, render_template, request
 from flask_login import current_user
 from todosrht.access import get_tracker, get_access
-from todosrht.types import Tracker, Event, EventNotification, EventType
+from todosrht.types import Tracker, Ticket, Event, EventNotification, EventType
 from todosrht.types import User
 from srht.config import cfg
 from srht.flask import paginate_query
-from sqlalchemy import or_
+from sqlalchemy import and_, or_
 import requests
 
 html = Blueprint('html', __name__)
 
 meta_uri = cfg("network", "meta")
 
-def collect_events(target, count):
-    events = []
-    for e in (EventNotification.query
-            .filter(EventNotification.user_id == target.id)
-            .order_by(EventNotification.created.desc())):
-        ticket = e.event.ticket
-        tracker = ticket.tracker
-        if get_access(tracker, ticket):
-            events.append(e.event)
-        if len(events) >= count:
-            break
+def filter_authorized_events(events):
+    events = (events
+        .join(Ticket, Ticket.id == Event.ticket_id)
+        .join(Tracker, Tracker.id == Ticket.tracker_id))
+    if current_user:
+        events = (events.filter(
+            or_(
+                and_(
+                    Ticket.submitter_perms != None,
+                    Ticket.submitter_id == current_user.id,
+                    Ticket.submitter_perms > 0),
+                and_(
+                    Ticket.user_perms != None,
+                    Ticket.user_perms > 0),
+                and_(
+                    Ticket.anonymous_perms != None,
+                    Ticket.anonymous_perms > 0),
+                and_(
+                    Ticket.submitter_perms == None,
+                    Ticket.submitter_id == current_user.id,
+                    Tracker.default_submitter_perms > 0),
+                and_(
+                    Ticket.user_perms == None,
+                    Tracker.default_user_perms > 0),
+                and_(
+                    Ticket.anonymous_perms == None,
+                    Tracker.default_anonymous_perms > 0))))
+    else:
+        events = (events.filter(
+            or_(
+                and_(
+                    Ticket.anonymous_perms != None,
+                    Ticket.anonymous_perms > 0),
+                and_(
+                    Ticket.anonymous_perms == None,
+                    Tracker.default_anonymous_perms > 0))))
     return events
 
 @html.route("/")
@@ -37,7 +62,11 @@ def index():
     total_trackers = trackers.count()
     trackers = trackers.limit(limit_trackers).all()
 
-    events = collect_events(current_user, 10)
+    events = (Event.query
+            .join(EventNotification)
+            .filter(EventNotification.user_id == current_user.id)
+            .order_by(Event.created.desc()))
+    events = events.limit(10).all()
 
     return render_template("dashboard.html",
         trackers=trackers,
@@ -64,7 +93,13 @@ def user_GET(username):
         .limit(limit_trackers)
     ).all()
 
-    events = collect_events(user, 15)
+    # TODO: Join on stuff the user has explicitly been granted access to
+    events = (Event.query
+            .filter(Event.user_id == user.id)
+            .order_by(Event.created.desc()))
+    if not current_user or current_user.id != user.id:
+        events = filter_authorized_events(events)
+    events = events.limit(10).all()
 
     r = requests.get(meta_uri + "/api/user/profile", headers={
         "Authorization": "token " + user.oauth_token
