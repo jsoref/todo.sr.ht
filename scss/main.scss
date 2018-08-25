@@ -66,3 +66,28 @@ select.form-control {
     background: inherit;
   }
 }
+
+.ticket-list {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto auto;
+  border-right: 1px solid #ced4da;
+  border-bottom: 1px solid #ced4da;
+  margin-bottom: 1rem;
+
+  & > div {
+    padding: 0.1rem 0.5rem;
+    border-left: 1px solid #ced4da;
+    border-top: 1px solid #ced4da;
+
+    @for $i from 1 through 5 {
+      &:nth-child(5n+#{$i}) {
+        grid-column-start: $i;
+      }
+
+      // Striped rows
+      &:nth-child(10n+#{$i}) {
+        background: rgba(0,0,0,.05);
+      }
+    }
+  }
+}
