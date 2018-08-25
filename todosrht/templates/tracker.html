@@ -132,24 +132,27 @@
       {% if len(tickets) %}
       <div class="ticket-list">
         {% for ticket in tickets %}
-        <div style="text-align: right"><a href="{{url_for("ticket.ticket_GET",
+        <div class="id">
+          <a href="{{url_for("ticket.ticket_GET",
             owner=tracker.owner.canonical_name(),
             name=tracker.name,
             ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></div>
-        <div>{{ ticket.title }}</div>
-        <div>{{ ticket.updated | date }}</div>
-        <div>
+        <div class="title">{{ ticket.title }}</div>
+        <div class="updated">{{ ticket.updated | date }}</div>
+        <div class="submitter">
           <a href="{{url_for("html.user_GET",
             username=ticket.submitter.username)}}"
           >~{{ ticket.submitter.username }}</a>
         </div>
         {% if ticket.new_updates(current_user) %}
-        <div style="text-align: center">
-          {{ ticket.comments | length }}&nbsp;<span class="fa fa-fw fa-comments-o"></span>
+        <div class="comments">
+          <span class="fa fa-fw fa-comments-o"></span>
+          {{ ticket.comments | length }}
         </div>
         {% else %}
-        <div style="text-align: center">
-          {{ ticket.comments | length }}&nbsp;<span class="fa fa-fw fa-comments"></span>
+        <div class="comments">
+          <span class="fa fa-fw fa-comments-o"></span>
+          {{ ticket.comments | length }}
         </div>
         {% endif %}
         {% endfor %}

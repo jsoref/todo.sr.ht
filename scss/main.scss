@@ -68,16 +68,73 @@ select.form-control {
 }
 
 .ticket-list {
-  display: grid;
-  grid-template-columns: auto 1fr auto auto auto auto;
   border-right: 1px solid #ced4da;
   border-bottom: 1px solid #ced4da;
   margin-bottom: 1rem;
+
+  display: grid;
+  // id title updated submitter comments
+  grid-template-columns: auto 1fr auto auto auto;
+
+  @include media-breakpoint-down(xs) {
+    display: block;
+    border: none;
+
+    & > div {
+      display: block;
+      background: transparent !important;
+      border: none !important;
+      padding: 0 !important;
+
+      &:nth-child(5n+4) {
+        margin-bottom: 1rem;
+      }
+    }
+
+    .id {
+      text-align: inherit !important;
+      font-size: 2rem;
+    }
+
+    .updated {
+      color: $gray-600;
+      display: inline;
+    }
+
+    .updated:before {
+      content: "Updated ";
+    }
+
+    .updated:after {
+      content: " by ";
+    }
+
+    .submitter {
+      display: inline;
+    }
+
+    .comments {
+      text-align: left !important;
+    }
+
+    .comments:after {
+      content: "comments";
+    }
+  }
 
   & > div {
     padding: 0.1rem 0.5rem;
     border-left: 1px solid #ced4da;
     border-top: 1px solid #ced4da;
+    background: transparent;
+
+    &.id {
+      text-align: right;
+    }
+
+    &.comments {
+      text-align: center;
+    }
 
     @for $i from 1 through 5 {
       &:nth-child(5n+#{$i}) {
