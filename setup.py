@@ -29,6 +29,7 @@ setup(
       'todosrht': [
           'templates/*.html',
           'static/*',
+          'static/icons/*',
           'emails/*'
       ]
   }
