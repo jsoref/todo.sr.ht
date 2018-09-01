@@ -42,8 +42,7 @@
         class="btn btn-primary btn-block"
         href="{{ url_for("tracker.create_GET") }}"
       >
-        Create new tracker
-        <i class="fa fa-caret-right"></i>
+        Create new tracker {{icon("caret-right")}}
       </a>
       {% endif %}
       {% if len(trackers) > 0 %}
@@ -68,7 +67,7 @@
           username=(user or current_user).username) }}"
         class="btn btn-default btn-block"
         style="margin-top: 1rem"
-      >View more <i class="fa fa-caret-right"></i></a>
+      >View more {{icon("caret-right")}}</a>
       {% endif %}
       {% endif %}
     </div>

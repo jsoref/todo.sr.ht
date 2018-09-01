@@ -1,6 +1,7 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from srht.database import Base
+from datetime import datetime
 
 class TicketSeen(Base):
     """Stores the last time a user viewed this ticket. Calculates if comments have been seen."""
@@ -13,4 +14,4 @@ class TicketSeen(Base):
     ticket = sa.orm.relationship("Ticket")
 
     def update(self):
-        self.last_view = sa.sql.func.now()
+        self.last_view = datetime.utcnow()

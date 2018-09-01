@@ -72,13 +72,13 @@
                 type="submit"
                 {% endif %}
               >
-                <i class="fa fa-envelope-o"></i>
+                {{icon("envelope-o")}}
                 {% if is_subscribed or tracker_sub %}
                 Disable notifications
                 {% else %}
                 Enable notifications
                 {% endif %}
-                <i class="fa fa-caret-right"></i>
+                {{icon("caret-right")}}
               </button>
             {% if not tracker_sub %}
             </form>
@@ -165,8 +165,7 @@
           type="submit"
           class="btn btn-primary"
         >
-          Comment
-          <i class="fa fa-caret-right"></i>
+          Comment {{icon("caret-right")}}
         </button>
         {% if TicketAccess.edit in access %}
         {% if ticket.status != TicketStatus.resolved %}
@@ -176,8 +175,7 @@
           name="resolve"
           value="resolve"
         >
-          Resolve
-          <i class="fa fa-check"></i>
+          Resolve {{icon("check")}}
         </button>
         <select class="form-control" name="resolution">
           {% for r in TicketResolution %}
@@ -193,8 +191,7 @@
           name="reopen"
           value="reopen"
         >
-          Re-open
-          <i class="fa fa-caret-right"></i>
+          Re-open {{icon("caret-right")}}
         </button>
         {% endif %}
         {% endif %}

@@ -49,13 +49,13 @@
               owner=tracker.owner.canonical_name(),
               name=tracker.name)}}">
             <button class="nav-link active" type="submit">
-              <i class="fa fa-envelope-o"></i>
+              {{icon("envelope-o")}}
               {% if is_subscribed %}
               Disable notifications
               {% else %}
               Enable notifications
               {% endif %}
-              <i class="fa fa-caret-right"></i>
+              {{icon("caret-right")}}
             </button>
           </form>
         </li>
@@ -101,8 +101,7 @@
           type="submit"
           class="btn btn-primary"
         >
-          Submit
-          <i class="fa fa-caret-right"></i>
+          Submit {{icon("caret-right")}}
         </button>
         <label class="form-check-label" style="margin-left: 2rem">
           <input
@@ -146,12 +145,12 @@
         </div>
         {% if ticket.new_updates(current_user) %}
         <div class="comments">
-          <span class="fa fa-fw fa-comments-o"></span>
+          {{icon("comments-o")}}
           {{ ticket.comments | length }}
         </div>
         {% else %}
         <div class="comments">
-          <span class="fa fa-fw fa-comments-o"></span>
+          {{icon("comments")}}
           {{ ticket.comments | length }}
         </div>
         {% endif %}
