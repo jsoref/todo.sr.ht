@@ -10,7 +10,7 @@ import requests
 
 html = Blueprint('html', __name__)
 
-meta_uri = cfg("network", "meta")
+meta_uri = cfg("meta.sr.ht", "origin")
 
 def filter_authorized_events(events):
     events = (events

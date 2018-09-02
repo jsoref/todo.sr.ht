@@ -1,19 +1,15 @@
 from jinja2 import Markup
 from srht.flask import SrhtFlask
-from srht.config import cfg, load_config
-load_config("todo")
-
+from srht.config import cfg
 from srht.database import DbSession
-db = DbSession(cfg("sr.ht", "connection-string"))
+
+db = DbSession(cfg("todo.sr.ht", "connection-string"))
 
 from todosrht.types import User
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 from todosrht.types import TicketSeen
-db.init()
 
-from todosrht.blueprints.html import html
-from todosrht.blueprints.tracker import tracker
-from todosrht.blueprints.ticket import ticket
+db.init()
 
 def render_status(ticket, access):
     if TicketAccess.edit in access:
@@ -31,16 +27,20 @@ def render_status(ticket, access):
 
 class TodoApp(SrhtFlask):
     def __init__(self):
-        super().__init__("todo", __name__)
+        super().__init__("todo.sr.ht", __name__)
 
         self.url_map.strict_slashes = False
+
+        from todosrht.blueprints.html import html
+        from todosrht.blueprints.tracker import tracker
+        from todosrht.blueprints.ticket import ticket
 
         self.register_blueprint(html)
         self.register_blueprint(tracker)
         self.register_blueprint(ticket)
 
-        meta_client_id = cfg("meta.sr.ht", "oauth-client-id")
-        meta_client_secret = cfg("meta.sr.ht", "oauth-client-secret")
+        meta_client_id = cfg("todo.sr.ht", "oauth-client-id")
+        meta_client_secret = cfg("todo.sr.ht", "oauth-client-secret")
         self.configure_meta_auth(meta_client_id, meta_client_secret)
 
         @self.context_processor

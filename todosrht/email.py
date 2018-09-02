@@ -5,8 +5,7 @@ import pystache
 from srht.config import cfg, cfgi
 from flask_login import current_user
 
-protocol = cfg("server", "protocol")
-domain = cfg("server", "domain")
+origin = cfg("todo.sr.ht", "origin")
 
 def notify(sub, template, subject, headers, **kwargs):
     encrypt_key = None
@@ -21,7 +20,7 @@ def notify(sub, template, subject, headers, **kwargs):
         body = html.parser.HTMLParser().unescape(\
             pystache.render(f.read(), {
                 'user': current_user,
-                'root': '{}://{}'.format(protocol, domain),
+                'root': origin,
                 **kwargs
             }))
     send_email(body, to, subject, encrypt_key=encrypt_key, **headers)
