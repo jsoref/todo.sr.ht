@@ -18,7 +18,8 @@ from datetime import datetime
 ticket = Blueprint("ticket", __name__)
 
 smtp_user = cfg("mail", "smtp-user", default=None)
-notify_from = cfg("todo.sr.ht", "notify-from", default=None)
+smtp_from = cfg("mail", "smtp-from", default=None)
+notify_from = cfg("todo.sr.ht", "notify-from", default=smtp_from)
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):

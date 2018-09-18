@@ -20,7 +20,8 @@ tracker = Blueprint("tracker", __name__)
 name_re = re.compile(r"^([a-z][a-z0-9_.-]*?)+$")
 
 smtp_user = cfg("mail", "smtp-user", default=None)
-notify_from = cfg("todo.sr.ht", "notify-from", default=None)
+smtp_from = cfg("mail", "smtp-from", default=None)
+notify_from = cfg("todo.sr.ht", "notify-from", default=smtp_from)
 
 @tracker.route("/tracker/create")
 @loginrequired
