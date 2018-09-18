@@ -18,6 +18,7 @@ from datetime import datetime
 ticket = Blueprint("ticket", __name__)
 
 smtp_user = cfg("mail", "smtp-user", default=None)
+notify_from = cfg("todo.sr.ht", "notify-from", default=None)
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):
@@ -194,10 +195,8 @@ def ticket_comment_POST(owner, name, ticket_id):
             tracker.owner.canonical_name(), tracker.name,
             ticket.scoped_id, ticket.title),
                 headers={
-                    "From": "{} <{}>".format(
-                        current_user.username,
-                        current_user.email),
-                    "Sender": smtp_user
+                    "From": notify_from,
+                    "Sender": smtp_user,
                 },
                 ticket=ticket,
                 comment=comment,

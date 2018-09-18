@@ -20,6 +20,7 @@ tracker = Blueprint("tracker", __name__)
 name_re = re.compile(r"^([a-z][a-z0-9_.-]*?)+$")
 
 smtp_user = cfg("mail", "smtp-user", default=None)
+notify_from = cfg("todo.sr.ht", "notify-from", default=None)
 
 @tracker.route("/tracker/create")
 @loginrequired
@@ -325,9 +326,8 @@ def tracker_submit_POST(owner, name):
             tracker.owner.canonical_name(), tracker.name,
             ticket.scoped_id, ticket.title),
                 headers={
-                    "From": "{} <{}>".format(current_user.username,
-                        current_user.email),
-                    "Sender": smtp_user
+                    "From": notify_from,
+                    "Sender": smtp_user,
                 }, ticket=ticket,
                 ticket_url=ticket_url.replace("%7E", "~")) # hack
 
