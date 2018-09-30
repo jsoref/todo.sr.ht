@@ -327,7 +327,8 @@ def tracker_submit_POST(owner, name):
             tracker.owner.canonical_name(), tracker.name,
             ticket.scoped_id, ticket.title),
                 headers={
-                    "From": notify_from,
+                    "From": "~{} <{}>".format(
+                        current_user.username, notify_from),
                     "Sender": smtp_user,
                 }, ticket=ticket,
                 ticket_url=ticket_url.replace("%7E", "~")) # hack

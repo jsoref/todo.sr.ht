@@ -196,7 +196,8 @@ def ticket_comment_POST(owner, name, ticket_id):
             tracker.owner.canonical_name(), tracker.name,
             ticket.scoped_id, ticket.title),
                 headers={
-                    "From": notify_from,
+                    "From": "~{} <{}>".format(
+                        current_user.username, notify_from),
                     "Sender": smtp_user,
                 },
                 ticket=ticket,
