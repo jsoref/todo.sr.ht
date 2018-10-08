@@ -26,6 +26,8 @@ def get_tracker(owner, name, with_for_update=False):
         owner = owner[1:]
 
     owner = User.query.filter(User.username == owner).one_or_none()
+    if not owner:
+        return None, None
     tracker = (Tracker.query
         .filter(Tracker.owner_id == owner.id)
         .filter(Tracker.name == name.lower()))
