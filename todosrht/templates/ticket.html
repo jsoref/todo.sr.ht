@@ -165,9 +165,11 @@
             <select id="label_id" name="label_id">
               <option>-- Pick one --</option>
               {% for label in tracker.labels if label not in labels %}
-              <option value="{{ label.id }}">
-                {{ label.name }}
-              </option>
+              <option
+                value="{{ label.id }}"
+                style="color: {{ label.text_color }}; background-color: {{ label.color }}">
+                  {{ label.name }}
+                </option>
               {% endfor %}
             </select>
             <button type="submit" class="btn btn-primary">Add</button>
