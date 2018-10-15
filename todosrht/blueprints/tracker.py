@@ -9,7 +9,8 @@ from todosrht.access import get_tracker
 from todosrht.email import notify
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
-from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess, Label
+from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
+from todosrht.types import Label, TicketLabel
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
@@ -424,6 +425,9 @@ def delete_label(owner, name, label_id):
 
     if not label:
         abort(404)
+
+    # Remove label from any linked tickets
+    TicketLabel.query.filter(TicketLabel.label_id == label.id).delete()
 
     db.session.delete(label)
     db.session.commit()
