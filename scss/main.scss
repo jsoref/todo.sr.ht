@@ -165,3 +165,12 @@ select.form-control {
     margin-bottom: 0;
   }
 }
+
+.label-edit {
+  white-space: nowrap;
+  display: block;
+  form {
+    display: inline-block;
+    margin-bottom: .3rem;
+  }
+}

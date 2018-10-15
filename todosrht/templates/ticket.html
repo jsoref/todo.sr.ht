@@ -126,10 +126,26 @@
         <dt class="col-md-3">Labels</dt>
         <dd class="col-md-9">
           {% for tl in ticket.labels %}
-            <div
-              class="label"
-              style="color: {{ tl.label.text_color }}; background-color: {{ tl.label.color }}"
-              >{{ tl.label.name }}
+            <div class="label-edit">
+              <div
+                class="label"
+                style="color: {{ tl.label.text_color }}; background-color: {{ tl.label.color }}"
+                >{{ tl.label.name }}
+              </div>
+              <form
+                method="POST"
+                action="{{
+                  url_for(".ticket_remove_label",
+                    owner=tracker.owner.canonical_name(),
+                    name=tracker.name,
+                    ticket_id=ticket.scoped_id,
+                    label_id=tl.label.id,
+                  )
+                }}">
+                <button type="submit" class="btn btn-outline-danger">
+                  {{ icon("times") }}
+                </button>
+              </form>
             </div>
           {% endfor %}
         </dd>

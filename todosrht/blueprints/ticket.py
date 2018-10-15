@@ -346,3 +346,31 @@ def ticket_add_label(owner, name, ticket_id):
             owner=tracker.owner.canonical_name(),
             name=name,
             ticket_id=ticket_id))
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/remove_label/<int:label_id>", methods=["POST"])
+@loginrequired
+def ticket_remove_label(owner, name, ticket_id, label_id):
+    tracker, _ = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+    if not TicketAccess.edit in access:
+        abort(401)
+    label = Label.query.filter(Label.id==label_id).first()
+    if not label:
+        abort(404)
+
+    ticket_label = (TicketLabel.query
+            .filter(TicketLabel.label_id == label_id)
+            .filter(TicketLabel.ticket_id == ticket_id)).first()
+
+    if ticket_label:
+        db.session.delete(ticket_label)
+        db.session.commit()
+
+    return redirect(url_for("ticket.ticket_GET",
+            owner=tracker.owner.canonical_name(),
+            name=name,
+            ticket_id=ticket_id))
