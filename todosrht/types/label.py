@@ -23,3 +23,21 @@ class Label(Base):
 
     def __repr__(self):
         return '<Label {} {}>'.format(self.id, self.name)
+
+class TicketLabel(Base):
+    __tablename__ = 'ticket_label'
+    ticket_id = sa.Column(sa.Integer,
+            sa.ForeignKey('ticket.id'), primary_key=True)
+    ticket = sa.orm.relationship("Ticket", backref=sa.orm.backref("labels"))
+
+    label_id = sa.Column(sa.Integer,
+            sa.ForeignKey('label.id'), primary_key=True)
+    label = sa.orm.relationship("Label", backref=sa.orm.backref("tickets"))
+
+    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
+    user = sa.orm.relationship("User", backref=sa.orm.backref("ticket_labels"))
+
+    created = sa.Column(sa.DateTime, nullable=False)
+
+    def __repr__(self):
+        return '<TicketLabel {} {}>'.format(self.ticket_id, self.label_id)
