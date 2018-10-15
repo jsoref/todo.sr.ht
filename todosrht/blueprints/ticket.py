@@ -8,6 +8,7 @@ from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSeen
 from todosrht.types import TicketSubscription
 from todosrht.types import Event, EventType, EventNotification
+from todosrht.types import Label, TicketLabel
 from todosrht.email import notify
 from srht.config import cfg
 from srht.database import db
@@ -306,3 +307,38 @@ def ticket_edit_POST(owner, name, ticket_id):
             owner=tracker.owner.canonical_name(),
             name=name,
             ticket_id=ticket.scoped_id))
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/add_label", methods=["POST"])
+@loginrequired
+def ticket_add_label(owner, name, ticket_id):
+    tracker, _ = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+    if not TicketAccess.edit in access:
+        abort(401)
+
+    label_id = int(request.form.get('label_id'))
+    label = Label.query.filter(Label.id==label_id).first()
+    if not label:
+        abort(404)
+
+    ticket_label = (TicketLabel.query
+            .filter(TicketLabel.label_id == label.id)
+            .filter(TicketLabel.ticket_id == ticket_id)).first()
+
+    if not ticket_label:
+        ticket_label = TicketLabel()
+        ticket_label.ticket_id = ticket_id
+        ticket_label.label_id = label.id
+        ticket_label.user_id = current_user.id
+
+        db.session.add(ticket_label)
+        db.session.commit()
+
+    return redirect(url_for("ticket.ticket_GET",
+            owner=tracker.owner.canonical_name(),
+            name=name,
+            ticket_id=ticket_id))
