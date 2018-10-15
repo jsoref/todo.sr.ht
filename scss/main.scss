@@ -147,3 +147,16 @@ select.form-control {
     }
   }
 }
+
+.label {
+  border: 1px solid black;
+  padding: .1rem .5rem;
+  display: inline-block;
+}
+
+.label-list > .row {
+  margin-bottom: .2rem;
+  &:last-child {
+    margin-bottom: 0;
+  }
+}

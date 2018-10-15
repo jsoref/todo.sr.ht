@@ -1,0 +1,128 @@
+{% extends "todo.html" %}
+{% block title %}
+<title>
+  labels
+  &mdash;
+  {{tracker.name}}
+  &mdash;
+  {{ cfg("sr.ht", "site-name") }} todo
+</title>
+{% endblock %}
+{% block body %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-md-12 header-tabbed">
+      <h2>
+        <a href="{{ url_for("html.user_GET",
+          username=tracker.owner.username) }}"
+        >{{tracker.owner.canonical_name()}}</a>/{{tracker.name}}
+      </h2>
+      <ul class="nav nav-tabs">
+        <li class="nav-item">
+          <a class="nav-link"
+            href="{{url_for(".tracker_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name
+              )}}">open tickets</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link" href="{{url_for(".tracker_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name
+              )}}?search=status:closed">closed tickets</a>
+        </li>
+        <li class="nav-item">
+          <a class="nav-link active"
+            href="{{url_for(".tracker_labels_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name
+              )}}">labels</a>
+        </li>
+        {% if current_user and current_user.id == tracker.owner_id %}
+        <li class="nav-item d-none d-sm-block">
+          <a class="nav-link" href="{{url_for(".configure_GET",
+            owner=tracker.owner.canonical_name(),
+            name=tracker.name)}}"
+          >settings</a>
+        </li>
+        {% endif %}
+      </ul>
+    </div>
+  </div>
+  <div class="row">
+    <div class="col-xl-5 col-lg-6 col-md-8">
+      {{ tracker.description | md }}
+
+      {% if tracker.labels %}
+      <div class="label-list">
+        {% for label in tracker.labels %}
+          <div class="row">
+            <div class="col">
+              <div
+                class="label"
+                style="color: {{ label.text_color }}; background-color: {{ label.color }}"
+              >{{ label.name }}</div>
+            </div>
+            {% if is_owner %}
+            <div class="col-auto">
+              <form
+                method="post"
+                style="margin-bottom: 0"
+                action="{{url_for(".delete_label",
+                    owner=tracker.owner.canonical_name(),
+                    name=tracker.name,
+                    label_id=label.id
+                  )}}">
+                <button type="submit" class="btn btn-danger btn-sm">delete</button>
+              </form>
+            </div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <p>No labels defined.</p>
+      {% endif %}
+
+      <hr />
+
+      {% if is_owner %}
+      <h3 style="margin-top: 1rem">Add label</h3>
+
+      <form method="POST">
+        <div class="form-row">
+          <div class="col-auto">
+            <div class="form-group" style="width: 4rem">
+              <label for="color">Color</label>
+              <input
+                 type="color"
+                 class="form-control {{ valid.cls("color") }}"
+                 id="color"
+                 name="color"
+                 value="{{ color or "#FFFFFF" }}" />
+              {{valid.summary("color")}}
+            </div>
+          </div>
+          <div class="col">
+            <div class="form-group">
+              <label for="name">Name</label>
+              <input
+                 type="text"
+                 class="form-control {{ valid.cls("name") }}"
+                 maxlength="2048"
+                 id="name"
+                 name="name"
+                 value="{{ name or "" }}" />
+              {{valid.summary("name")}}
+            </div>
+          </div>
+        </div>
+        <button type="submit" class="btn btn-primary">
+          Add {{icon("caret-right")}}
+        </button>
+      </form>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

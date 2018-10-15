@@ -4,11 +4,12 @@ from sqlalchemy import or_
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
+from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.email import notify
-from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
+from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess, Label
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
@@ -348,3 +349,83 @@ def tracker_submit_POST(owner, name):
                 name=name))
     else:
         return redirect(ticket_url)
+
+@tracker.route("/<owner>/<name>/labels")
+@loginrequired
+def tracker_labels_GET(owner, name):
+    tracker, access = get_tracker(owner, name)
+    is_owner = current_user.id == tracker.owner_id
+    if not tracker:
+        abort(404)
+
+    return render_template("tracker-labels.html",
+        tracker=tracker, access=access, is_owner=is_owner)
+
+@tracker.route("/<owner>/<name>/labels", methods=["POST"])
+@loginrequired
+def tracker_labels_POST(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    valid = Validation(request)
+    label_name = valid.require("name")
+    label_color = valid.require("color")
+    if not valid.ok:
+        return render_template("tracker-labels.html",
+            tracker=tracker, access=access, **valid.kwargs), 400
+
+    valid.expect(2 < len(label_name) < 50,
+            "Must be between 2 and 50 characters", field="label_name")
+    valid.expect(color.valid_hex_color_code(label_color),
+            "Invalid hex color code", field="color")
+    if not valid.ok:
+        return render_template("tracker-labels.html",
+            tracker=tracker, access=access, **valid.kwargs), 400
+
+    existing_label = (Label.query
+            .filter(Label.tracker_id == tracker.id)
+            .filter(Label.name == label_name)).first()
+    valid.expect(not existing_label,
+            "A label with this name already exists", field="name")
+    if not valid.ok:
+        return render_template("tracker-labels.html",
+            tracker=tracker, access=access, **valid.kwargs), 400
+
+    # Determine a foreground color to use
+    label_color_rgb = color.color_from_hex(label_color)
+    text_color_rgb = color.get_text_color(label_color_rgb)
+    text_color = color.color_to_hex(text_color_rgb)
+
+    label = Label()
+    label.tracker_id = tracker.id
+    label.name = label_name
+    label.color = label_color
+    label.text_color = text_color
+    db.session.add(label)
+    db.session.commit()
+
+    return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
+
+@tracker.route("/<owner>/<name>/labels/<int:label_id>/delete", methods=["POST"])
+@loginrequired
+def delete_label(owner, name, label_id):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    label = (Label.query
+            .filter(Label.tracker_id == tracker.id)
+            .filter(Label.id == label_id)).first()
+
+    if not label:
+        abort(404)
+
+    db.session.delete(label)
+    db.session.commit()
+
+    return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))

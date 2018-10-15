@@ -33,6 +33,13 @@
           <a class="nav-link active" href="?search={{ search }}">search results</a>
         </li>
         {% endif %}
+        <li class="nav-item">
+          <a class="nav-link"
+            href="{{url_for(".tracker_labels_GET",
+                owner=tracker.owner.canonical_name(),
+                name=tracker.name
+              )}}">labels</a>
+        </li>
         {% if current_user and current_user.id == tracker.owner_id %}
         <li class="nav-item d-none d-sm-block">
           <a class="nav-link" href="{{url_for(".configure_GET",
