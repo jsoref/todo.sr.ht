@@ -123,6 +123,16 @@
         <dd class="col-md-9 ellipsis" title="{{ ticket.user_agent }}">
           {{ ticket.user_agent }}
         </dd>
+        <dt class="col-md-3">Labels</dt>
+        <dd class="col-md-9">
+          {% for tl in ticket.labels %}
+            <div
+              class="label"
+              style="color: {{ tl.label.text_color }}; background-color: {{ tl.label.color }}"
+              >{{ tl.label.name }}
+            </div>
+          {% endfor %}
+        </dd>
       </dl>
     </div>
     <div class="col-md-6">

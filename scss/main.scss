@@ -152,6 +152,11 @@ select.form-control {
   border: 1px solid black;
   padding: .1rem .5rem;
   display: inline-block;
+
+  &.small {
+    font-size: .7rem;
+    padding: 0 .3rem;
+  }
 }
 
 .label-list > .row {

@@ -143,7 +143,16 @@
             owner=tracker.owner.canonical_name(),
             name=tracker.name,
             ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></div>
-        <div class="title">{{ ticket.title }}</div>
+        <div class="title">
+          {{ ticket.title }}
+          {% for tl in ticket.labels %}
+          <div
+            class="small label"
+            style="color: {{ tl.label.text_color }}; background-color: {{ tl.label.color }}"
+            >{{ tl.label.name }}
+          </div>
+          {% endfor %}
+        </div>
         <div class="updated">{{ ticket.updated | date }}</div>
         <div class="submitter">
           <a href="{{url_for("html.user_GET",
