@@ -148,7 +148,7 @@
             }}">
             <select id="label_id" name="label_id">
               <option>-- Pick one --</option>
-              {% for label in tracker.labels %}
+              {% for label in tracker.labels if label not in labels %}
               <option value="{{ label.id }}">
                 {{ label.name }}
               </option>
