@@ -381,7 +381,7 @@ def tracker_labels_POST(owner, name):
             **valid.kwargs), 400
 
     valid.expect(2 < len(label_name) < 50,
-            "Must be between 2 and 50 characters", field="label_name")
+            "Must be between 2 and 50 characters", field="name")
     valid.expect(color.valid_hex_color_code(label_color),
             "Invalid hex color code", field="color")
     if not valid.ok:
