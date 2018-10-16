@@ -366,9 +366,10 @@ def tracker_labels_GET(owner, name):
 @loginrequired
 def tracker_labels_POST(owner, name):
     tracker, access = get_tracker(owner, name)
+    is_owner = current_user.id == tracker.owner_id
     if not tracker:
         abort(404)
-    if current_user.id != tracker.owner_id:
+    if not is_owner:
         abort(403)
 
     valid = Validation(request)
@@ -376,7 +377,8 @@ def tracker_labels_POST(owner, name):
     label_color = valid.require("color")
     if not valid.ok:
         return render_template("tracker-labels.html",
-            tracker=tracker, access=access, **valid.kwargs), 400
+            tracker=tracker, access=access, is_owner=is_owner,
+            **valid.kwargs), 400
 
     valid.expect(2 < len(label_name) < 50,
             "Must be between 2 and 50 characters", field="label_name")
@@ -384,7 +386,8 @@ def tracker_labels_POST(owner, name):
             "Invalid hex color code", field="color")
     if not valid.ok:
         return render_template("tracker-labels.html",
-            tracker=tracker, access=access, **valid.kwargs), 400
+            tracker=tracker, access=access, is_owner=is_owner,
+            **valid.kwargs), 400
 
     existing_label = (Label.query
             .filter(Label.tracker_id == tracker.id)
@@ -393,7 +396,8 @@ def tracker_labels_POST(owner, name):
             "A label with this name already exists", field="name")
     if not valid.ok:
         return render_template("tracker-labels.html",
-            tracker=tracker, access=access, **valid.kwargs), 400
+            tracker=tracker, access=access, is_owner=is_owner,
+            **valid.kwargs), 400
 
     # Determine a foreground color to use
     label_color_rgb = color.color_from_hex(label_color)
