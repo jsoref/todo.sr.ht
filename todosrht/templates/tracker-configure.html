@@ -39,24 +39,12 @@
       </h2>
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a class="nav-link"
-            href="{{url_for(".tracker_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}">open tickets</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{url_for(".tracker_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}?search=status:closed">closed tickets</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link"
-            href="{{url_for(".tracker_labels_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}">labels</a>
+          <a
+            class="nav-link"
+            href="{{ url_for("tracker.tracker_GET",
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name) }}"
+          >{{icon('caret-left')}} back</a>
         </li>
         <li class="nav-item d-none d-sm-block">
           <a class="nav-link active" href="{{url_for(".configure_GET",

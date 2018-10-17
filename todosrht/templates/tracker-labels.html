@@ -19,17 +19,12 @@
       </h2>
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a class="nav-link"
-            href="{{url_for(".tracker_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}">open tickets</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link" href="{{url_for(".tracker_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}?search=status:closed">closed tickets</a>
+          <a
+            class="nav-link"
+            href="{{ url_for("tracker.tracker_GET",
+              owner=tracker.owner.canonical_name(),
+              name=tracker.name) }}"
+          >{{icon('caret-left')}} back</a>
         </li>
         <li class="nav-item">
           <a class="nav-link active"
@@ -38,14 +33,6 @@
                 name=tracker.name
               )}}">labels</a>
         </li>
-        {% if current_user and current_user.id == tracker.owner_id %}
-        <li class="nav-item d-none d-sm-block">
-          <a class="nav-link" href="{{url_for(".configure_GET",
-            owner=tracker.owner.canonical_name(),
-            name=tracker.name)}}"
-          >settings</a>
-        </li>
-        {% endif %}
       </ul>
     </div>
   </div>
@@ -60,7 +47,8 @@
             <div class="col">
               <div
                 class="label"
-                style="color: {{ label.text_color }}; background-color: {{ label.color }}"
+                style="color: {{ label.text_color }};
+                  background-color: {{ label.color }}"
               >{{ label.name }}</div>
             </div>
             {% if is_owner %}
@@ -99,7 +87,8 @@
                  class="form-control {{ valid.cls("color") }}"
                  id="color"
                  name="color"
-                 value="{{ color or "#FFFFFF" }}" />
+                 style="height: 2.2rem"
+                 value="{{ color or "#ffffff" }}" />
               {{valid.summary("color")}}
             </div>
           </div>

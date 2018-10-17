@@ -325,17 +325,17 @@ def ticket_add_label(owner, name, ticket_id):
         abort(401)
 
     label_id = int(request.form.get('label_id'))
-    label = Label.query.filter(Label.id==label_id).first()
+    label = Label.query.filter(Label.id == label_id).first()
     if not label:
         abort(404)
 
     ticket_label = (TicketLabel.query
             .filter(TicketLabel.label_id == label.id)
-            .filter(TicketLabel.ticket_id == ticket_id)).first()
+            .filter(TicketLabel.ticket_id == ticket.id)).first()
 
     if not ticket_label:
         ticket_label = TicketLabel()
-        ticket_label.ticket_id = ticket_id
+        ticket_label.ticket_id = ticket.id
         ticket_label.label_id = label.id
         ticket_label.user_id = current_user.id
 
@@ -347,7 +347,8 @@ def ticket_add_label(owner, name, ticket_id):
             name=name,
             ticket_id=ticket_id))
 
-@ticket.route("/<owner>/<name>/<int:ticket_id>/remove_label/<int:label_id>", methods=["POST"])
+@ticket.route("/<owner>/<name>/<int:ticket_id>/remove_label/<int:label_id>",
+        methods=["POST"])
 @loginrequired
 def ticket_remove_label(owner, name, ticket_id, label_id):
     tracker, _ = get_tracker(owner, name)
@@ -364,7 +365,7 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
 
     ticket_label = (TicketLabel.query
             .filter(TicketLabel.label_id == label_id)
-            .filter(TicketLabel.ticket_id == ticket_id)).first()
+            .filter(TicketLabel.ticket_id == ticket.id)).first()
 
     if ticket_label:
         db.session.delete(ticket_label)

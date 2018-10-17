@@ -129,30 +129,30 @@
             <div class="label-edit">
               <div
                 class="label"
-                style="color: {{ tl.label.text_color }}; background-color: {{ tl.label.color }}"
+                style="color: {{ tl.label.text_color }};
+                  background-color: {{ tl.label.color }}"
                 >{{ tl.label.name }}
+                <form
+                  method="POST"
+                  action="{{
+                    url_for(".ticket_remove_label",
+                      owner=tracker.owner.canonical_name(),
+                      name=tracker.name,
+                      ticket_id=ticket.scoped_id,
+                      label_id=tl.label.id,
+                    )
+                  }}">
+                  <button type="submit" class="btn btn-link">
+                    {{ icon("times") }}
+                  </button>
+                </form>
               </div>
-              <form
-                method="POST"
-                action="{{
-                  url_for(".ticket_remove_label",
-                    owner=tracker.owner.canonical_name(),
-                    name=tracker.name,
-                    ticket_id=ticket.scoped_id,
-                    label_id=tl.label.id,
-                  )
-                }}">
-                <button type="submit" class="btn btn-outline-danger">
-                  {{ icon("times") }}
-                </button>
-              </form>
             </div>
           {% endfor %}
         </dd>
 
         {% if TicketAccess.edit in access %}
-        <dt class="col-md-3">Add label</dt>
-        <dd class="col-md-9">
+        <dd class="col-md-9 offset-md-3">
           <form
             method="POST"
             action="{{
@@ -162,17 +162,20 @@
                 ticket_id=ticket.scoped_id,
               )
             }}">
-            <select id="label_id" name="label_id">
+            <select id="label_id" name="label_id" class="form-control">
               <option>-- Pick one --</option>
               {% for label in tracker.labels if label not in labels %}
               <option
                 value="{{ label.id }}"
-                style="color: {{ label.text_color }}; background-color: {{ label.color }}">
+                style="color: {{ label.text_color }};
+                    background-color: {{ label.color }}">
                   {{ label.name }}
                 </option>
               {% endfor %}
             </select>
-            <button type="submit" class="btn btn-primary">Add</button>
+            <button type="submit" class="btn btn-default">
+              Add label {{icon('caret-right')}}
+            </button>
           </form>
         </dd>
         {% else %}

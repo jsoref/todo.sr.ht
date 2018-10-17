@@ -161,6 +161,7 @@ select.form-control {
 
 .label-list > .row {
   margin-bottom: .2rem;
+
   &:last-child {
     margin-bottom: 0;
   }
@@ -168,9 +169,15 @@ select.form-control {
 
 .label-edit {
   white-space: nowrap;
-  display: block;
+  margin-bottom: .3rem;
+  display: inline-block;
+
   form {
     display: inline-block;
-    margin-bottom: .3rem;
+    margin: 0;
+  }
+
+  .btn {
+    color: inherit;
   }
 }
