@@ -86,7 +86,7 @@ def create_POST():
             owner=current_user.canonical_name(),
             name=name))
 
-def apply_search(query, search):
+def apply_search(query, search, tracker):
     terms = find_search_terms(search)
     for prop, value in terms:
         if prop == "status" :
@@ -104,6 +104,14 @@ def apply_search(query, search):
             user = User.query.filter(User.username == value).first()
             if user:
                 query = query.filter(Ticket.submitter_id == user.id)
+                continue
+
+        if prop == "label":
+            label = Label.query.filter(
+                Label.tracker_id == tracker.id, Label.name == value).first()
+            if label:
+                query = query.filter(
+                    Ticket.labels.any(TicketLabel.label == label))
                 continue
 
         query = query.filter(or_(
@@ -129,7 +137,7 @@ def return_tracker(tracker, access, **kwargs):
     search = request.args.get("search")
     tickets = tickets.order_by(Ticket.updated.desc())
     if search:
-        tickets = apply_search(tickets, search)
+        tickets = apply_search(tickets, search, tracker)
     else:
         tickets = tickets.filter(Ticket.status == TicketStatus.reported)
     tickets, pagination = paginate_query(tickets, results_per_page=25)
