@@ -7,6 +7,7 @@ from flask_login import current_user
 from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.email import notify
+from todosrht.search import find_search_terms
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
@@ -86,14 +87,8 @@ def create_POST():
             name=name))
 
 def apply_search(query, search):
-    terms = search.split(" ")
-    for term in terms:
-        term = term.lower()
-        if ":" in term:
-            prop, value = term.split(":")
-        else:
-            prop, value = None, term
-
+    terms = find_search_terms(search)
+    for prop, value in terms:
         if prop == "status" :
             status_aliases = {
                 "closed": "resolved"
