@@ -1,4 +1,5 @@
 import re
+from todosrht.types import Label, TicketLabel
 from todosrht.types import Ticket, TicketStatus
 from todosrht.types import User
 
@@ -70,5 +71,15 @@ def filter_by_submitter(query, value, current_user):
     user = User.query.filter(User.username == value).first()
     if user:
         return query.filter(Ticket.submitter_id == user.id)
+
+    return query.filter(False)
+
+def filter_by_label(query, value, tracker):
+    label = Label.query.filter(
+        Label.tracker_id == tracker.id,
+        Label.name == value).first()
+
+    if label:
+        return query.filter(Ticket.labels.any(TicketLabel.label == label))
 
     return query.filter(False)

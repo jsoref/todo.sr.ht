@@ -8,7 +8,7 @@ from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.email import notify
 from todosrht.search import find_search_terms, filter_by_status
-from todosrht.search import filter_by_submitter
+from todosrht.search import filter_by_submitter, filter_by_label
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
@@ -99,12 +99,8 @@ def apply_search(query, search, tracker):
             continue
 
         if prop == "label":
-            label = Label.query.filter(
-                Label.tracker_id == tracker.id, Label.name == value).first()
-            if label:
-                query = query.filter(
-                    Ticket.labels.any(TicketLabel.label == label))
-                continue
+            query = filter_by_label(query, value, tracker)
+            continue
 
         query = query.filter(or_(
             Ticket.description.ilike("%" + value + "%"),
