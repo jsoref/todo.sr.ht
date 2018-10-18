@@ -8,6 +8,7 @@ from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.email import notify
 from todosrht.search import find_search_terms, filter_by_status
+from todosrht.search import filter_by_submitter
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
@@ -94,10 +95,8 @@ def apply_search(query, search, tracker):
             continue
 
         if prop == "submitter":
-            user = User.query.filter(User.username == value).first()
-            if user:
-                query = query.filter(Ticket.submitter_id == user.id)
-                continue
+            query = filter_by_submitter(query, value, current_user)
+            continue
 
         if prop == "label":
             label = Label.query.filter(

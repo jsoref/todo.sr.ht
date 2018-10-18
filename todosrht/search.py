@@ -1,5 +1,6 @@
 import re
 from todosrht.types import Ticket, TicketStatus
+from todosrht.types import User
 
 # Property with a quoted value, e.g.: label:"help wanted"
 TERM_PROPERTY_QUOTED = re.compile(r"(\w+):\"(.+?)\"")
@@ -59,5 +60,15 @@ def filter_by_status(query, value):
 
     if hasattr(TicketStatus, value):
         return query.filter(Ticket.status == getattr(TicketStatus, value))
+
+    return query.filter(False)
+
+def filter_by_submitter(query, value, current_user):
+    if value == "me":
+        return query.filter(Ticket.submitter_id == current_user.id)
+
+    user = User.query.filter(User.username == value).first()
+    if user:
+        return query.filter(Ticket.submitter_id == user.id)
 
     return query.filter(False)
