@@ -25,12 +25,15 @@
         </li>
         <li class="nav-item">
           <a class="nav-link {{
-              "active" if search == "status:closed" or search == "status:resolved" else ""
+              "active" if search == "status:closed"
+                or search == "status:resolved" else ""
             }}" href="?search=status:closed">closed tickets</a>
         </li>
         {% if search and search != "status:closed" and search != "status:resolved" %}
         <li class="nav-item">
-          <a class="nav-link active" href="?search={{ search }}">search results</a>
+          <a class="nav-link active" href="?search={{ search }}">
+            search results
+          </a>
         </li>
         {% endif %}
         <li class="nav-item">
