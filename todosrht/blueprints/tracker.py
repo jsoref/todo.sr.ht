@@ -7,7 +7,7 @@ from flask_login import current_user
 from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.email import notify
-from todosrht.search import find_search_terms
+from todosrht.search import find_search_terms, filter_by_status
 from todosrht.types import TicketComment, TicketResolution, TicketSubscription
 from todosrht.types import TicketSeen, Event, EventType, EventNotification
 from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
@@ -89,16 +89,9 @@ def create_POST():
 def apply_search(query, search, tracker):
     terms = find_search_terms(search)
     for prop, value in terms:
-        if prop == "status" :
-            status_aliases = {
-                "closed": "resolved"
-            }
-            if value in status_aliases:
-                value = status_aliases[value]
-            if hasattr(TicketStatus, value):
-                status = getattr(TicketStatus, value)
-                query = query.filter(Ticket.status == status)
-                continue
+        if prop == "status":
+            query = filter_by_status(query, value)
+            continue
 
         if prop == "submitter":
             user = User.query.filter(User.username == value).first()

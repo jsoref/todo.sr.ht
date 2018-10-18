@@ -1,4 +1,5 @@
 import re
+from todosrht.types import Ticket, TicketStatus
 
 # Property with a quoted value, e.g.: label:"help wanted"
 TERM_PROPERTY_QUOTED = re.compile(r"(\w+):\"(.+?)\"")
@@ -41,3 +42,22 @@ def find_search_terms(search):
             start, end = m.span()
             search = search[:start] + search[end:]
             m = re.search(pattern, search)
+
+STATUS_ALIASES = {
+    "open": [
+        TicketStatus.reported,
+        TicketStatus.confirmed,
+        TicketStatus.in_progress,
+        TicketStatus.pending,
+    ],
+    "closed": [TicketStatus.resolved]
+}
+
+def filter_by_status(query, value):
+    if value in STATUS_ALIASES:
+        return query.filter(Ticket.status.in_(STATUS_ALIASES[value]))
+
+    if hasattr(TicketStatus, value):
+        return query.filter(Ticket.status == getattr(TicketStatus, value))
+
+    return query.filter(False)
