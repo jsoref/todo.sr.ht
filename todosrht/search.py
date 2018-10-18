@@ -1,4 +1,5 @@
 import re
+from sqlalchemy import or_
 from todosrht.types import Label, TicketLabel
 from todosrht.types import Ticket, TicketStatus
 from todosrht.types import User
@@ -83,3 +84,24 @@ def filter_by_label(query, value, tracker):
         return query.filter(Ticket.labels.any(TicketLabel.label == label))
 
     return query.filter(False)
+
+def apply_search(query, search, tracker, current_user):
+    terms = find_search_terms(search)
+    for prop, value in terms:
+        if prop == "status":
+            query = filter_by_status(query, value)
+            continue
+
+        if prop == "submitter":
+            query = filter_by_submitter(query, value, current_user)
+            continue
+
+        if prop == "label":
+            query = filter_by_label(query, value, tracker)
+            continue
+
+        query = query.filter(or_(
+            Ticket.description.ilike("%" + value + "%"),
+            Ticket.title.ilike("%" + value + "%")))
+
+    return query

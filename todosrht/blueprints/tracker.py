@@ -1,17 +1,15 @@
 import re
 import string
-from sqlalchemy import or_
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import session
 from flask_login import current_user
 from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.email import notify
-from todosrht.search import find_search_terms, filter_by_status
-from todosrht.search import filter_by_submitter, filter_by_label
-from todosrht.types import TicketComment, TicketResolution, TicketSubscription
-from todosrht.types import TicketSeen, Event, EventType, EventNotification
-from todosrht.types import Tracker, User, Ticket, TicketStatus, TicketAccess
+from todosrht.search import apply_search
+from todosrht.types import TicketSubscription
+from todosrht.types import Event, EventType, EventNotification
+from todosrht.types import Tracker, Ticket, TicketStatus, TicketAccess
 from todosrht.types import Label, TicketLabel
 from srht.config import cfg
 from srht.database import db
@@ -87,27 +85,6 @@ def create_POST():
             owner=current_user.canonical_name(),
             name=name))
 
-def apply_search(query, search, tracker):
-    terms = find_search_terms(search)
-    for prop, value in terms:
-        if prop == "status":
-            query = filter_by_status(query, value)
-            continue
-
-        if prop == "submitter":
-            query = filter_by_submitter(query, value, current_user)
-            continue
-
-        if prop == "label":
-            query = filter_by_label(query, value, tracker)
-            continue
-
-        query = query.filter(or_(
-            Ticket.description.ilike("%" + value + "%"),
-            Ticket.title.ilike("%" + value + "%")))
-
-    return query
-
 def return_tracker(tracker, access, **kwargs):
     another = session.get("another") or False
     if another:
@@ -125,7 +102,7 @@ def return_tracker(tracker, access, **kwargs):
     search = request.args.get("search")
     tickets = tickets.order_by(Ticket.updated.desc())
     if search:
-        tickets = apply_search(tickets, search, tracker)
+        tickets = apply_search(tickets, search, tracker, current_user)
     else:
         tickets = tickets.filter(Ticket.status == TicketStatus.reported)
     tickets, pagination = paginate_query(tickets, results_per_page=25)
