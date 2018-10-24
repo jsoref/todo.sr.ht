@@ -398,8 +398,9 @@ def delete_label(owner, name, label_id):
     if not label:
         abort(404)
 
-    # Remove label from any linked tickets
+    # Remove label from any linked tickets and related events
     TicketLabel.query.filter(TicketLabel.label_id == label.id).delete()
+    Event.query.filter(Event.label_id == label.id).delete()
 
     db.session.delete(label)
     db.session.commit()

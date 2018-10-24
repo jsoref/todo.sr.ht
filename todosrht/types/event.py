@@ -1,5 +1,4 @@
 import sqlalchemy as sa
-import sqlalchemy_utils as sau
 from srht.flagtype import FlagType
 from srht.database import Base
 from todosrht.types.ticketstatus import TicketStatus, TicketResolution
@@ -9,6 +8,8 @@ class EventType(IntFlag):
     created = 1
     comment = 2
     status_change = 4
+    label_added = 8
+    label_removed = 16
 
 class Event(Base):
     """
@@ -34,6 +35,9 @@ class Event(Base):
 
     comment_id = sa.Column(sa.Integer, sa.ForeignKey("ticket_comment.id"))
     comment = sa.orm.relationship("TicketComment")
+
+    label_id = sa.Column(sa.Integer, sa.ForeignKey('label.id'))
+    label = sa.orm.relationship("Label", backref=sa.orm.backref("events"))
 
     def __repr__(self):
         return '<Event {}>'.format(self.id)

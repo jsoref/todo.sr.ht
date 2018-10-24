@@ -21,6 +21,16 @@
       <a href="/~{{ event.comment.submitter.username }}">
         ~{{ event.comment.submitter.username }}
       </a>
+    {% elif EventType.label_added in event.event_type %}
+      Label {{ event.label|label_badge(cls="small") }} added by
+      <a href="/~{{ event.user.username }}">
+        ~{{ event.user.username }}
+      </a>
+    {% elif EventType.label_removed in event.event_type %}
+      Label {{ event.label|label_badge(cls="small") }} removed by
+      <a href="/~{{ event.user.username }}">
+        ~{{ event.user.username }}
+      </a>
     {% endif %}
       on <a href="{{ url_for("html.user_GET",
         username=event.ticket.tracker.owner.username) }}"

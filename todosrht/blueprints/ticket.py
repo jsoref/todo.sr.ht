@@ -335,7 +335,14 @@ def ticket_add_label(owner, name, ticket_id):
         ticket_label.label_id = label.id
         ticket_label.user_id = current_user.id
 
+        event = Event()
+        event.event_type = EventType.label_added
+        event.user_id = current_user.id
+        event.ticket_id = ticket.id
+        event.label_id = label.id
+
         db.session.add(ticket_label)
+        db.session.add(event)
         db.session.commit()
 
     return redirect(url_for("ticket.ticket_GET",
@@ -364,6 +371,13 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
             .filter(TicketLabel.ticket_id == ticket.id)).first()
 
     if ticket_label:
+        event = Event()
+        event.event_type = EventType.label_removed
+        event.user_id = current_user.id
+        event.ticket_id = ticket.id
+        event.label_id = label.id
+
+        db.session.add(event)
         db.session.delete(ticket_label)
         db.session.commit()
 
