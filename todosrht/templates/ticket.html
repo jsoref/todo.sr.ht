@@ -126,36 +126,7 @@
         <dt class="col-md-3">Labels</dt>
         <dd class="col-md-9">
           {% for label in ticket.labels %}
-            <div class="label-edit">
-              <div
-                class="label"
-                style="color: {{ label.text_color }};
-                  background-color: {{ label.color }}"
-                >
-                <a href="{{
-                  url_for("tracker.tracker_GET",
-                    owner=tracker.owner.canonical_name(),
-                    name=tracker.name)
-                  }}?search=label:&quot;{{ label.name|urlencode }}&quot;"
-                  style="color: inherit"
-                >{{ label.name }}
-                </a>
-                <form
-                  method="POST"
-                  action="{{
-                    url_for(".ticket_remove_label",
-                      owner=tracker.owner.canonical_name(),
-                      name=tracker.name,
-                      ticket_id=ticket.scoped_id,
-                      label_id=label.id,
-                    )
-                  }}">
-                  <button type="submit" class="btn btn-link">
-                    {{ icon("times") }}
-                  </button>
-                </form>
-              </div>
-            </div>
+            {{ label|label_badge(remove_from_ticket=ticket) }}
           {% endfor %}
         </dd>
 

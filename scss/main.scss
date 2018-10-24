@@ -148,17 +148,6 @@ select.form-control {
   }
 }
 
-.label {
-  border: 1px solid black;
-  padding: .1rem .5rem;
-  display: inline-block;
-
-  &.small {
-    font-size: .7rem;
-    padding: 0 .3rem;
-  }
-}
-
 .label-list > .row {
   margin-bottom: .2rem;
 
@@ -167,17 +156,28 @@ select.form-control {
   }
 }
 
-.label-edit {
+.label {
   white-space: nowrap;
   margin-bottom: .3rem;
   display: inline-block;
+  border: 1px solid black;
+  padding: .1rem .5rem;
+
+  &.small {
+    font-size: .7rem;
+    padding: 0 .3rem;
+  }
 
   form {
     display: inline-block;
     margin: 0;
   }
 
-  .btn {
+  a, .btn {
     color: inherit;
+  }
+
+  .btn {
+    margin-left: 0.2rem;
   }
 }

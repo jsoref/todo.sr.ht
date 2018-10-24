@@ -45,18 +45,12 @@
         {% for label in tracker.labels %}
           <div class="row">
             <div class="col">
-              <div
-                class="label"
-                style="color: {{ label.text_color }};
-                  background-color: {{ label.color }}"
-              >{{ label.name }}</div>
+              {{ label|label_badge }}
             </div>
             <div class="col-auto">
-              <a href="{{url_for(".tracker_GET",
-                    owner=tracker.owner.canonical_name(),
-                    name=tracker.name
-                  )}}?search=label:&quot;{{ label.name }}&quot;"
-                >{{ label.tickets|count }} tickets</a>
+              <a href="{{ label|label_search_url }}">
+                {{ label.tickets|count }} tickets
+              </a>
             </div>
             {% if is_owner %}
             <div class="col-auto">

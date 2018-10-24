@@ -150,12 +150,7 @@
           {{ ticket.title }}
           <span class="pull-right">
             {% for label in ticket.labels %}
-            <a href="?search=label:&quot;{{ label.name|urlencode }}&quot;"
-              class="small label"
-              style="color: {{ label.text_color }};
-                background-color: {{ label.color }}"
-              >{{ label.name }}
-            </a>
+              {{ label|label_badge(cls="small") }}
             {% endfor %}
           </span>
         </div>
