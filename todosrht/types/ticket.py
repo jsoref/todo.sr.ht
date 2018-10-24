@@ -50,6 +50,8 @@ class Ticket(Base):
     """Permissions granted to anonymous (non-logged in) users"""
 
     view_list = sa.orm.relationship("TicketSeen")
+    labels = sa.orm.relationship("Label", secondary="ticket_label")
+
     def new_updates(self, user):
         if not user:
             return None

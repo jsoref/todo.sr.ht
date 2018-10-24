@@ -57,12 +57,8 @@ def ticket_GET(owner, name, ticket_id):
 
         is_subscribed = bool(sub)
 
-    ticket_labels = TicketLabel.query.filter(TicketLabel.ticket_id == ticket.id)
-    labels = [tl.label for tl in ticket_labels]
-
     return render_template("ticket.html", tracker=tracker, ticket=ticket,
-            access=access, is_subscribed=is_subscribed, tracker_sub=tracker_sub,
-            labels=labels)
+            access=access, is_subscribed=is_subscribed, tracker_sub=tracker_sub)
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/enable_notifications", methods=["POST"])
 @loginrequired

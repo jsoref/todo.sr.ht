@@ -149,12 +149,12 @@
         <div class="title">
           {{ ticket.title }}
           <span class="pull-right">
-            {% for tl in ticket.labels %}
-            <a href="?search=label:&quot;{{ tl.label.name|urlencode }}&quot;"
+            {% for label in ticket.labels %}
+            <a href="?search=label:&quot;{{ label.name|urlencode }}&quot;"
               class="small label"
-              style="color: {{ tl.label.text_color }};
-                background-color: {{ tl.label.color }}"
-              >{{ tl.label.name }}
+              style="color: {{ label.text_color }};
+                background-color: {{ label.color }}"
+              >{{ label.name }}
             </a>
             {% endfor %}
           </span>

@@ -16,6 +16,8 @@ class Label(Base):
     color = sa.Column(sa.Text, nullable=False)
     text_color = sa.Column(sa.Text, nullable=False)
 
+    tickets = sa.orm.relationship("Ticket", secondary="ticket_label")
+
     __table_args__ = (
         sa.UniqueConstraint("tracker_id", "name",
             name="idx_tracker_name_unique"),
@@ -28,11 +30,13 @@ class TicketLabel(Base):
     __tablename__ = 'ticket_label'
     ticket_id = sa.Column(sa.Integer,
             sa.ForeignKey('ticket.id'), primary_key=True)
-    ticket = sa.orm.relationship("Ticket", backref=sa.orm.backref("labels"))
+    ticket = sa.orm.relationship("Ticket",
+            backref=sa.orm.backref("ticket_labels"))
 
     label_id = sa.Column(sa.Integer,
             sa.ForeignKey('label.id'), primary_key=True)
-    label = sa.orm.relationship("Label", backref=sa.orm.backref("tickets"))
+    label = sa.orm.relationship("Label",
+            backref=sa.orm.backref("ticket_labels"))
 
     user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
     user = sa.orm.relationship("User", backref=sa.orm.backref("ticket_labels"))
