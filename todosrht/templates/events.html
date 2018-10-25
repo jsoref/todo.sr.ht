@@ -22,12 +22,12 @@
         ~{{ event.comment.submitter.username }}
       </a>
     {% elif EventType.label_added in event.event_type %}
-      Label {{ event.label|label_badge(cls="small") }} added by
+      {{ event.label|label_badge(cls="small") }} added by
       <a href="/~{{ event.user.username }}">
         ~{{ event.user.username }}
       </a>
     {% elif EventType.label_removed in event.event_type %}
-      Label {{ event.label|label_badge(cls="small") }} removed by
+      {{ event.label|label_badge(cls="small") }} removed by
       <a href="/~{{ event.user.username }}">
         ~{{ event.user.username }}
       </a>
@@ -38,7 +38,7 @@
         href="{{ url_for("tracker.tracker_GET",
           owner=event.ticket.tracker.owner.canonical_name(),
           name=event.ticket.tracker.name) }}"
-      >{{event.ticket.tracker.name}}</a>:
+      >{{event.ticket.tracker.name}}</a>
     </p>
     <blockquote>
       {% if event.comment %}
