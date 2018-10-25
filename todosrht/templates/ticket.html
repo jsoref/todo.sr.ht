@@ -130,7 +130,8 @@
           {% endfor %}
         </dd>
 
-        {% if TicketAccess.edit in access %}
+        {% if TicketAccess.edit in access
+           and tracker.labels|count > ticket.labels|count %}
         <dd class="col-md-9 offset-md-3">
           <form
             method="POST"
