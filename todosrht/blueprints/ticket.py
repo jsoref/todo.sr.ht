@@ -320,6 +320,18 @@ def ticket_add_label(owner, name, ticket_id):
     if not TicketAccess.edit in access:
         abort(401)
 
+    valid = Validation(request)
+    label_id = valid.require("label_id", friendly_name="A label")
+    if not valid.ok:
+        return render_template("ticket.html",
+            tracker=tracker, ticket=ticket, access=access, **valid.kwargs)
+
+    valid.expect(re.match(r"^\d+$", label_id),
+            "Label ID must be numeric", field="label_id")
+    if not valid.ok:
+        return render_template("ticket.html",
+            tracker=tracker, ticket=ticket, access=access, **valid.kwargs)
+
     label_id = int(request.form.get('label_id'))
     label = Label.query.filter(Label.id == label_id).first()
     if not label:

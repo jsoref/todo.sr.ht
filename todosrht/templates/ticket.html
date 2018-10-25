@@ -141,8 +141,12 @@
                 ticket_id=ticket.scoped_id,
               )
             }}">
-            <select id="label_id" name="label_id" class="form-control">
-              <option>-- Pick one --</option>
+            <select
+              id="label_id"
+              name="label_id"
+              class="form-control {{ valid.cls("label_id") }}"
+            >
+              <option value="">-- Pick one --</option>
               {% for label in tracker.labels if label not in ticket.labels %}
               <option
                 value="{{ label.id }}"
@@ -155,6 +159,7 @@
             <button type="submit" class="btn btn-default">
               Add label {{icon('caret-right')}}
             </button>
+            {{ valid.summary('label_id') }}
           </form>
         </dd>
         {% else %}
