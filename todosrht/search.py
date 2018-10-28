@@ -1,7 +1,7 @@
 import re
 from sqlalchemy import or_
 from todosrht.types import Label, TicketLabel
-from todosrht.types import Ticket, TicketStatus
+from todosrht.types import Ticket, TicketStatus, TicketComment
 from todosrht.types import User
 
 # Property with a quoted value, e.g.: label:"help wanted"
@@ -102,6 +102,7 @@ def apply_search(query, search, tracker, current_user):
 
         query = query.filter(or_(
             Ticket.description.ilike("%" + value + "%"),
-            Ticket.title.ilike("%" + value + "%")))
+            Ticket.title.ilike("%" + value + "%"),
+            Ticket.comments.any(TicketComment.text.ilike("%" + value + "%"))))
 
     return query
