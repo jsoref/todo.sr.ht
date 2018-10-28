@@ -35,7 +35,7 @@ class Ticket(Base):
 
     resolution = sa.Column(FlagType(TicketResolution),
             nullable=False,
-            default=TicketStatus.resolved)
+            default=TicketResolution.unresolved)
 
     user_perms = sa.Column(FlagType(TicketAccess), nullable=True)
     """Permissions given to any logged in user"""
