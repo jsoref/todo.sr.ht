@@ -126,7 +126,11 @@
         <dt class="col-md-3">Labels</dt>
         <dd class="col-md-9">
           {% for label in ticket.labels %}
-            {{ label|label_badge(remove_from_ticket=ticket) }}
+            {% if TicketAccess.edit in access %}
+              {{ label|label_badge(remove_from_ticket=ticket) }}
+            {% else %}
+              {{ label|label_badge }}
+            {% endif %}
           {% else %}
             No labels applied.
           {% endfor %}
