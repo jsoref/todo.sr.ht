@@ -17,7 +17,7 @@ def notify(sub, template, subject, headers, **kwargs):
     else:
         return # TODO
     with open(os.path.join(os.path.dirname(__file__), "emails", template)) as f:
-        body = html.parser.HTMLParser().unescape(\
+        body = html.unescape(
             pystache.render(f.read(), {
                 'user': current_user,
                 'root': origin,
