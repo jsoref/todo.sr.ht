@@ -31,7 +31,7 @@ class Event(Base):
     user = sa.orm.relationship("User", backref=sa.orm.backref("events"))
 
     ticket_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"), nullable=False)
-    ticket = sa.orm.relationship("Ticket")
+    ticket = sa.orm.relationship("Ticket", backref=sa.orm.backref("events"))
 
     comment_id = sa.Column(sa.Integer, sa.ForeignKey("ticket_comment.id"))
     comment = sa.orm.relationship("TicketComment")

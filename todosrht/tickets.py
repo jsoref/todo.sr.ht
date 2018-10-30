@@ -1,118 +1,137 @@
+from collections import namedtuple
 from datetime import datetime
-from flask import url_for
 from srht.config import cfg
 from srht.database import db
 from todosrht.email import notify
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
+from todosrht.urls import ticket_url
 
 smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
 notify_from = cfg("todo.sr.ht", "notify-from", default=smtp_from)
 
+StatusChange = namedtuple("StatusChange", [
+    "old_status",
+    "new_status",
+    "old_resolution",
+    "new_resolution",
+])
 
-def add_comment(user, ticket,
-        text=None, resolve=False, resolution=None, reopen=False):
+def _create_comment(ticket, user, text):
+    comment = TicketComment()
+    comment.text = text
+    # TODO: anonymous comments (when configured appropriately)
+    comment.submitter_id = user.id
+    comment.ticket_id = ticket.id
 
-    assert text or resolve or reopen
+    db.session.add(comment)
+    db.session.flush()
+    return comment
 
-    tracker = ticket.tracker
+def _create_comment_event(ticket, user, comment, status_change):
+    event = Event()
+    event.event_type = 0
+    event.user_id = user.id
+    event.ticket_id = ticket.id
 
-    if text:
-        comment = TicketComment()
-        comment.text = text
-        # TODO: anonymous comments (when configured appropriately)
-        comment.submitter_id = user.id
-        comment.ticket_id = ticket.id
-        db.session.add(comment)
-        ticket.updated = comment.created
-    else:
-        comment = None
+    if comment:
+        event.event_type |= EventType.comment
+        event.comment_id = comment.id
+
+    if status_change:
+        event.event_type |= EventType.status_change
+        event.old_status = status_change.old_status
+        event.old_resolution = status_change.old_resolution
+        event.new_status = status_change.new_status
+        event.new_resolution = status_change.new_resolution
+
+    db.session.add(event)
+    db.session.flush()
+    return event
+
+def _create_event_notification(user, event):
+    notification = EventNotification()
+    notification.user_id = user.id
+    notification.event_id = event.id
+    db.session.add(notification)
+    return notification
+
+def _send_comment_notification(subscription, ticket, user, comment, resolution):
+    subject = "Re: {}/{}/#{}: {}".format(
+        ticket.tracker.owner.canonical_name(),
+        ticket.tracker.name,
+        ticket.scoped_id,
+        ticket.title)
+
+    headers = {
+        "From": "~{} <{}>".format(user.username, notify_from),
+        "Sender": smtp_user,
+    }
+
+    url = ticket_url(ticket, comment=comment).replace("%7E", "~")  # hack
+
+    notify(subscription, "ticket_comment", subject,
+        headers=headers,
+        ticket=ticket,
+        comment=comment,
+        resolution=resolution.name if resolution else None,
+        ticket_url=url)
+
+def _change_ticket_status(ticket, resolve, resolution, reopen):
+    if not (resolve or reopen):
+        return None
 
     old_status = ticket.status
     old_resolution = ticket.resolution
 
-    if resolution:
+    if resolve:
         ticket.status = TicketStatus.resolved
         ticket.resolution = resolution
 
     if reopen:
         ticket.status = TicketStatus.reported
 
-    tracker.updated = datetime.utcnow()
-    db.session.flush()
+    return StatusChange(
+        old_status, ticket.status, old_resolution, ticket.resolution)
 
-    subscribed = False
+def _send_comment_notifications(user, ticket, event, comment, resolution):
+    # Find subscribers, eliminate duplicates
+    subscriptions = {sub.user: sub
+        for sub in ticket.tracker.subscriptions + ticket.subscriptions}
 
-    ticket_url = url_for("ticket.ticket_GET",
-            owner=tracker.owner.canonical_name(),
-            name=tracker.name,
-            ticket_id=ticket.scoped_id)
-    if comment:
-        ticket_url += "#comment-" + str(comment.id)
+    # Subscribe commenter if not already subscribed
+    if user not in subscriptions:
+        subscription = TicketSubscription()
+        subscription.ticket_id = ticket.id
+        subscription.user_id = user.id
+        db.session.add(subscription)
+        subscriptions[user] = subscription
 
-    def _notify(sub):
-        notify(sub, "ticket_comment", "Re: {}/{}/#{}: {}".format(
-            tracker.owner.canonical_name(), tracker.name,
-            ticket.scoped_id, ticket.title),
-                headers={
-                    "From": "~{} <{}>".format(
-                        user.username, notify_from),
-                    "Sender": smtp_user,
-                },
-                ticket=ticket,
-                comment=comment,
-                resolution=resolution.name if resolution else None,
-                ticket_url=ticket_url.replace("%7E", "~")) # hack
+    for subscriber, subscription in subscriptions.items():
+        _create_event_notification(subscriber, event)
+        if subscriber != user:
+            _send_comment_notification(
+                subscription, ticket, user, comment, resolution)
 
-    event = Event()
-    event.event_type = 0
-    event.user_id = user.id
-    event.ticket_id = ticket.id
-    if comment:
-        event.event_type |= EventType.comment
-        event.comment_id = comment.id
-    if ticket.status != old_status or ticket.resolution != old_resolution:
-        event.event_type |= EventType.status_change
-        event.old_status = old_status
-        event.old_resolution = old_resolution
-        event.new_status = ticket.status
-        event.new_resolution = ticket.resolution
-    db.session.add(event)
-    db.session.flush()
+def add_comment(user, ticket,
+        text=None, resolve=False, resolution=None, reopen=False):
+    """
+    Comment on a ticket, optionally resolve or reopen the ticket.
+    """
+    # TODO better error handling
+    assert text or resolve or reopen
+    assert not (resolve and reopen)
+    if resolve:
+        assert resolution is not None
 
-    def _add_notification(sub):
-        notification = EventNotification()
-        notification.user_id = sub.user_id
-        notification.event_id = event.id
-        db.session.add(notification)
+    comment = _create_comment(ticket, user, text) if text else None
+    status_change = _change_ticket_status(ticket, resolve, resolution, reopen)
+    event = _create_comment_event(ticket, user, comment, status_change)
+    _send_comment_notifications(user, ticket, event, comment, resolution)
 
-    subscribed = False
-    updated_users = set()
-    for sub in tracker.subscriptions:
-        updated_users.update([sub.user_id])
-        _add_notification(sub)
-        if sub.user_id == user.id:
-            subscribed = True
-            continue
-        _notify(sub)
-
-    for sub in ticket.subscriptions:
-        if sub.user_id in updated_users:
-            continue
-        _add_notification(sub)
-        if sub.user_id == user.id:
-            subscribed = True
-            continue
-        _notify(sub)
-
-    if not subscribed:
-        sub = TicketSubscription()
-        sub.ticket_id = ticket.id
-        sub.user_id = user.id
-        db.session.add(sub)
-        _add_notification(sub)
-
+    ticket.updated = datetime.utcnow()
+    ticket.tracker.updated = datetime.utcnow()
     db.session.commit()
 
     return comment

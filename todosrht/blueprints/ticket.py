@@ -9,6 +9,7 @@ from todosrht.types import Event, EventType
 from todosrht.types import Label, TicketLabel
 from todosrht.types import TicketAccess, TicketResolution, TicketSeen
 from todosrht.types import TicketSubscription
+from todosrht.urls import ticket_url
 
 ticket = Blueprint("ticket", __name__)
 
@@ -146,14 +147,7 @@ def ticket_comment_POST(owner, name, ticket_id):
     comment = add_comment(current_user, ticket,
         text=text, resolve=resolve, resolution=resolution, reopen=reopen)
 
-    ticket_url = url_for(".ticket_GET",
-            owner=tracker.owner.canonical_name(),
-            name=tracker.name,
-            ticket_id=ticket.scoped_id)
-    if comment:
-         ticket_url += "#comment-" + str(comment.id)
-
-    return redirect(ticket_url)
+    return redirect(ticket_url(ticket, comment))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/edit")
 @loginrequired

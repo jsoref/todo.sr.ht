@@ -6,6 +6,17 @@ def tracker_url(tracker):
         owner=tracker.owner.canonical_name(),
         name=tracker.name)
 
+def ticket_url(ticket, comment=None):
+    ticket_url = url_for("ticket.ticket_GET",
+            owner=ticket.tracker.owner.canonical_name(),
+            name=ticket.tracker.name,
+            ticket_id=ticket.scoped_id)
+
+    if comment:
+        ticket_url += "#comment-" + str(comment.id)
+
+    return ticket_url
+
 def label_search_url(label):
     """Return the URL to the tracker page listing all tickets which have the
     label applied."""
