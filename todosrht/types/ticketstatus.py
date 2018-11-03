@@ -15,3 +15,4 @@ class TicketResolution(IntFlag):
     by_design = 8
     invalid = 16
     duplicate = 32
+    not_our_bug = 64
