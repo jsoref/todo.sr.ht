@@ -227,7 +227,7 @@
         <select class="form-control" name="resolution">
           {% for r in TicketResolution %}
           {% if r.name != "unresolved" %}
-          <option value="{{ r.value }}">{{ r.name }}</option>
+          <option value="{{ r.value }}">{{ r.name.upper() }}</option>
           {% endif %}
           {% endfor %}
         </select>
