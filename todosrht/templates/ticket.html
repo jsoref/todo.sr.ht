@@ -174,7 +174,7 @@
     </div>
     <div class="col-md-6">
       {% for event in ticket.events %}
-      {% if EventType.comment in event.event_type %}
+      {% if event.event_type != EventType.created %}
       <h4>
         <a href="{{url_for("html.user_GET",
               username=event.user.username)}}">
@@ -184,18 +184,12 @@
           <small>{{ event.created | date }}</small>
         </span>
       </h4>
+      {% endif %}
+      {% if EventType.comment in event.event_type %}
       {% set comment = event.comment %}
       {{ comment.text | md }}
-      {% elif EventType.status_change in event.event_type %}
-      <h4>
-        <a href="{{url_for("html.user_GET",
-              username=event.user.username)}}">
-          ~{{ event.user.username }}
-        </a>
-        <span class="pull-right">
-          <small>{{ event.created | date }}</small>
-        </span>
-      </h4>
+      {% endif %}
+      {% if EventType.status_change in event.event_type %}
       <p>
         <strong class="text-success">
           {{ event.old_status.name.upper() }}
@@ -211,30 +205,18 @@
           {% endif %}
         </strong>
       </p>
-      {% elif EventType.label_added in event.event_type %}
-      <h4>
-        <a href="{{url_for("html.user_GET",
-              username=event.user.username)}}">
-          ~{{ event.user.username }}
-        </a>
-        <small style="margin-left: 0">added a label</small>
-        <span class="pull-right">
-          <small>{{ event.created | date }}</small>
-        </span>
-      </h4>
-      <p>{{ event.label|label_badge() }}</p>
-      {% elif EventType.label_removed in event.event_type %}
-      <h4>
-        <a href="{{url_for("html.user_GET",
-              username=event.user.username)}}">
-          ~{{ event.user.username }}
-        </a>
-        <small style="margin-left: 0">removed a label</small>
-        <span class="pull-right">
-          <small>{{ event.created | date }}</small>
-        </span>
-      </h4>
-      <p>{{ event.label|label_badge() }}</p>
+      {% endif %}
+      {% if EventType.label_added in event.event_type %}
+      <p>
+        {{ event.label|label_badge() }}
+        <span class="text-muted">added</span>
+      </p>
+      {% endif %}
+      {% if EventType.label_removed in event.event_type %}
+      <p>
+        {{ event.label|label_badge() }}
+        <span class="text-muted">removed</span>
+      </p>
       {% endif %}
       {% endfor %}
       {% if TicketAccess.comment in access %}
