@@ -174,7 +174,7 @@
     </div>
     <div class="col-md-6">
       {% for event in ticket.events %}
-      {% if event.event_type == EventType.comment %}
+      {% if EventType.comment in event.event_type %}
       <h4>
         <a href="{{url_for("html.user_GET",
               username=event.user.username)}}">
@@ -186,7 +186,7 @@
       </h4>
       {% set comment = event.comment %}
       {{ comment.text | md }}
-      {% elif event.event_type == EventType.status_change %}
+      {% elif EventType.status_change in event.event_type %}
       <h4>
         <a href="{{url_for("html.user_GET",
               username=event.user.username)}}">
@@ -211,7 +211,7 @@
           {% endif %}
         </strong>
       </p>
-      {% elif event.event_type == EventType.label_added %}
+      {% elif EventType.label_added in event.event_type %}
       <h4>
         <a href="{{url_for("html.user_GET",
               username=event.user.username)}}">
@@ -223,7 +223,7 @@
         </span>
       </h4>
       <p>{{ event.label|label_badge() }}</p>
-      {% elif event.event_type == EventType.label_removed %}
+      {% elif EventType.label_removed in event.event_type %}
       <h4>
         <a href="{{url_for("html.user_GET",
               username=event.user.username)}}">
