@@ -1,3 +1,4 @@
+import re
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask_login import current_user
 from srht.database import db

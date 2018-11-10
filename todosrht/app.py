@@ -7,6 +7,7 @@ from todosrht.urls import label_search_url, label_remove_url
 db = DbSession(cfg("todo.sr.ht", "connection-string"))
 
 from todosrht.types import User
+from todosrht.types import EventType
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
 db.init()
@@ -79,6 +80,7 @@ class TodoApp(SrhtFlask):
         def inject():
             return {
                 "render_status": render_status,
+                "EventType": EventType,
                 "TicketAccess": TicketAccess,
                 "TicketStatus": TicketStatus,
                 "TicketResolution": TicketResolution
