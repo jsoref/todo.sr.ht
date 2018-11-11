@@ -28,7 +28,7 @@
       </p>
       {% endif %}
       {% if profile.get("bio") %}
-      <p>{{profile["bio"]}}</p>
+      <p>{{profile["bio"] | md}}</p>
       {% endif %}
       {% endif %}
 
