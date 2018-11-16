@@ -257,7 +257,7 @@ def tracker_submit_POST(owner, name):
 
     if not valid.ok:
         db.session.commit() # Unlock tracker row
-        return return_tracker(tracker, **valid.kwargs), 400
+        return return_tracker(tracker, access, **valid.kwargs), 400
 
     ticket = Ticket()
     ticket.submitter_id = current_user.id
