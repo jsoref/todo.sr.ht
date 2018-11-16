@@ -58,6 +58,7 @@
               ("disable_notifications" if is_subscribed else "enable_notifications"),
               owner=tracker.owner.canonical_name(),
               name=tracker.name)}}">
+            {{csrf_token()}}
             <button class="nav-link active" type="submit">
               {{icon("envelope-o")}}
               {% if is_subscribed %}
@@ -84,6 +85,7 @@
             name=tracker.name
           )
         }}">
+        {{csrf_token()}}
         <div class="form-group">
           <label for="title">Title</label>
           <input
@@ -137,6 +139,7 @@
           placeholder="Search tickets...     status:closed     order:updated     submitter:me"
           class="form-control"
           value="{{ search if search else "" }}" />
+        {{csrf_token()}}
       </form>
       {% if len(tickets) %}
       <div class="ticket-list">

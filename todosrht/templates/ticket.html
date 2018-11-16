@@ -60,6 +60,7 @@
                 owner=tracker.owner.canonical_name(),
                 name=tracker.name,
                 ticket_id=ticket.scoped_id)}}">
+              {{csrf_token()}}
             {% else %}
             <div>
             {% endif %}
@@ -147,7 +148,8 @@
                 name=tracker.name,
                 ticket_id=ticket.scoped_id,
               )
-            }}">
+          }}">
+            {{csrf_token()}}
             <select
               id="label_id"
               name="label_id"
@@ -231,7 +233,8 @@
             name=tracker.name,
             ticket_id=ticket.scoped_id
           )
-        }}">
+      }}">
+        {{csrf_token()}}
         <div class="form-group" style="margin-bottom: 0.25rem">
           <textarea
             class="form-control {{ valid.cls("comment") }}"

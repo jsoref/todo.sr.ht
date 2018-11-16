@@ -12,6 +12,7 @@
     <div class="col-md-6">
       <h2>Create new tracker</h2>
       <form method="POST" action="/tracker/create">
+        {{csrf_token()}}
         <div class="form-group">
           <label for="tracker_name">Name</label>
           <input

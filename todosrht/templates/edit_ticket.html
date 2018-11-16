@@ -49,6 +49,7 @@
 <div class="container">
   <div class="row">
     <form class="col-md-6" method="POST">
+      {{csrf_token()}}
       <div class="form-group">
         <label for="title">Title</label>
         <input
