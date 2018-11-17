@@ -12,20 +12,6 @@ from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
 db.init()
 
-def render_status(ticket, access):
-    if TicketAccess.edit in access:
-        return Markup(
-            "<select name='status'>" +
-            "".join([
-                "<option value='{0}' {1}>{0}</option>".format(s.name,
-                    "selected" if ticket.status == s else "")
-                for s in TicketStatus
-            ]) +
-            "</select>"
-        )
-    else:
-        return "<span>{}</span>".format(ticket.status.name)
-
 def render_label_badge(label, cls="", remove_from_ticket=None):
     """Return HTML markup rendering a label badge.
 
@@ -80,7 +66,6 @@ class TodoApp(SrhtFlask):
         @self.context_processor
         def inject():
             return {
-                "render_status": render_status,
                 "EventType": EventType,
                 "TicketAccess": TicketAccess,
                 "TicketStatus": TicketStatus,
