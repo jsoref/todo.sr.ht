@@ -2,43 +2,32 @@
 {% for event in events %}
   <div class="event">
     <h4>
-      <a href="{{ url_for("ticket.ticket_GET",
-          owner=event.ticket.tracker.owner.canonical_name(),
-          name=event.ticket.tracker.name,
-          ticket_id=event.ticket.scoped_id) }}">
+      <a href="{{ event.ticket|ticket_url }}">
         #{{event.ticket.scoped_id}}
       </a> {{ event.ticket.title }}
       <small class="pull-right">{{ event.created | date }}</small>
     </h4>
     <p>
     {% if EventType.created in event.event_type %}
-      Ticket created by
-      <a href="/~{{ event.ticket.submitter.username }}">
-        ~{{ event.ticket.submitter.username }}
+      Ticket created by <a href="{{ event.ticket.submitter|user_url }}">
+        {{ event.ticket.submitter }}
       </a>
     {% elif EventType.comment in event.event_type %}
-      Comment by
-      <a href="/~{{ event.comment.submitter.username }}">
-        ~{{ event.comment.submitter.username }}
+      Comment by <a href="{{ event.comment.submitter|user_url }}">
+        {{ event.comment.submitter }}
       </a>
     {% elif EventType.label_added in event.event_type %}
       {{ event.label|label_badge(cls="small") }} added by
-      <a href="/~{{ event.user.username }}">
-        ~{{ event.user.username }}
-      </a>
+      <a href="{{ event.user|user_url }}">{{ event.user }}</a>
     {% elif EventType.label_removed in event.event_type %}
       {{ event.label|label_badge(cls="small") }} removed by
-      <a href="/~{{ event.user.username }}">
-        ~{{ event.user.username }}
-      </a>
+      <a href="{{ event.user|user_url }}">{{ event.user }}</a>
     {% endif %}
-      on <a href="{{ url_for("html.user_GET",
-        username=event.ticket.tracker.owner.username) }}"
-      >{{event.ticket.tracker.owner.canonical_name()}}</a>/<a
-        href="{{ url_for("tracker.tracker_GET",
-          owner=event.ticket.tracker.owner.canonical_name(),
-          name=event.ticket.tracker.name) }}"
-      >{{event.ticket.tracker.name}}</a>
+    {% with tracker=event.ticket.tracker %}
+      on <a href="{{ tracker.owner|user_url }}"
+        >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
+        >{{ tracker.name }}</a>
+    {% endwith %}
     </p>
     <blockquote>
       {% if event.comment %}

@@ -6,6 +6,11 @@ def tracker_url(tracker):
         owner=tracker.owner.canonical_name(),
         name=tracker.name)
 
+def tracker_labels_url(tracker):
+    return url_for("tracker.tracker_labels_GET",
+        owner=tracker.owner.canonical_name(),
+        name=tracker.name)
+
 def ticket_url(ticket, comment=None):
     ticket_url = url_for("ticket.ticket_GET",
             owner=ticket.tracker.owner.canonical_name(),
@@ -17,6 +22,12 @@ def ticket_url(ticket, comment=None):
 
     return ticket_url
 
+def ticket_edit_url(ticket):
+    return url_for("ticket.ticket_edit_GET",
+        owner=ticket.tracker.owner.canonical_name(),
+        name=ticket.tracker.name,
+        ticket_id=ticket.scoped_id)
+
 def label_search_url(label):
     """Return the URL to the tracker page listing all tickets which have the
     label applied."""
@@ -24,10 +35,20 @@ def label_search_url(label):
         tracker_url(label.tracker),
         unicode_urlencode(label.name))
 
+def label_add_url(label, ticket):
+    """Return the URL to remove a label from a ticket."""
+    return url_for("ticket.ticket_add_label",
+            owner=ticket.tracker.owner.canonical_name(),
+            name=ticket.tracker.name,
+            ticket_id=ticket.scoped_id)
+
 def label_remove_url(label, ticket):
-    """Return the URL to remove a label from an ticket."""
+    """Return the URL to add a label to a ticket."""
     return url_for("ticket.ticket_remove_label",
             owner=ticket.tracker.owner.canonical_name(),
             name=ticket.tracker.name,
             ticket_id=ticket.scoped_id,
-            label_id=label.id,)
+            label_id=label.id)
+
+def user_url(user):
+    return url_for("html.user_GET", username=user.username)

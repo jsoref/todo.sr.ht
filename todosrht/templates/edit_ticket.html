@@ -13,15 +13,10 @@
     <div class="col-md-12 header-tabbed vertical">
       <h2>
         <span class="d-block d-md-inline">
-          <a href="{{ url_for("html.user_GET",
-            username=tracker.owner.username) }}"
-          >{{tracker.owner.canonical_name()}}</a>/<a
-            href="{{ url_for("tracker.tracker_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name) }}"
-          >{{tracker.name}}</a>/#{{ticket.scoped_id}}<span
-            class="d-none d-md-inline"
-          >:</span>
+          <a href="{{ tracker.owner|user_url }}"
+            >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
+            >{{ tracker.name }}</a>/#{{ ticket.scoped_id }}<span
+              class="d-none d-md-inline">:</span>
         </span>
         <span class="d-block d-md-inline">
           {{ticket.title}}
@@ -29,17 +24,10 @@
       </h2>
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a href="{{ url_for(".ticket_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name,
-              ticket_id=ticket.scoped_id) }}"
-            class="nav-link">view</a>
+          <a href="{{ ticket|ticket_url }}" class="nav-link">view</a>
         </li>
         <li class="nav-item">
-          <a href="{{ url_for(".ticket_edit_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name,
-              ticket_id=ticket.scoped_id) }}"
+          <a href="{{ ticket|ticket_edit_url }}"
             class="nav-link active">edit</a>
         </li>
       </ul>
@@ -74,11 +62,9 @@
         {{valid.summary("description")}}
       </div>
       <div class="pull-right">
-        <a href="{{ url_for(".ticket_GET",
-          owner=tracker.owner.canonical_name(),
-          name=tracker.name,
-          ticket_id=ticket.scoped_id) }}" class="btn btn-default"
-        >Cancel</a>
+        <a href="{{ ticket|ticket_url }}" class="btn btn-default">
+          Cancel
+        </a>
         <button
           type="submit"
           class="btn btn-primary"

@@ -1,5 +1,5 @@
 import re
-from flask import Blueprint, render_template, request, url_for, abort, redirect
+from flask import Blueprint, render_template, request, abort, redirect
 from flask_login import current_user
 from srht.database import db
 from srht.flask import loginrequired
@@ -69,16 +69,14 @@ def enable_notifications(owner, name, ticket_id):
     ).one_or_none()
 
     if sub:
-        return redirect(url_for(".ticket_GET",
-            owner=owner, name=name, ticket_id=ticket.scoped_id))
+        return redirect(ticket_url(ticket))
 
     sub = TicketSubscription()
     sub.ticket_id = ticket.id
     sub.user_id = current_user.id
     db.session.add(sub)
     db.session.commit()
-    return redirect(url_for(".ticket_GET",
-        owner=owner, name=name, ticket_id=ticket.scoped_id))
+    return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/disable_notifications", methods=["POST"])
 @loginrequired
@@ -97,13 +95,11 @@ def disable_notifications(owner, name, ticket_id):
     ).one_or_none()
 
     if not sub:
-        return redirect(url_for(".ticket_GET",
-            owner=owner, name=name, ticket_id=ticket.scoped_id))
+        return redirect(ticket_url(ticket))
 
     db.session.delete(sub)
     db.session.commit()
-    return redirect(url_for(".ticket_GET",
-        owner=owner, name=name, ticket_id=ticket.scoped_id))
+    return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/comment", methods=["POST"])
 @loginrequired
@@ -195,10 +191,7 @@ def ticket_edit_POST(owner, name, ticket_id):
     ticket.description = desc
     db.session.commit()
 
-    return redirect(url_for("ticket.ticket_GET",
-            owner=tracker.owner.canonical_name(),
-            name=name,
-            ticket_id=ticket.scoped_id))
+    return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/add_label", methods=["POST"])
 @loginrequired
@@ -249,10 +242,7 @@ def ticket_add_label(owner, name, ticket_id):
         db.session.add(event)
         db.session.commit()
 
-    return redirect(url_for("ticket.ticket_GET",
-            owner=tracker.owner.canonical_name(),
-            name=name,
-            ticket_id=ticket_id))
+    return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/remove_label/<int:label_id>",
         methods=["POST"])
@@ -285,7 +275,4 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
         db.session.delete(ticket_label)
         db.session.commit()
 
-    return redirect(url_for("ticket.ticket_GET",
-            owner=tracker.owner.canonical_name(),
-            name=name,
-            ticket_id=ticket_id))
+    return redirect(ticket_url(ticket))

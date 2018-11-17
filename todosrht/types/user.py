@@ -28,3 +28,5 @@ class User(Base):
     def get_id(self):
         return self.username
 
+    def __str__(self):
+        return self.canonical_name()

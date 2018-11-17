@@ -11,6 +11,7 @@ from todosrht.types import TicketSubscription
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import Tracker, Ticket, TicketStatus, TicketAccess
 from todosrht.types import Label, TicketLabel
+from todosrht.urls import tracker_url
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
@@ -81,9 +82,7 @@ def create_POST():
                 owner=current_user.username,
                 name=name))
 
-    return redirect(url_for(".tracker_GET",
-            owner=current_user.canonical_name(),
-            name=name))
+    return redirect(tracker_url(tracker))
 
 def return_tracker(tracker, access, **kwargs):
     another = session.get("another") or False
@@ -137,14 +136,14 @@ def enable_notifications(owner, name):
     ).one_or_none()
 
     if sub:
-        return redirect(url_for(".tracker_GET", owner=owner, name=name))
+        return redirect(tracker_url(tracker))
 
     sub = TicketSubscription()
     sub.tracker_id = tracker.id
     sub.user_id = current_user.id
     db.session.add(sub)
     db.session.commit()
-    return redirect(url_for(".tracker_GET", owner=owner, name=name))
+    return redirect(tracker_url(tracker))
 
 @tracker.route("/<owner>/<name>/disable_notifications", methods=["POST"])
 @loginrequired
@@ -160,11 +159,11 @@ def disable_notifications(owner, name):
     ).one_or_none()
 
     if not sub:
-        return redirect(url_for(".tracker_GET", owner=owner, name=name))
+        return redirect(tracker_url(tracker))
 
     db.session.delete(sub)
     db.session.commit()
-    return redirect(url_for(".tracker_GET", owner=owner, name=name))
+    return redirect(tracker_url(tracker))
 
 def parse_html_perms(short, valid):
     result = 0
@@ -219,7 +218,7 @@ def configure_POST(owner, name):
     tracker.description = desc
     db.session.commit()
 
-    return redirect(url_for(".tracker_GET", owner=owner, name=name))
+    return redirect(tracker_url(tracker))
 
 
 @tracker.route("/<owner>/<name>/configure")

@@ -11,17 +11,13 @@
   <div class="row">
     <div class="col-md-12 header-tabbed">
       <h2>
-        <a href="{{ url_for("html.user_GET",
-          username=tracker.owner.username) }}"
-        >{{tracker.owner.canonical_name()}}</a>/{{tracker.name}}
+        <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
+          >/{{ tracker.name }}
       </h2>
       <ul class="nav nav-tabs">
         <li class="nav-item">
           <a class="nav-link {{ "active" if not search else "" }}"
-            href="{{url_for(".tracker_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}">open tickets</a>
+            href="{{ tracker|tracker_url }}">open tickets</a>
         </li>
         <li class="nav-item">
           <a class="nav-link {{
@@ -38,10 +34,7 @@
         {% endif %}
         <li class="nav-item">
           <a class="nav-link"
-            href="{{url_for(".tracker_labels_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}">labels</a>
+            href="{{ tracker|tracker_labels_url }}">labels</a>
         </li>
         {% if current_user and current_user.id == tracker.owner_id %}
         <li class="nav-item d-none d-sm-block">
@@ -145,10 +138,8 @@
       <div class="ticket-list">
         {% for ticket in tickets %}
         <div class="id">
-          <a href="{{url_for("ticket.ticket_GET",
-            owner=tracker.owner.canonical_name(),
-            name=tracker.name,
-            ticket_id=ticket.scoped_id)}}">#{{ticket.scoped_id}}</a></div>
+          <a href="{{ ticket|ticket_url }}">#{{ticket.scoped_id}}</a>
+        </div>
         <div class="title">
           {{ ticket.title }}
           <span class="pull-right">
@@ -159,9 +150,9 @@
         </div>
         <div class="updated">{{ ticket.updated | date }}</div>
         <div class="submitter">
-          <a href="{{url_for("html.user_GET",
-            username=ticket.submitter.username)}}"
-          >~{{ ticket.submitter.username }}</a>
+          <a href="{{ ticket.submitter|user_url }}">
+            {{ ticket.submitter }}
+          </a>
         </div>
         {% if ticket.new_updates(current_user) %}
         <div class="comments">

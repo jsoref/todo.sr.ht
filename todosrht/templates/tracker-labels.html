@@ -13,25 +13,18 @@
   <div class="row">
     <div class="col-md-12 header-tabbed">
       <h2>
-        <a href="{{ url_for("html.user_GET",
-          username=tracker.owner.username) }}"
-        >{{tracker.owner.canonical_name()}}</a>/{{tracker.name}}
+        <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
+          >/{{ tracker.name }}
       </h2>
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a
-            class="nav-link"
-            href="{{ url_for("tracker.tracker_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name) }}"
-          >{{icon('caret-left')}} back</a>
+          <a class="nav-link" href="{{ tracker|tracker_url }}">
+            {{icon('caret-left')}} back
+          </a>
         </li>
         <li class="nav-item">
           <a class="nav-link active"
-            href="{{url_for(".tracker_labels_GET",
-                owner=tracker.owner.canonical_name(),
-                name=tracker.name
-              )}}">labels</a>
+            href="{{ tracker|tracker_labels_url }}">labels</a>
         </li>
       </ul>
     </div>

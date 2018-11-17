@@ -1,6 +1,6 @@
 from jinja2.utils import Markup, escape
 from srht.flask import icon, csrf_token
-from todosrht.urls import label_search_url, label_remove_url
+from todosrht import urls
 
 
 def label_badge(label, cls="", remove_from_ticket=None):
@@ -17,10 +17,10 @@ def label_badge(label, cls="", remove_from_ticket=None):
     html_class = escape(f"label {cls}".strip())
 
     style = f"color: {color}; background-color: {bg_color}"
-    search_url = label_search_url(label)
+    search_url = urls.label_search_url(label)
 
     if remove_from_ticket:
-        remove_url = label_remove_url(label, remove_from_ticket)
+        remove_url = urls.label_remove_url(label, remove_from_ticket)
         remove_form = f"""
             <form method="POST" action="{remove_url}">
               {csrf_token()}

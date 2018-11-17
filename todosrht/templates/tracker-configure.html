@@ -33,18 +33,14 @@
   <div class="row">
     <div class="col-md-12 header-tabbed">
       <h2>
-        <a href="{{ url_for("html.user_GET",
-          username=tracker.owner.username) }}"
-        >{{tracker.owner.canonical_name()}}</a>/{{tracker.name}}
+        <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
+          >/{{ tracker.name }}
       </h2>
       <ul class="nav nav-tabs">
         <li class="nav-item">
-          <a
-            class="nav-link"
-            href="{{ url_for("tracker.tracker_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name) }}"
-          >{{icon('caret-left')}} back</a>
+          <a class="nav-link" href="{{ tracker|tracker_url }}">
+            {{icon('caret-left')}} back
+          </a>
         </li>
         <li class="nav-item d-none d-sm-block">
           <a class="nav-link active" href="{{url_for(".configure_GET",
@@ -144,13 +140,9 @@
         </div>
         {{ valid.summary() }}
         <span class="pull-right">
-          <a
-            href="{{ url_for(
-              ".tracker_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name) }}"
-            class="btn btn-default"
-          >Cancel</a>
+          <a href="{{ tracker|tracker_url }}" class="btn btn-default">
+            Cancel
+          </a>
           <button type="submit" class="btn btn-primary">
             Save {{icon("caret-right")}}
           </button>

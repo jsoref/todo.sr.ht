@@ -50,13 +50,9 @@
       <div class="tracker-list">
         {% for tracker in trackers %}
         <h4>
-          <a href="{{ url_for("html.user_GET",
-            username=tracker.owner.username) }}"
-          >{{tracker.owner.canonical_name()}}</a>/<a
-            href="{{ url_for("tracker.tracker_GET",
-              owner=tracker.owner.canonical_name(),
-              name=tracker.name) }}"
-          >{{tracker.name}}</a>
+          <a href="{{ tracker.owner|user_url }}"
+            >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
+            >{{ tracker.name }}</a>
         </h4>
         <span class="text-muted">Last active {{ tracker.updated | date }}</span>
         {% endfor %}

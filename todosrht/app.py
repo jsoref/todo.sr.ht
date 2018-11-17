@@ -1,4 +1,3 @@
-from jinja2.utils import Markup
 from srht.config import cfg
 from srht.database import DbSession
 from srht.flask import SrhtFlask
@@ -28,8 +27,11 @@ class TodoApp(SrhtFlask):
 
         self.add_template_filter(filters.label_badge)
         self.add_template_filter(urls.label_search_url)
+        self.add_template_filter(urls.ticket_edit_url)
         self.add_template_filter(urls.ticket_url)
+        self.add_template_filter(urls.tracker_labels_url)
         self.add_template_filter(urls.tracker_url)
+        self.add_template_filter(urls.user_url)
 
         meta_client_id = cfg("todo.sr.ht", "oauth-client-id")
         meta_client_secret = cfg("todo.sr.ht", "oauth-client-secret")
