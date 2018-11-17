@@ -1,7 +1,7 @@
-from jinja2.utils import Markup, escape
+from jinja2.utils import Markup
 from srht.config import cfg
 from srht.database import DbSession
-from srht.flask import SrhtFlask, icon, csrf_token
+from srht.flask import SrhtFlask
 from todosrht.urls import label_search_url, label_remove_url
 
 db = DbSession(cfg("todo.sr.ht", "connection-string"))
@@ -11,39 +11,6 @@ from todosrht.types import EventType
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
 db.init()
-
-def render_label_badge(label, cls="", remove_from_ticket=None):
-    """Return HTML markup rendering a label badge.
-
-    Additional HTML classes can be passed via the `cls` parameter.
-
-    If a Ticket is passed in `remove_from_ticket`, a removal button will also
-    be rendered for removing the label from given ticket.
-    """
-    style = f"color: {label.text_color}; background-color: {label.color}"
-    html_class = f"label {cls}".strip()
-    search_url = label_search_url(label)
-    escaped_name = escape(label.name)
-
-    if remove_from_ticket:
-        remove_url = label_remove_url(label, remove_from_ticket)
-        remove_form = f"""
-            <form method="POST" action="{remove_url}">
-              {csrf_token()}
-              <button type="submit" class="btn btn-link">
-                {icon('times')}
-              </button>
-            </form>
-        """
-    else:
-        remove_form = ""
-
-    return Markup(
-        f"""<span style="{style}" class="{html_class}" href="{search_url}">
-            <a href="{search_url}">{escaped_name}</a>
-            {remove_form}
-        </span>"""
-    )
 
 class TodoApp(SrhtFlask):
     def __init__(self):
@@ -79,7 +46,8 @@ class TodoApp(SrhtFlask):
 
         @self.template_filter()
         def label_badge(label, **kwargs):
-            return render_label_badge(label, **kwargs)
+            from todosrht.filters import label_badge
+            return label_badge(label, **kwargs)
 
         @self.template_filter()
         def label_search_url(label):
@@ -98,5 +66,6 @@ class TodoApp(SrhtFlask):
         user.oauth_token_scopes = scopes
         db.session.commit()
         return user
+
 
 app = TodoApp()
