@@ -2,7 +2,7 @@ from jinja2.utils import Markup
 from srht.config import cfg
 from srht.database import DbSession
 from srht.flask import SrhtFlask
-from todosrht.urls import label_search_url, label_remove_url
+from todosrht import urls, filters
 
 db = DbSession(cfg("todo.sr.ht", "connection-string"))
 
@@ -26,6 +26,11 @@ class TodoApp(SrhtFlask):
         self.register_blueprint(tracker)
         self.register_blueprint(ticket)
 
+        self.add_template_filter(filters.label_badge)
+        self.add_template_filter(urls.label_search_url)
+        self.add_template_filter(urls.ticket_url)
+        self.add_template_filter(urls.tracker_url)
+
         meta_client_id = cfg("todo.sr.ht", "oauth-client-id")
         meta_client_secret = cfg("todo.sr.ht", "oauth-client-secret")
         self.configure_meta_auth(meta_client_id, meta_client_secret)
@@ -44,16 +49,6 @@ class TodoApp(SrhtFlask):
             # TODO: Switch to a session token
             return User.query.filter(User.username == username).one_or_none()
 
-        @self.template_filter()
-        def label_badge(label, **kwargs):
-            from todosrht.filters import label_badge
-            return label_badge(label, **kwargs)
-
-        @self.template_filter()
-        def label_search_url(label):
-            from todosrht.urls import label_search_url
-            return Markup(label_search_url(label))
-
     def lookup_or_register(self, exchange, profile, scopes):
         user = User.query.filter(User.username == profile["username"]).first()
         if not user:
@@ -66,6 +61,5 @@ class TodoApp(SrhtFlask):
         user.oauth_token_scopes = scopes
         db.session.commit()
         return user
-
 
 app = TodoApp()
