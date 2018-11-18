@@ -1,7 +1,7 @@
 from jinja2.utils import Markup, escape
 from srht.config import cfg
 from srht.database import DbSession
-from srht.flask import SrhtFlask, icon
+from srht.flask import SrhtFlask, icon, csrf_token
 from todosrht.urls import label_search_url, label_remove_url
 
 db = DbSession(cfg("todo.sr.ht", "connection-string"))
@@ -43,6 +43,7 @@ def render_label_badge(label, cls="", remove_from_ticket=None):
         remove_url = label_remove_url(label, remove_from_ticket)
         remove_form = f"""
             <form method="POST" action="{remove_url}">
+              {csrf_token()}
               <button type="submit" class="btn btn-link">
                 {icon('times')}
               </button>
