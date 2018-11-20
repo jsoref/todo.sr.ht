@@ -136,7 +136,7 @@
       </form>
       {% if len(tickets) %}
       <div class="ticket-list">
-        {% for ticket in tickets %}
+        {% for ticket, seen in tickets %}
         <div class="id">
           <a href="{{ ticket|ticket_url }}">#{{ticket.scoped_id}}</a>
         </div>
@@ -154,7 +154,7 @@
             {{ ticket.submitter }}
           </a>
         </div>
-        {% if ticket.new_updates(current_user) %}
+        {% if seen and seen.last_view >= ticket.updated %}
         <div class="comments">
           {{icon("comments-o")}}
           {{ ticket.comments | length }}

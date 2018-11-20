@@ -10,13 +10,14 @@ from todosrht.search import apply_search
 from todosrht.types import TicketSubscription
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import Tracker, Ticket, TicketStatus, TicketAccess
-from todosrht.types import Label, TicketLabel
+from todosrht.types import Label, TicketLabel, TicketSeen
 from todosrht.urls import tracker_url
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from datetime import datetime
+from sqlalchemy import and_
 
 tracker = Blueprint("tracker", __name__)
 
@@ -97,7 +98,14 @@ def return_tracker(tracker, access, **kwargs):
         ).one_or_none()
         is_subscribed = bool(sub)
 
-    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
+    tickets = (db.session
+        .query(Ticket, TicketSeen)
+        .filter(Ticket.tracker_id == tracker.id)
+        .outerjoin(TicketSeen, and_(
+            TicketSeen.ticket_id == Ticket.id,
+            TicketSeen.user == current_user,
+        )))
+
     search = request.args.get("search")
     tickets = tickets.order_by(Ticket.updated.desc())
     if search:
