@@ -9,4 +9,6 @@ db.init()
 
 @pytest.fixture(scope="session", autouse=True)
 def app():
-    return TodoApp()
+    app = TodoApp()
+    with app.test_request_context():
+        yield app
