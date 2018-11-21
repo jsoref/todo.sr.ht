@@ -157,12 +157,12 @@
         {% if seen and seen.last_view >= ticket.updated %}
         <div class="comments">
           {{icon("comments-o")}}
-          {{ ticket.comments | length }}
+          {{ comment_counts.get(ticket.id, 0) }}
         </div>
         {% else %}
         <div class="comments">
           {{icon("comments")}}
-          {{ ticket.comments | length }}
+          {{ comment_counts.get(ticket.id, 0) }}
         </div>
         {% endif %}
         {% endfor %}

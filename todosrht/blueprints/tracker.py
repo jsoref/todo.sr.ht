@@ -10,14 +10,14 @@ from todosrht.search import apply_search
 from todosrht.types import TicketSubscription
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import Tracker, Ticket, TicketStatus, TicketAccess
-from todosrht.types import Label, TicketLabel, TicketSeen
+from todosrht.types import Label, TicketLabel, TicketSeen, TicketComment
 from todosrht.urls import tracker_url
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from datetime import datetime
-from sqlalchemy import and_
+from sqlalchemy import func, and_
 from sqlalchemy.orm import subqueryload
 
 tracker = Blueprint("tracker", __name__)
@@ -102,10 +102,7 @@ def return_tracker(tracker, access, **kwargs):
     tickets = (db.session
         .query(Ticket, TicketSeen)
         .filter(Ticket.tracker_id == tracker.id)
-        .options(
-            subqueryload(Ticket.labels),
-            subqueryload(Ticket.comments),
-        )
+        .options(subqueryload(Ticket.labels))
         .outerjoin(TicketSeen, and_(
             TicketSeen.ticket_id == Ticket.id,
             TicketSeen.user == current_user,
@@ -119,6 +116,14 @@ def return_tracker(tracker, access, **kwargs):
         tickets = tickets.filter(Ticket.status == TicketStatus.reported)
     tickets, pagination = paginate_query(tickets, results_per_page=25)
 
+    # Preload comment counts per ticket
+    col = TicketComment.ticket_id
+    ticket_ids = [t.id for t, _ in tickets]
+    comment_counts = dict(db.session
+        .query(col, func.count(col))
+        .filter(col.in_(ticket_ids))
+        .group_by(col))
+
     if "another" in kwargs:
         another = kwargs["another"]
         del kwargs["another"]
@@ -126,7 +131,7 @@ def return_tracker(tracker, access, **kwargs):
     return render_template("tracker.html",
             tracker=tracker, another=another, tickets=tickets,
             access=access, is_subscribed=is_subscribed, search=search,
-            **pagination, **kwargs)
+            comment_counts=comment_counts, **pagination, **kwargs)
 
 @tracker.route("/<owner>/<name>")
 def tracker_GET(owner, name):
