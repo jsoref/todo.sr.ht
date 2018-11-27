@@ -14,6 +14,7 @@ from todosrht.urls import ticket_url
 
 ticket = Blueprint("ticket", __name__)
 
+
 @ticket.route("/<owner>/<name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):
     tracker, _ = get_tracker(owner, name)
@@ -22,28 +23,22 @@ def ticket_GET(owner, name, ticket_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
-    is_subscribed = False
+
     tracker_sub = None
+    ticket_sub = None
+
     if current_user:
         mark_seen(ticket, current_user)
         db.session.commit()
 
-        tracker_sub = (TicketSubscription.query
-            .filter(TicketSubscription.ticket_id == None)
-            .filter(TicketSubscription.tracker_id == tracker.id)
-            .filter(TicketSubscription.user_id == current_user.id)
-        ).one_or_none()
+        tracker_sub = TicketSubscription.query.filter_by(
+            ticket=None, tracker=tracker, user=current_user).one_or_none()
 
-        sub = (TicketSubscription.query
-        .filter(TicketSubscription.tracker_id == None)
-            .filter(TicketSubscription.ticket_id == ticket.id)
-            .filter(TicketSubscription.user_id == current_user.id)
-        ).one_or_none()
-
-        is_subscribed = bool(sub)
+        ticket_sub = TicketSubscription.query.filter_by(
+            ticket=ticket, tracker=None, user=current_user).one_or_none()
 
     return render_template("ticket.html", tracker=tracker, ticket=ticket,
-            access=access, is_subscribed=is_subscribed, tracker_sub=tracker_sub)
+            access=access, ticket_sub=ticket_sub, tracker_sub=tracker_sub)
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/enable_notifications", methods=["POST"])
 @loginrequired

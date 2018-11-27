@@ -45,7 +45,7 @@
           <li class="nav-item d-none d-sm-block">
             {% if not tracker_sub %}
             <form method="POST" action="{{url_for("ticket." +
-                ("disable_notifications" if is_subscribed else "enable_notifications"),
+                ("disable_notifications" if ticket_sub else "enable_notifications"),
                 owner=tracker.owner.canonical_name(),
                 name=tracker.name,
                 ticket_id=ticket.scoped_id)}}">
@@ -63,7 +63,7 @@
                 {% endif %}
               >
                 {{icon("envelope-o")}}
-                {% if is_subscribed or tracker_sub %}
+                {% if ticket_sub or tracker_sub %}
                 Disable notifications
                 {% else %}
                 Enable notifications
