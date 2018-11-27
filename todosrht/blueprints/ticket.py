@@ -15,6 +15,25 @@ from todosrht.urls import ticket_url
 ticket = Blueprint("ticket", __name__)
 
 
+def get_ticket_context(ticket, tracker, access):
+    """Returns the context required to render ticket.html"""
+    tracker_sub = None
+    ticket_sub = None
+
+    if current_user:
+        tracker_sub = TicketSubscription.query.filter_by(
+            ticket=None, tracker=tracker, user=current_user).one_or_none()
+        ticket_sub = TicketSubscription.query.filter_by(
+            ticket=ticket, tracker=None, user=current_user).one_or_none()
+
+    return {
+        "tracker": tracker,
+        "ticket": ticket,
+        "access": access,
+        "tracker_sub": tracker_sub,
+        "ticket_sub": ticket_sub,
+    }
+
 @ticket.route("/<owner>/<name>/<int:ticket_id>")
 def ticket_GET(owner, name, ticket_id):
     tracker, _ = get_tracker(owner, name)
@@ -24,21 +43,12 @@ def ticket_GET(owner, name, ticket_id):
     if not ticket:
         abort(404)
 
-    tracker_sub = None
-    ticket_sub = None
-
     if current_user:
         mark_seen(ticket, current_user)
         db.session.commit()
 
-        tracker_sub = TicketSubscription.query.filter_by(
-            ticket=None, tracker=tracker, user=current_user).one_or_none()
-
-        ticket_sub = TicketSubscription.query.filter_by(
-            ticket=ticket, tracker=None, user=current_user).one_or_none()
-
-    return render_template("ticket.html", tracker=tracker, ticket=ticket,
-            access=access, ticket_sub=ticket_sub, tracker_sub=tracker_sub)
+    ctx = get_ticket_context(ticket, tracker, access)
+    return render_template("ticket.html", **ctx)
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/enable_notifications", methods=["POST"])
 @loginrequired
@@ -123,11 +133,8 @@ def ticket_comment_POST(owner, name, ticket_id):
         resolution = None
 
     if not valid.ok:
-        return render_template("ticket.html",
-                tracker=tracker,
-                ticket=ticket,
-                access=access,
-                **valid.kwargs)
+        ctx = get_ticket_context(ticket, tracker, access)
+        return render_template("ticket.html", **ctx, **valid.kwargs)
 
     comment = add_comment(current_user, ticket,
         text=text, resolve=resolve, resolution=resolution, reopen=reopen)
@@ -196,14 +203,14 @@ def ticket_add_label(owner, name, ticket_id):
     valid = Validation(request)
     label_id = valid.require("label_id", friendly_name="A label")
     if not valid.ok:
-        return render_template("ticket.html",
-            tracker=tracker, ticket=ticket, access=access, **valid.kwargs)
+        ctx = get_ticket_context(ticket, tracker, access)
+        return render_template("ticket.html", **ctx, **valid.kwargs)
 
     valid.expect(re.match(r"^\d+$", label_id),
             "Label ID must be numeric", field="label_id")
     if not valid.ok:
-        return render_template("ticket.html",
-            tracker=tracker, ticket=ticket, access=access, **valid.kwargs)
+        ctx = get_ticket_context(ticket, tracker, access)
+        return render_template("ticket.html", **ctx, **valid.kwargs)
 
     label_id = int(request.form.get('label_id'))
     label = Label.query.filter(Label.id == label_id).first()
