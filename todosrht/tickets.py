@@ -5,6 +5,7 @@ from srht.database import db
 from todosrht.email import notify
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
+from todosrht.types import TicketSeen
 from todosrht.urls import ticket_url
 
 smtp_user = cfg("mail", "smtp-user", default=None)
@@ -135,3 +136,14 @@ def add_comment(user, ticket,
     db.session.commit()
 
     return comment
+
+def mark_seen(ticket, user):
+    """Mark the ticket as seen by user."""
+    seen = TicketSeen.query.filter_by(user=user, ticket=ticket).one_or_none()
+    if seen:
+        seen.update()  # Updates last_view time
+    else:
+        seen = TicketSeen(user_id=user.id, ticket_id=ticket.id)
+        db.session.add(seen)
+
+    return seen

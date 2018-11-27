@@ -5,10 +5,10 @@ from srht.database import db
 from srht.flask import loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
-from todosrht.tickets import add_comment
+from todosrht.tickets import add_comment, mark_seen
 from todosrht.types import Event, EventType
 from todosrht.types import Label, TicketLabel
-from todosrht.types import TicketAccess, TicketResolution, TicketSeen
+from todosrht.types import TicketAccess, TicketResolution
 from todosrht.types import TicketSubscription
 from todosrht.urls import ticket_url
 
@@ -25,14 +25,7 @@ def ticket_GET(owner, name, ticket_id):
     is_subscribed = False
     tracker_sub = None
     if current_user:
-        seen = (TicketSeen.query
-                .filter(TicketSeen.user_id == current_user.id,
-                    TicketSeen.ticket_id == ticket.id)
-                .one_or_none())
-        if not seen:
-            seen = TicketSeen(user_id=current_user.id, ticket_id=ticket.id)
-        seen.update()
-        db.session.add(seen)
+        mark_seen(ticket, current_user)
         db.session.commit()
 
         tracker_sub = (TicketSubscription.query
