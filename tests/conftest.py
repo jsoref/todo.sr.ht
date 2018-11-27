@@ -12,3 +12,11 @@ def app():
     app = TodoApp()
     with app.test_request_context():
         yield app
+
+@pytest.fixture
+def client(app):
+    """Provides a test Flask client."""
+    # Propagate view exceptions instead of returning HTTP 500
+    app.testing = True
+    with app.test_client() as client:
+        yield client
