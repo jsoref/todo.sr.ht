@@ -1,6 +1,5 @@
 import sqlalchemy as sa
 from srht.database import Base
-from enum import Enum
 
 class TicketAssignee(Base):
     __tablename__ = 'ticket_assignee'
@@ -12,13 +11,9 @@ class TicketAssignee(Base):
     ticket = sa.orm.relationship("Ticket", backref=sa.orm.backref("assignees"))
 
     assignee_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-    assignee = sa.orm.relationship("User",
-            backref=sa.orm.backref("assigned"),
-            foreign_keys="assignee_id")
+    assignee = sa.orm.relationship("User", foreign_keys=[assignee_id])
 
     assigner_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-    assigner = sa.orm.relationship("User",
-            backref=sa.orm.backref("assigned"),
-            foreign_keys="assignee_id")
+    assigner = sa.orm.relationship("User", foreign_keys=[assigner_id])
 
     role = sa.Column(sa.Unicode(256))
