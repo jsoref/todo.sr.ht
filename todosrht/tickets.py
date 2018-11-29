@@ -5,7 +5,7 @@ from srht.database import db
 from todosrht.email import notify
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
-from todosrht.types import TicketSeen
+from todosrht.types import TicketSeen, TicketAssignee
 from todosrht.urls import ticket_url
 
 smtp_user = cfg("mail", "smtp-user", default=None)
@@ -147,3 +147,23 @@ def mark_seen(ticket, user):
         db.session.add(seen)
 
     return seen
+
+def assign(ticket, assignee, assigner):
+    role = ""  # Role is not yet implemented
+
+    ticket_assignee = TicketAssignee.query.filter_by(
+        ticket=ticket, assignee=assignee).one_or_none()
+
+    if not ticket_assignee:
+        ticket_assignee = TicketAssignee(
+            ticket=ticket,
+            assignee=assignee,
+            assigner=assigner,
+            role=role,
+        )
+        db.session.add(ticket_assignee)
+
+    return ticket_assignee
+
+def unassign(ticket, assignee):
+    TicketAssignee.query.filter_by(ticket=ticket, assignee=assignee).delete()
