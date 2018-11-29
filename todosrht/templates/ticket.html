@@ -104,6 +104,15 @@
             {{ ticket.submitter }}
           </a>
         </dd>
+        <dt class="col-md-3">Assigned to</dt>
+        <dd class="col-md-9">
+          {% for user in ticket.assigned_users %}
+          <a href="{{ user|user_url }}">{{ user }}</a>
+          <br />
+          {% else %}
+          No-one.
+          {% endfor %}
+        </dd>
         <dt class="col-md-3">Submitted</dt>
         <dd class="col-md-9">{{ ticket.created | date }}</dd>
         <dt class="col-md-3">Updated</dt>

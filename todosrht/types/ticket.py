@@ -51,3 +51,7 @@ class Ticket(Base):
 
     view_list = sa.orm.relationship("TicketSeen")
     labels = sa.orm.relationship("Label", secondary="ticket_label")
+
+    assigned_users = sa.orm.relationship("User",
+        secondary="ticket_assignee",
+        foreign_keys="[TicketAssignee.ticket_id,TicketAssignee.assignee_id]")
