@@ -23,7 +23,9 @@ class TodoApp(SrhtFlask):
 
         self.add_template_filter(filters.label_badge)
         self.add_template_filter(urls.label_search_url)
+        self.add_template_filter(urls.ticket_assign_url)
         self.add_template_filter(urls.ticket_edit_url)
+        self.add_template_filter(urls.ticket_unassign_url)
         self.add_template_filter(urls.ticket_url)
         self.add_template_filter(urls.tracker_labels_url)
         self.add_template_filter(urls.tracker_url)
