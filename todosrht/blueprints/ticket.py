@@ -5,11 +5,11 @@ from srht.database import db
 from srht.flask import loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
-from todosrht.tickets import add_comment, mark_seen
+from todosrht.tickets import add_comment, mark_seen, assign, unassign
 from todosrht.types import Event, EventType
 from todosrht.types import Label, TicketLabel
 from todosrht.types import TicketAccess, TicketResolution
-from todosrht.types import TicketSubscription
+from todosrht.types import TicketSubscription, User
 from todosrht.urls import ticket_url
 
 ticket = Blueprint("ticket", __name__)
@@ -269,5 +269,53 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
         db.session.add(event)
         db.session.delete(ticket_label)
         db.session.commit()
+
+    return redirect(ticket_url(ticket))
+
+def _assignment_get_ticket(owner, name, ticket_id):
+    tracker, _ = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+    if TicketAccess.edit not in access:
+        abort(401)
+
+    return ticket
+
+def _assignment_get_user():
+    username = request.form.get('username')
+    if not username:
+        abort(400)
+    if username.startswith("~"):
+        username = username[1:]
+
+    user = User.query.filter_by(username=username).one_or_none()
+    if not user:
+        abort(404)
+
+    return user
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/assign", methods=["POST"])
+@loginrequired
+def ticket_assign(owner, name, ticket_id):
+    ticket = _assignment_get_ticket(owner, name, ticket_id)
+    user = _assignment_get_user()
+
+    assign(ticket, user, current_user)
+    db.session.commit()
+
+    return redirect(ticket_url(ticket))
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/unassign", methods=["POST"])
+@loginrequired
+def ticket_unassign(owner, name, ticket_id):
+    ticket = _assignment_get_ticket(owner, name, ticket_id)
+    user = _assignment_get_user()
+
+    unassign(ticket, user)
+    db.session.commit()
 
     return redirect(ticket_url(ticket))
