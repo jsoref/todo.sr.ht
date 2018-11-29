@@ -134,6 +134,46 @@
           {% else %}
           No-one.
           {% endfor %}
+
+          <details>
+            <summary>
+              Assign someone
+            </summary>
+            <form
+              method="POST"
+              action="{{ ticket|ticket_assign_url }}"
+              style="margin-bottom: 0"
+            >
+              {{ csrf_token() }}
+              <div class="row">
+                <div class="col-md-6">
+                  <input
+                    type="text"
+                    name="username"
+                    required="required"
+                    style="width: 100%; max-width: 12rem;" />
+                </div>
+                <div class="col-md-6">
+                  <button class="btn btn-default" style="margin: .2rem 0">
+                    Assign {{ icon('caret-right') }}
+                  </button>
+                </div>
+              </div>
+            </form>
+            <form method="POST" action="{{ ticket|ticket_assign_url }}">
+              {{ csrf_token() }}
+              <input type="hidden" name="username" value="{{ current_user }}" />
+              <div class="row">
+                <div class="col-md-6">
+                </div>
+                <div class="col-md-6">
+                  <button class="btn btn-default">
+                    Assign myself {{ icon('caret-right') }}
+                  </button>
+                </div>
+              </div>
+            </form>
+          </details>
         </dd>
         <dt class="col-md-3">Submitted</dt>
         <dd class="col-md-9">{{ ticket.created | date }}</dd>
