@@ -106,9 +106,31 @@
         </dd>
         <dt class="col-md-3">Assigned to</dt>
         <dd class="col-md-9">
-          {% for user in ticket.assigned_users %}
-          <a href="{{ user|user_url }}">{{ user }}</a>
-          <br />
+          {% for assignee in ticket.assigned_users %}
+          <div class="row">
+            <div class="col">
+              <a href="{{ assignee|user_url }}">{{ assignee }}</a>
+            </div>
+            <div class="col">
+              {% if TicketAccess.edit in access %}
+              <form
+                method="POST"
+                action="{{ ticket|ticket_unassign_url }}"
+                style="margin-bottom: .2rem"
+              >
+                {{ csrf_token() }}
+                <input
+                  type="hidden"
+                  name="username"
+                  value="~{{ assignee.username }}" />
+                <button type="submit" class="btn btn-default">
+                  Unassign
+                  {{ icon('caret-right') }}
+                </button>
+              </form>
+              {% endif %}
+            </div>
+          </div>
           {% else %}
           No-one.
           {% endfor %}
