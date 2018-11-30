@@ -10,6 +10,7 @@ db.init()
 @pytest.fixture(scope="session", autouse=True)
 def app():
     app = TodoApp()
+    app.secret_key = "secret"
     with app.test_request_context():
         yield app
 
