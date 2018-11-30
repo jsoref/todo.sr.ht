@@ -123,19 +123,18 @@
                   type="hidden"
                   name="username"
                   value="~{{ assignee.username }}" />
-                <button type="submit" class="btn btn-default">
-                  Unassign
-                  {{ icon('caret-right') }}
-                </button>
+                <button
+                  type="submit"
+                  class="btn btn-link btn-block"
+                  style="text-align: right"
+                >(unassign)</button>
               </form>
               {% endif %}
             </div>
           </div>
-          {% else %}
-          No-one.
           {% endfor %}
 
-          <details>
+          <details class="assign" {{"open" if not valid.ok else ""}}>
             <summary>
               Assign someone
             </summary>
@@ -145,33 +144,24 @@
               style="margin-bottom: 0"
             >
               {{ csrf_token() }}
-              <div class="row">
-                <div class="col-md-6">
-                  <input
-                    type="text"
-                    name="username"
-                    required="required"
-                    style="width: 100%; max-width: 12rem;" />
-                </div>
-                <div class="col-md-6">
-                  <button class="btn btn-default" style="margin: .2rem 0">
-                    Assign {{ icon('caret-right') }}
-                  </button>
-                </div>
+              <div class="form-group">
+                <input
+                  type="text"
+                  name="username"
+                  class="form-control {{valid.cls("username")}}"
+                  value="{{username}}" />
+                {{valid.summary("username")}}
               </div>
-            </form>
-            <form method="POST" action="{{ ticket|ticket_assign_url }}">
-              {{ csrf_token() }}
-              <input type="hidden" name="username" value="{{ current_user }}" />
-              <div class="row">
-                <div class="col-md-6">
-                </div>
-                <div class="col-md-6">
-                  <button class="btn btn-default">
-                    Assign myself {{ icon('caret-right') }}
-                  </button>
-                </div>
+              <div class="pull-right">
+                <button
+                  name="myself"
+                  class="btn btn-default"
+                >Assign myself {{ icon('caret-right') }}</button>
+                <button class="btn btn-primary">
+                  Assign {{ icon('caret-right') }}
+                </button>
               </div>
+              <div class="clearfix"></div>
             </form>
           </details>
         </dd>

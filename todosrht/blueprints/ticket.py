@@ -285,24 +285,32 @@ def _assignment_get_ticket(owner, name, ticket_id):
 
     return ticket
 
-def _assignment_get_user():
-    username = request.form.get('username')
+def _assignment_get_user(valid):
+    username = valid.optional('username')
     if not username:
-        abort(400)
+        if 'myself' in valid:
+            username = current_user.username
+        else:
+            valid.error("Username is required", field="username")
+    if not valid.ok:
+        return None
     if username.startswith("~"):
         username = username[1:]
 
     user = User.query.filter_by(username=username).one_or_none()
-    if not user:
-        abort(404)
-
+    valid.expect(user, "User not found.", field="username")
     return user
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/assign", methods=["POST"])
 @loginrequired
 def ticket_assign(owner, name, ticket_id):
+    valid = Validation(request)
     ticket = _assignment_get_ticket(owner, name, ticket_id)
-    user = _assignment_get_user()
+    user = _assignment_get_user(valid)
+    if not valid.ok:
+        _, access = get_ticket(ticket.tracker, ticket_id)
+        ctx = get_ticket_context(ticket, ticket.tracker, access)
+        return render_template("ticket.html", **valid.kwargs, **ctx)
 
     assign(ticket, user, current_user)
     db.session.commit()
@@ -312,8 +320,12 @@ def ticket_assign(owner, name, ticket_id):
 @ticket.route("/<owner>/<name>/<int:ticket_id>/unassign", methods=["POST"])
 @loginrequired
 def ticket_unassign(owner, name, ticket_id):
+    valid = Validation(request)
     ticket = _assignment_get_ticket(owner, name, ticket_id)
-    user = _assignment_get_user()
+    user = _assignment_get_user(valid)
+    if not valid.ok:
+        ctx = get_ticket_context(ticket, ticket.tracker, access)
+        return render_template("ticket.html", valid, **ctx)
 
     unassign(ticket, user)
     db.session.commit()
