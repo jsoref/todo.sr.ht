@@ -1,5 +1,6 @@
 import re
 from sqlalchemy import or_
+from todosrht.app import db
 from todosrht.types import Label, TicketLabel
 from todosrht.types import Ticket, TicketStatus, TicketComment
 from todosrht.types import User
@@ -106,3 +107,21 @@ def apply_search(query, search, tracker, current_user):
             Ticket.comments.any(TicketComment.text.ilike("%" + value + "%"))))
 
     return query
+
+def find_usernames(query, limit=20):
+    """Given a partial username string, returns matching usernames."""
+    if not query or query == '~':
+        return []
+
+    if query.startswith("~"):
+        where = User.username.startswith(query[1:], autoescape=True)
+    else:
+        where = User.username.contains(query, autoescape=True)
+
+    rows = (db.session
+        .query(User.username)
+        .filter(where)
+        .order_by(User.username)
+        .limit(limit))
+
+    return [f"~{r[0]}" for r in rows]

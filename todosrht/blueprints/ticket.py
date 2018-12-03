@@ -5,6 +5,7 @@ from srht.database import db
 from srht.flask import loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
+from todosrht.search import find_usernames
 from todosrht.tickets import add_comment, mark_seen, assign, unassign
 from todosrht.types import Event, EventType
 from todosrht.types import Label, TicketLabel
@@ -331,3 +332,11 @@ def ticket_unassign(owner, name, ticket_id):
     db.session.commit()
 
     return redirect(ticket_url(ticket))
+
+@ticket.route("/usernames")
+def usernames():
+    query = request.args.get('q')
+
+    return {
+        "results": find_usernames(query)
+    }
