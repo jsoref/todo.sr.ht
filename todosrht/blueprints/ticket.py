@@ -335,6 +335,7 @@ def ticket_unassign(owner, name, ticket_id):
     ticket = _assignment_get_ticket(owner, name, ticket_id)
     user = _assignment_get_user(valid)
     if not valid.ok:
+        _, access = get_ticket(ticket.tracker, ticket_id)
         ctx = get_ticket_context(ticket, ticket.tracker, access)
         return render_template("ticket.html", valid, **ctx)
 
