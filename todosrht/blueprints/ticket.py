@@ -281,7 +281,7 @@ def _assignment_get_ticket(owner, name, ticket_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
-    if TicketAccess.edit not in access:
+    if TicketAccess.triage not in access:
         abort(401)
 
     return ticket
