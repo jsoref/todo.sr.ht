@@ -154,7 +154,11 @@
                   list="assignee-list"
                   class="form-control {{valid.cls("username")}}"
                   value="{{username}}" />
-                <datalist id="assignee-list"></datalist>
+                <datalist id="assignee-list">
+                  {% for u in recent_users %}
+                    <option value="~{{ u }}" />
+                  {% endfor %}
+                </datalist>
                 {{valid.summary("username")}}
               </div>
               <div class="pull-right">

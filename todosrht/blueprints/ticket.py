@@ -8,7 +8,7 @@ from todosrht.access import get_tracker, get_ticket
 from todosrht.search import find_usernames
 from todosrht.tickets import add_comment, mark_seen, assign, unassign
 from todosrht.types import Event, EventType
-from todosrht.types import Label, TicketLabel
+from todosrht.types import Label, Ticket, TicketLabel
 from todosrht.types import TicketAccess, TicketResolution
 from todosrht.types import TicketSubscription, User
 from todosrht.urls import ticket_url
@@ -27,12 +27,22 @@ def get_ticket_context(ticket, tracker, access):
         ticket_sub = TicketSubscription.query.filter_by(
             ticket=ticket, tracker=None, user=current_user).one_or_none()
 
+    # Find users who recently interacted with this tracker
+    recent_user_events = (db.session.query(Event.id, User.username)
+        .join(User, User.id == Event.user_id)
+        .join(Ticket, Ticket.id == Event.ticket_id)
+        .filter(Ticket.tracker_id == tracker.id)
+        .order_by(Event.created.desc())
+        .limit(20))
+    recent_users = {e[1] for e in recent_user_events}
+
     return {
         "tracker": tracker,
         "ticket": ticket,
         "access": access,
         "tracker_sub": tracker_sub,
         "ticket_sub": ticket_sub,
+        "recent_users": recent_users,
     }
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>")
