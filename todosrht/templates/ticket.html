@@ -134,6 +134,7 @@
           </div>
           {% endfor %}
 
+          {% if TicketAccess.triage in access %}
           <details class="assign" {{"open" if not valid.ok else ""}}>
             <summary>
               Assign someone
@@ -168,6 +169,7 @@
               <div class="clearfix"></div>
             </form>
           </details>
+          {% endif %}
         </dd>
         <dt class="col-md-3">Submitted</dt>
         <dd class="col-md-9">{{ ticket.created | date }}</dd>
