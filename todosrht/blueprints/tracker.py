@@ -109,7 +109,7 @@ def return_tracker(tracker, access, **kwargs):
 
     # Preload comment counts per ticket
     col = TicketComment.ticket_id
-    ticket_ids = [t.id for t, _ in tickets]
+    ticket_ids = [t.id for t in tickets]
     comment_counts = dict(db.session
         .query(col, func.count(col))
         .filter(col.in_(ticket_ids))
