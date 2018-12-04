@@ -1,6 +1,5 @@
 import re
 from sqlalchemy import or_
-from todosrht.app import db
 from todosrht.types import Label, TicketLabel
 from todosrht.types import Ticket, TicketStatus, TicketComment
 from todosrht.types import User
@@ -118,6 +117,7 @@ def find_usernames(query, limit=20):
     else:
         where = User.username.contains(query, autoescape=True)
 
+    from todosrht.app import db
     rows = (db.session
         .query(User.username)
         .filter(where)
