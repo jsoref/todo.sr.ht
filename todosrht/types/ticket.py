@@ -55,3 +55,14 @@ class Ticket(Base):
     assigned_users = sa.orm.relationship("User",
         secondary="ticket_assignee",
         foreign_keys="[TicketAssignee.ticket_id,TicketAssignee.assignee_id]")
+
+    def new_updates(self, user):
+        if not user:
+            return None
+        seen = (TicketSeen.query
+                .filter(TicketSeen.user_id == user.id,
+                    TicketSeen.ticket_id == self.id)
+                .one_or_none())
+        if seen:
+            return seen.last_view >= self.updated
+        return None

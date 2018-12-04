@@ -18,7 +18,6 @@ from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from datetime import datetime
 from sqlalchemy import func, and_
-from sqlalchemy.orm import subqueryload
 
 tracker = Blueprint("tracker", __name__)
 
@@ -99,15 +98,7 @@ def return_tracker(tracker, access, **kwargs):
         ).one_or_none()
         is_subscribed = bool(sub)
 
-    tickets = (db.session
-        .query(Ticket, TicketSeen)
-        .filter(Ticket.tracker_id == tracker.id)
-        .options(subqueryload(Ticket.labels))
-        .outerjoin(TicketSeen, and_(
-            TicketSeen.ticket_id == Ticket.id,
-            TicketSeen.user == current_user,
-        )))
-
+    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
     search = request.args.get("search")
     tickets = tickets.order_by(Ticket.updated.desc())
     if search:
