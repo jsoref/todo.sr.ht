@@ -103,9 +103,7 @@ def return_tracker(tracker, access, **kwargs):
         .query(Ticket, TicketSeen)
         .filter(Ticket.tracker_id == tracker.id)
         .options(subqueryload(Ticket.labels))
-
-    if current_user:
-        tickets = tickets.outerjoin(TicketSeen, and_(
+        .outerjoin(TicketSeen, and_(
             TicketSeen.ticket_id == Ticket.id,
             TicketSeen.user == current_user,
         )))
