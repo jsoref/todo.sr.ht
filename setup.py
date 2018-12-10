@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-from distutils.core import setup
+from setuptools import setup
 import subprocess
-import glob
 import os
+import site
+import sys
 
 if hasattr(site, 'getsitepackages'):
     pkg_dirs = site.getsitepackages()
