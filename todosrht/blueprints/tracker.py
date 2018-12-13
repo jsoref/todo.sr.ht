@@ -195,9 +195,58 @@ access_help_map={
         "Permission to resolve, re-open, or label tickets",
 }
 
-@tracker.route("/<owner>/<name>/configure", methods=["POST"])
 @loginrequired
-def configure_POST(owner, name):
+@tracker.route("/<owner>/<name>/settings/details")
+def settings_details_GET(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+    return render_template("tracker-details.html",
+        view="details", tracker=tracker,
+        access_type_list=TicketAccess,
+        access_help_map=access_help_map)
+
+@loginrequired
+@tracker.route("/<owner>/<name>/settings/details", methods=["POST"])
+def settings_details_POST(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    valid = Validation(request)
+    desc = valid.optional("tracker_desc", default=tracker.description)
+    valid.expect(not desc or len(desc) < 4096,
+            "Must be less than 4096 characters",
+            field="tracker_desc")
+    if not valid.ok:
+        return render_template("tracker-details.html",
+            tracker=tracker, access_type_list=TicketAccess,
+            access_help_map=access_help_map, **valid.kwargs), 400
+
+    tracker.description = desc
+    db.session.commit()
+    return redirect(tracker_url(tracker))
+
+@loginrequired
+@tracker.route("/<owner>/<name>/settings/access")
+def settings_access_GET(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+    return render_template("tracker-access.html",
+        view="access", tracker=tracker,
+        access_type_list=TicketAccess,
+        access_help_map=access_help_map)
+
+@loginrequired
+@tracker.route("/<owner>/<name>/settings/access", methods=["POST"])
+def settings_access_POST(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
@@ -211,12 +260,8 @@ def configure_POST(owner, name):
     # TODO: once repos are linked
     #perm_commit = parse_html_perms('commit', valid)
 
-    desc = valid.optional("tracker_desc", default=tracker.description)
-    valid.expect(not desc or len(desc) < 4096,
-            "Must be less than 4096 characters",
-            field="tracker_desc")
     if not valid.ok:
-        return render_template("tracker-configure.html",
+        return render_template("tracker-details.html",
             tracker=tracker, access_type_list=TicketAccess,
             access_help_map=access_help_map, **valid.kwargs), 400
 
@@ -224,23 +269,9 @@ def configure_POST(owner, name):
     tracker.default_user_perms = perm_user
     tracker.default_submitter_perms = perm_submit
     #tracker.default_committer_perms = perm_commit
-    tracker.description = desc
+
     db.session.commit()
-
     return redirect(tracker_url(tracker))
-
-
-@tracker.route("/<owner>/<name>/configure")
-@loginrequired
-def configure_GET(owner, name):
-    tracker, access = get_tracker(owner, name)
-    if not tracker:
-        abort(404)
-    if current_user.id != tracker.owner_id:
-        abort(403)
-    return render_template("tracker-configure.html",
-        tracker=tracker, access_type_list=TicketAccess,
-        access_help_map=access_help_map)
 
 @tracker.route("/<owner>/<name>/submit", methods=["POST"])
 @loginrequired
