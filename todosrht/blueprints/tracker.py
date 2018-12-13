@@ -79,7 +79,7 @@ def create_POST():
     db.session.commit()
 
     if "create-configure" in valid:
-        return redirect(url_for(".configure_GET",
+        return redirect(url_for(".settings_details_GET",
                 owner=current_user.username,
                 name=name))
 
