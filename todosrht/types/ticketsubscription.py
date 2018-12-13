@@ -11,16 +11,24 @@ class TicketSubscription(Base):
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
 
-    tracker_id = sa.Column(sa.Integer, sa.ForeignKey("tracker.id"))
-    tracker = sa.orm.relationship("Tracker", backref=sa.orm.backref("subscriptions"))
+    tracker_id = sa.Column(sa.Integer,
+            sa.ForeignKey("tracker.id", ondelete="CASCADE"))
+    tracker = sa.orm.relationship("Tracker",
+            backref=sa.orm.backref("subscriptions",
+                cascade="all, delete-orphan"))
     """Used for subscriptions to all tickets on a tracker"""
 
-    ticket_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"))
-    ticket = sa.orm.relationship("Ticket", backref=sa.orm.backref("subscriptions"))
+    ticket_id = sa.Column(sa.Integer,
+            sa.ForeignKey("ticket.id", ondelete="CASCADE"))
+    ticket = sa.orm.relationship("Ticket",
+            backref=sa.orm.backref("subscriptions",
+                cascade="all, delete-orphan"))
     """Used for subscriptions to specific tickets"""
 
-    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
-    user = sa.orm.relationship("User", backref=sa.orm.backref("subscriptions"))
+    user_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id"))
+    user = sa.orm.relationship("User",
+            backref=sa.orm.backref("subscriptions"))
 
     email = sa.Column(sa.Unicode(512))
 

@@ -9,21 +9,27 @@ class Ticket(Base):
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
 
-    tracker_id = sa.Column(sa.Integer, sa.ForeignKey("tracker.id"), nullable=False)
-    tracker = sa.orm.relationship("Tracker", backref=sa.orm.backref("tickets"))
+    tracker_id = sa.Column(sa.Integer,
+            sa.ForeignKey("tracker.id", ondelete="CASCADE"),
+            nullable=False)
+    tracker = sa.orm.relationship("Tracker",
+            backref=sa.orm.backref("tickets", cascade="all, delete-orphan"))
 
     scoped_id = sa.Column(sa.Integer,
             nullable=False,
             index=True,
             unique=sa.UniqueConstraint('scoped_id', 'tracker_id'))
 
-    dupe_of_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"))
+    dupe_of_id = sa.Column(sa.Integer,
+            sa.ForeignKey("ticket.id", ondelete="SET NULL"))
     dupe_of = sa.orm.relationship("Ticket",
             backref=sa.orm.backref("dupes"),
             remote_side=[id])
 
-    submitter_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-    submitter = sa.orm.relationship("User", backref=sa.orm.backref("submitted"))
+    submitter_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id"), nullable=False)
+    submitter = sa.orm.relationship("User",
+            backref=sa.orm.backref("submitted", cascade="all, delete-orphan"))
 
     title = sa.Column(sa.Unicode(2048), nullable=False)
     description = sa.Column(sa.Unicode(16384))

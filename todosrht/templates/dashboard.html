@@ -15,6 +15,11 @@
         <a href="https://man.sr.ht/todo.sr.ht">available here</a>.
       </p>
       {% endif %}
+      {% if notice %}
+      <div class="alert alert-success">
+        {{ notice }}
+      </div>
+      {% endif %}
 
       {% if profile %}
       {% if profile.get("location") %}

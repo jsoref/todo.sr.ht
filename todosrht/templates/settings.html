@@ -29,7 +29,9 @@
             name=tracker.name), "access")}}
         </li>
         <li class="nav-item">
-          {{link("#", "delete")}}
+          {{link(url_for(".settings_delete_GET",
+            owner=tracker.owner.canonical_name(),
+            name=tracker.name), "delete")}}
         </li>
       </ul>
     </div>

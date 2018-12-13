@@ -27,17 +27,26 @@ class Event(Base):
     new_status = sa.Column(FlagType(TicketStatus), default=0)
     new_resolution = sa.Column(FlagType(TicketResolution), default=0)
 
-    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-    user = sa.orm.relationship("User", backref=sa.orm.backref("events"))
+    user_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id"),
+            nullable=False)
+    user = sa.orm.relationship("User",
+            backref=sa.orm.backref("events"))
 
-    ticket_id = sa.Column(sa.Integer, sa.ForeignKey("ticket.id"), nullable=False)
-    ticket = sa.orm.relationship("Ticket", backref=sa.orm.backref("events"))
+    ticket_id = sa.Column(sa.Integer,
+            sa.ForeignKey("ticket.id", ondelete="CASCADE"),
+            nullable=False)
+    ticket = sa.orm.relationship("Ticket",
+            backref=sa.orm.backref("events", cascade="all, delete-orphan"))
 
-    comment_id = sa.Column(sa.Integer, sa.ForeignKey("ticket_comment.id"))
-    comment = sa.orm.relationship("TicketComment")
+    comment_id = sa.Column(sa.Integer,
+            sa.ForeignKey("ticket_comment.id", ondelete="CASCADE"))
+    comment = sa.orm.relationship("TicketComment", cascade="all, delete")
 
-    label_id = sa.Column(sa.Integer, sa.ForeignKey('label.id'))
-    label = sa.orm.relationship("Label", backref=sa.orm.backref("events"))
+    label_id = sa.Column(sa.Integer,
+            sa.ForeignKey('label.id', ondelete="CASCADE"))
+    label = sa.orm.relationship("Label",
+            backref=sa.orm.backref("events", cascade="all, delete-orphan"))
 
     def __repr__(self):
         return '<Event {}>'.format(self.id)
@@ -47,11 +56,19 @@ class EventNotification(Base):
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
 
-    event_id = sa.Column(sa.Integer, sa.ForeignKey("event.id"), nullable=False)
-    event = sa.orm.relationship("Event", backref=sa.orm.backref("notifications"))
+    event_id = sa.Column(sa.Integer,
+            sa.ForeignKey("event.id", ondelete="CASCADE"),
+            nullable=False)
+    event = sa.orm.relationship("Event",
+            backref=sa.orm.backref("notifications",
+                cascade="all, delete-orphan"))
 
-    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-    user = sa.orm.relationship("User", backref=sa.orm.backref("notifications"))
+    user_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id"),
+            nullable=False)
+    user = sa.orm.relationship("User",
+            backref=sa.orm.backref("notifications",
+                cascade="all, delete-orphan"))
 
     def __repr__(self):
         return '<EventNotification {} {}>'.format(self.id, self.user.username)

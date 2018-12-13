@@ -11,7 +11,7 @@ from todosrht.types import TicketSubscription
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import Tracker, Ticket, TicketStatus, TicketAccess
 from todosrht.types import Label, TicketLabel, TicketSeen, TicketComment
-from todosrht.urls import tracker_url
+from todosrht.urls import tracker_url, user_url
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
@@ -204,9 +204,7 @@ def settings_details_GET(owner, name):
     if current_user.id != tracker.owner_id:
         abort(403)
     return render_template("tracker-details.html",
-        view="details", tracker=tracker,
-        access_type_list=TicketAccess,
-        access_help_map=access_help_map)
+        view="details", tracker=tracker)
 
 @loginrequired
 @tracker.route("/<owner>/<name>/settings/details", methods=["POST"])
@@ -224,8 +222,7 @@ def settings_details_POST(owner, name):
             field="tracker_desc")
     if not valid.ok:
         return render_template("tracker-details.html",
-            tracker=tracker, access_type_list=TicketAccess,
-            access_help_map=access_help_map, **valid.kwargs), 400
+            tracker=tracker, **valid.kwargs), 400
 
     tracker.description = desc
     db.session.commit()
@@ -261,7 +258,7 @@ def settings_access_POST(owner, name):
     #perm_commit = parse_html_perms('commit', valid)
 
     if not valid.ok:
-        return render_template("tracker-details.html",
+        return render_template("tracker-access.html",
             tracker=tracker, access_type_list=TicketAccess,
             access_help_map=access_help_map, **valid.kwargs), 400
 
@@ -273,8 +270,37 @@ def settings_access_POST(owner, name):
     db.session.commit()
     return redirect(tracker_url(tracker))
 
-@tracker.route("/<owner>/<name>/submit", methods=["POST"])
 @loginrequired
+@tracker.route("/<owner>/<name>/settings/delete")
+def settings_delete_GET(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+    return render_template("tracker-delete.html",
+        view="delete", tracker=tracker)
+
+@loginrequired
+@tracker.route("/<owner>/<name>/settings/delete", methods=["POST"])
+def settings_delete_POST(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+    session["notice"] = f"{tracker.owner}/{tracker.name} was deleted."
+    # SQLAlchemy shits itself on some of our weird constraints/relationships
+    # so fuck it, posgres knows what to do here
+    tracker_id = tracker.id
+    assert isinstance(tracker_id, int)
+    db.session.expunge_all()
+    db.engine.execute(f"DELETE FROM tracker WHERE id = {tracker_id};")
+    db.session.commit()
+    return redirect(url_for("html.index"))
+
+@loginrequired
+@tracker.route("/<owner>/<name>/submit", methods=["POST"])
 def tracker_submit_POST(owner, name):
     tracker, access = get_tracker(owner, name, True)
     if not tracker:

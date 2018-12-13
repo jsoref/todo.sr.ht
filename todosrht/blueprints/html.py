@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, session
 from flask_login import current_user
 from todosrht.access import get_tracker, get_access
 from todosrht.types import Tracker, Ticket, Event, EventNotification, EventType
@@ -68,12 +68,15 @@ def index():
             .order_by(Event.created.desc()))
     events = events.limit(10).all()
 
+    notice = session.get("notice")
+    if notice:
+        del session["notice"]
+
     return render_template("dashboard.html",
-        trackers=trackers,
+        trackers=trackers, notice=notice,
         tracker_list_msg="Your Trackers",
         more_trackers=total_trackers > limit_trackers,
-        events=events,
-        EventType=EventType)
+        events=events, EventType=EventType)
 
 @html.route("/~<username>")
 def user_GET(username):

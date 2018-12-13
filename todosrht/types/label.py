@@ -9,8 +9,10 @@ class Label(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
 
     tracker_id = sa.Column(sa.Integer,
-            sa.ForeignKey("tracker.id"), nullable=False)
-    tracker = sa.orm.relationship("Tracker", backref=sa.orm.backref("labels"))
+            sa.ForeignKey("tracker.id", ondelete="CASCADE"),
+            nullable=False)
+    tracker = sa.orm.relationship("Tracker",
+            backref=sa.orm.backref("labels", cascade="all, delete-orphan"))
 
     name = sa.Column(sa.Text, nullable=False)
     color = sa.Column(sa.Text, nullable=False)
@@ -29,17 +31,25 @@ class Label(Base):
 class TicketLabel(Base):
     __tablename__ = 'ticket_label'
     ticket_id = sa.Column(sa.Integer,
-            sa.ForeignKey('ticket.id'), primary_key=True)
+            sa.ForeignKey('ticket.id', ondelete="CASCADE"),
+            primary_key=True)
     ticket = sa.orm.relationship("Ticket",
-            backref=sa.orm.backref("ticket_labels"))
+            backref=sa.orm.backref("ticket_labels",
+                cascade="all, delete-orphan"))
 
     label_id = sa.Column(sa.Integer,
-            sa.ForeignKey('label.id'), primary_key=True)
+            sa.ForeignKey('label.id', ondelete="CASCADE"),
+            primary_key=True)
     label = sa.orm.relationship("Label",
-            backref=sa.orm.backref("ticket_labels"))
+            backref=sa.orm.backref("ticket_labels",
+                cascade="all, delete-orphan"))
 
-    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
-    user = sa.orm.relationship("User", backref=sa.orm.backref("ticket_labels"))
+    user_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id"),
+            nullable=False)
+    user = sa.orm.relationship("User",
+            backref=sa.orm.backref("ticket_labels",
+                cascade="all, delete-orphan"))
 
     created = sa.Column(sa.DateTime, nullable=False)
 
