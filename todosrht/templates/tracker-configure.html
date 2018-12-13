@@ -77,10 +77,9 @@
             name="tracker_desc"
             id="tracker_desc"
             class="form-control"
-            value="{{ tracker_desc or "" }}"
             rows="5"
             aria-describedby="tracker_desc-help"
-          >{{tracker.desc or ""}}</textarea>
+          >{{tracker.desc or tracker.description}}</textarea>
           <p
             id="tracker_desc-help"
             class="form-text text-muted"
