@@ -99,11 +99,13 @@ def return_tracker(tracker, access, **kwargs):
         ).one_or_none()
         is_subscribed = bool(sub)
 
-    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
-    tickets = tickets.options(subqueryload(Ticket.labels))
-    tickets = tickets.options(subqueryload(Ticket.submitter))
+    tickets = (Ticket.query
+        .filter(Ticket.tracker_id == tracker.id)
+        .options(subqueryload(Ticket.labels))
+        .options(subqueryload(Ticket.submitter))
+        .order_by(Ticket.updated.desc()))
+
     search = request.args.get("search")
-    tickets = tickets.order_by(Ticket.updated.desc())
     if search:
         tickets = apply_search(tickets, search, tracker, current_user)
     else:
