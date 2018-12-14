@@ -7,6 +7,7 @@ from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
 from todosrht.types import TicketSeen, TicketAssignee
 from todosrht.urls import ticket_url
+from sqlalchemy import func
 
 smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
@@ -187,3 +188,11 @@ def get_last_seen_times(user, tickets):
     return dict(db.session.query(TicketSeen.ticket_id, TicketSeen.last_view)
         .filter(TicketSeen.ticket_id.in_([t.id for t in tickets]))
         .filter(TicketSeen.user == user))
+
+def get_comment_counts(tickets):
+    """Returns comment counts indexed by ticket id."""
+    col = TicketComment.ticket_id
+    return dict(db.session
+        .query(col, func.count(col))
+        .filter(col.in_([t.id for t in tickets]))
+        .group_by(col))

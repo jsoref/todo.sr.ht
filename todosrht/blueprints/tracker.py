@@ -7,18 +7,17 @@ from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.email import notify
 from todosrht.search import apply_search
-from todosrht.tickets import get_last_seen_times
+from todosrht.tickets import get_last_seen_times, get_comment_counts
 from todosrht.types import TicketSubscription
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import Tracker, Ticket, TicketStatus, TicketAccess
-from todosrht.types import Label, TicketLabel, TicketComment
+from todosrht.types import Label, TicketLabel
 from todosrht.urls import tracker_url
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
 from datetime import datetime
-from sqlalchemy import func
 from sqlalchemy.orm import subqueryload
 
 tracker = Blueprint("tracker", __name__)
@@ -111,8 +110,6 @@ def return_tracker(tracker, access, **kwargs):
         tickets = tickets.filter(Ticket.status == TicketStatus.reported)
     tickets, pagination = paginate_query(tickets, results_per_page=25)
 
-    ticket_ids = [t.id for t in tickets]
-
     # Find which tickets were seen by the user since last update
     seen_ticket_ids = []
     if current_user:
@@ -121,11 +118,7 @@ def return_tracker(tracker, access, **kwargs):
             if t.id in seen_times and seen_times[t.id] >= t.updated]
 
     # Preload comment counts
-    col = TicketComment.ticket_id
-    comment_counts = dict(db.session
-        .query(col, func.count(col))
-        .filter(col.in_(ticket_ids))
-        .group_by(col))
+    comment_counts = get_comment_counts(tickets)
 
     if "another" in kwargs:
         another = kwargs["another"]
