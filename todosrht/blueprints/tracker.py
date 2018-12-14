@@ -329,7 +329,6 @@ def tracker_submit_POST(owner, name):
     ticket.tracker_id = tracker.id
     ticket.scoped_id = tracker.next_ticket_id
     tracker.next_ticket_id += 1
-    ticket.user_agent = request.headers.get("User-Agent")
     ticket.title = title
     ticket.description = desc
     db.session.add(ticket)

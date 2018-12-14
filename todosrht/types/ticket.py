@@ -33,7 +33,6 @@ class Ticket(Base):
 
     title = sa.Column(sa.Unicode(2048), nullable=False)
     description = sa.Column(sa.Unicode(16384))
-    user_agent = sa.Column(sa.Unicode(2048))
 
     status = sa.Column(FlagType(TicketStatus),
             nullable=False,

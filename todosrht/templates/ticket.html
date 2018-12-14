@@ -179,10 +179,6 @@
         <dd class="col-md-9">{{ ticket.created | date }}</dd>
         <dt class="col-md-3">Updated</dt>
         <dd class="col-md-9">{{ ticket.updated | date }}</dd>
-        <dt class="col-md-3">User Agent</dt>
-        <dd class="col-md-9 ellipsis" title="{{ ticket.user_agent }}">
-          {{ ticket.user_agent }}
-        </dd>
         <dt class="col-md-3">Labels</dt>
         <dd class="col-md-9">
           {% for label in ticket.labels %}
