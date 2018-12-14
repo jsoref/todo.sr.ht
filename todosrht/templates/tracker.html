@@ -154,7 +154,7 @@
             {{ ticket.submitter }}
           </a>
         </div>
-        {% if ticket.new_updates(current_user) %}
+        {% if ticket.id in seen_ticket_ids %}
         <div class="comments">
           {{icon("comments-o")}}
           {{ comment_counts.get(ticket.id, 0) }}

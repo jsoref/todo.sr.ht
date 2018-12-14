@@ -181,3 +181,9 @@ def unassign(ticket, assignee, assigner):
     event.ticket_id = ticket.id
     event.assigned_user_id = assignee.id
     db.session.add(event)
+
+def get_last_seen_times(user, tickets):
+    """Fetches last times the user has seen each of the given tickets."""
+    return dict(db.session.query(TicketSeen.ticket_id, TicketSeen.last_view)
+        .filter(TicketSeen.ticket_id.in_([t.id for t in tickets]))
+        .filter(TicketSeen.user == user))
