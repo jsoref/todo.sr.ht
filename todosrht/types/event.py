@@ -10,6 +10,8 @@ class EventType(IntFlag):
     status_change = 4
     label_added = 8
     label_removed = 16
+    assigned_user = 32
+    unassigned_user = 64
 
 class Event(Base):
     """
@@ -28,10 +30,9 @@ class Event(Base):
     new_resolution = sa.Column(FlagType(TicketResolution), default=0)
 
     user_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id"),
-            nullable=False)
+            sa.ForeignKey("user.id"), nullable=False)
     user = sa.orm.relationship("User",
-            backref=sa.orm.backref("events"))
+            backref=sa.orm.backref("events"), foreign_keys=[user_id])
 
     ticket_id = sa.Column(sa.Integer,
             sa.ForeignKey("ticket.id", ondelete="CASCADE"),
@@ -47,6 +48,10 @@ class Event(Base):
             sa.ForeignKey('label.id', ondelete="CASCADE"))
     label = sa.orm.relationship("Label",
             backref=sa.orm.backref("events", cascade="all, delete-orphan"))
+
+    assigned_user_id = sa.Column(sa.Integer,
+            sa.ForeignKey("user.id"))
+    assigned_user = sa.orm.relationship("User", foreign_keys=[assigned_user_id])
 
     def __repr__(self):
         return '<Event {}>'.format(self.id)

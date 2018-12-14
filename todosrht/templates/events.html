@@ -22,6 +22,24 @@
     {% elif EventType.label_removed in event.event_type %}
       {{ event.label|label_badge(cls="small") }} removed by
       <a href="{{ event.user|user_url }}">{{ event.user }}</a>
+    {% elif EventType.assigned_user in event.event_type %}
+      <a href="{{event.user|user_url}}">
+        {{event.user}}
+      </a>
+      assigned
+      <a href="{{event.assigned_user|user_url}}">
+        {{event.assigned_user}}
+      </a>
+      to #{{event.ticket.scoped_id}}
+    {% elif EventType.unassigned_user in event.event_type %}
+      <a href="{{event.user|user_url}}">
+        {{event.user}}
+      </a>
+      unassigned
+      <a href="{{event.assigned_user|user_url}}">
+        {{event.assigned_user}}
+      </a>
+      from #{{event.ticket.scoped_id}}
     {% endif %}
     {% with tracker=event.ticket.tracker %}
       on <a href="{{ tracker.owner|user_url }}"

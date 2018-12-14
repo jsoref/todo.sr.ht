@@ -163,7 +163,21 @@ def assign(ticket, assignee, assigner):
         )
         db.session.add(ticket_assignee)
 
+    event = Event()
+    event.event_type = EventType.assigned_user
+    event.user_id = assigner.id
+    event.ticket_id = ticket.id
+    event.assigned_user_id = assignee.id
+    db.session.add(event)
+
     return ticket_assignee
 
-def unassign(ticket, assignee):
+def unassign(ticket, assignee, assigner):
     TicketAssignee.query.filter_by(ticket=ticket, assignee=assignee).delete()
+
+    event = Event()
+    event.event_type = EventType.unassigned_user
+    event.user_id = assigner.id
+    event.ticket_id = ticket.id
+    event.assigned_user_id = assignee.id
+    db.session.add(event)

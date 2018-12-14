@@ -339,7 +339,7 @@ def ticket_unassign(owner, name, ticket_id):
         ctx = get_ticket_context(ticket, ticket.tracker, access)
         return render_template("ticket.html", valid, **ctx)
 
-    unassign(ticket, user)
+    unassign(ticket, user, current_user)
     db.session.commit()
 
     return redirect(ticket_url(ticket))
