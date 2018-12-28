@@ -1,4 +1,4 @@
-from .user import User
+from .user import User, UserType
 from .ticketaccess import TicketAccess
 from .ticketstatus import TicketStatus, TicketResolution
 from .tracker import Tracker

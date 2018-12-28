@@ -4,7 +4,7 @@ from srht.flask import SrhtFlask
 from todosrht import urls, filters
 from todosrht.types import EventType
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
-from todosrht.types import User
+from todosrht.types import User, UserType
 
 
 class TodoApp(SrhtFlask):
@@ -50,12 +50,13 @@ class TodoApp(SrhtFlask):
             return User.query.filter(User.username == username).one_or_none()
 
     def lookup_or_register(self, exchange, profile, scopes):
-        user = User.query.filter(User.username == profile["username"]).first()
+        user = User.query.filter(User.username == profile["name"]).first()
         if not user:
             user = User()
             db.session.add(user)
-        user.username = profile.get("username")
-        user.email = profile.get("email")
+        user.username = profile["name"]
+        user.email = profile["email"]
+        user.user_type = UserType(profile["user_type"])
         user.oauth_token = exchange["token"]
         user.oauth_token_expires = exchange["expires"]
         user.oauth_token_scopes = scopes
