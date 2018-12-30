@@ -2,8 +2,7 @@ from srht.database import Base
 from srht.oauth import ExternalUserMixin
 
 class User(Base, ExternalUserMixin):
-    def __init__(*args, **kwargs):
-        ExternalUserMixin.__init__(*args, **kwargs)
+    pass
 
 from todosrht.types.ticketaccess import TicketAccess
 from todosrht.types.ticketstatus import TicketStatus, TicketResolution

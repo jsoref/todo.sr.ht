@@ -27,15 +27,15 @@ def test_assignment():
     db.session.commit()
     assert set(ticket.assigned_users) == {assignee1, assignee2}
 
-    unassign(ticket, assignee1)
+    unassign(ticket, assignee1, assigner)
     db.session.commit()
     assert set(ticket.assigned_users) == {assignee2}
 
     # Unassignment is also idempotent
-    unassign(ticket, assignee1)
+    unassign(ticket, assignee1, assigner)
     db.session.commit()
     assert set(ticket.assigned_users) == {assignee2}
 
-    unassign(ticket, assignee2)
+    unassign(ticket, assignee2, assigner)
     db.session.commit()
     assert ticket.assigned_users == []
