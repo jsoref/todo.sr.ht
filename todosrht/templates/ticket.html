@@ -332,6 +332,7 @@
           {{valid.summary("comment")}}
         </div>
         <button
+          id="comment-submit"
           type="submit"
           class="btn btn-primary"
         >
@@ -457,6 +458,14 @@ function UserAutoComplete(input, list) {
 
   autocomplete = new UserAutoComplete(input, list);
   autocomplete.register();
+
+  // Submit comment when Ctrl+Enter is pressed
+  const comment = document.getElementById("comment");
+  comment.addEventListener("keypress", function (e) {
+    if (e.ctrlKey && e.key === 'Enter') {
+      document.getElementById('comment-submit').click();
+    }
+  });
 })();
 </script>
 {% endblock %}
