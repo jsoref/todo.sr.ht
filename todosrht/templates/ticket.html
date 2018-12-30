@@ -46,7 +46,7 @@
             {% if not tracker_sub %}
             <form method="POST" action="{{url_for("ticket." +
                 ("disable_notifications" if ticket_sub else "enable_notifications"),
-                owner=tracker.owner.canonical_name(),
+                owner=tracker.owner.canonical_name,
                 name=tracker.name,
                 ticket_id=ticket.scoped_id)}}">
               {{csrf_token()}}
@@ -199,7 +199,7 @@
             method="POST"
             action="{{
               url_for(".ticket_add_label",
-                owner=tracker.owner.canonical_name(),
+                owner=tracker.owner.canonical_name,
                 name=tracker.name,
                 ticket_id=ticket.scoped_id,
               )
@@ -315,7 +315,7 @@
         method="POST"
         action="{{
           url_for(".ticket_comment_POST",
-            owner=tracker.owner.canonical_name(),
+            owner=tracker.owner.canonical_name,
             name=tracker.name,
             ticket_id=ticket.scoped_id
           )

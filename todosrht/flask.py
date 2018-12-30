@@ -1,15 +1,23 @@
 from srht.config import cfg
 from srht.database import db
 from srht.flask import SrhtFlask
+from srht.oauth import AbstractOAuthService
 from todosrht import urls, filters
 from todosrht.types import EventType
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
-from todosrht.types import User, UserType
+from todosrht.types import User
 
+client_id = cfg("todo.sr.ht", "oauth-client-id")
+client_secret = cfg("todo.sr.ht", "oauth-client-secret")
+
+class TodoOAuthService(AbstractOAuthService):
+    def __init__(self):
+        super().__init__(client_id, client_secret, user_class=User)
 
 class TodoApp(SrhtFlask):
     def __init__(self):
-        super().__init__("todo.sr.ht", __name__)
+        super().__init__("todo.sr.ht", __name__,
+                oauth_service=TodoOAuthService())
 
         self.url_map.strict_slashes = False
 
@@ -31,10 +39,6 @@ class TodoApp(SrhtFlask):
         self.add_template_filter(urls.tracker_url)
         self.add_template_filter(urls.user_url)
 
-        meta_client_id = cfg("todo.sr.ht", "oauth-client-id")
-        meta_client_secret = cfg("todo.sr.ht", "oauth-client-secret")
-        self.configure_meta_auth(meta_client_id, meta_client_secret)
-
         @self.context_processor
         def inject():
             return {
@@ -43,22 +47,3 @@ class TodoApp(SrhtFlask):
                 "TicketStatus": TicketStatus,
                 "TicketResolution": TicketResolution
             }
-
-        @self.login_manager.user_loader
-        def user_loader(username):
-            # TODO: Switch to a session token
-            return User.query.filter(User.username == username).one_or_none()
-
-    def lookup_or_register(self, exchange, profile, scopes):
-        user = User.query.filter(User.username == profile["name"]).first()
-        if not user:
-            user = User()
-            db.session.add(user)
-        user.username = profile["name"]
-        user.email = profile["email"]
-        user.user_type = UserType(profile["user_type"])
-        user.oauth_token = exchange["token"]
-        user.oauth_token_expires = exchange["expires"]
-        user.oauth_token_scopes = scopes
-        db.session.commit()
-        return user

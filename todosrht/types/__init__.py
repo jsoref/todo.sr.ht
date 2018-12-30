@@ -1,11 +1,17 @@
-from .user import User, UserType
-from .ticketaccess import TicketAccess
-from .ticketstatus import TicketStatus, TicketResolution
-from .tracker import Tracker
-from .ticketseen import TicketSeen
-from .ticket import Ticket
-from .ticketsubscription import TicketSubscription
-from .ticketcomment import TicketComment
-from .ticketassignee import TicketAssignee
-from .event import Event, EventType, EventNotification
-from .label import Label, TicketLabel
+from srht.database import Base
+from srht.oauth import ExternalUserMixin
+
+class User(Base, ExternalUserMixin):
+    def __init__(*args, **kwargs):
+        ExternalUserMixin.__init__(*args, **kwargs)
+
+from todosrht.types.ticketaccess import TicketAccess
+from todosrht.types.ticketstatus import TicketStatus, TicketResolution
+from todosrht.types.tracker import Tracker
+from todosrht.types.ticketseen import TicketSeen
+from todosrht.types.ticket import Ticket
+from todosrht.types.ticketsubscription import TicketSubscription
+from todosrht.types.ticketcomment import TicketComment
+from todosrht.types.ticketassignee import TicketAssignee
+from todosrht.types.event import Event, EventType, EventNotification
+from todosrht.types.label import Label, TicketLabel

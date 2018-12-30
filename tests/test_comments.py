@@ -39,7 +39,7 @@ def test_ticket_comment(lookup_key, send_email):
             subscribed_to_both.email,
         }
         for call in send_email.mock_calls:
-            assert call[2]['From'].startswith(user.canonical_name())
+            assert call[2]['From'].startswith(user.canonical_name)
             if starts_with:
                 assert call[1][0].startswith(starts_with)
         send_email.reset_mock()

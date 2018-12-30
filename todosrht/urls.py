@@ -3,17 +3,17 @@ from jinja2.utils import unicode_urlencode
 
 def tracker_url(tracker):
     return url_for("tracker.tracker_GET",
-        owner=tracker.owner.canonical_name(),
+        owner=tracker.owner.canonical_name,
         name=tracker.name)
 
 def tracker_labels_url(tracker):
     return url_for("tracker.tracker_labels_GET",
-        owner=tracker.owner.canonical_name(),
+        owner=tracker.owner.canonical_name,
         name=tracker.name)
 
 def ticket_url(ticket, comment=None):
     ticket_url = url_for("ticket.ticket_GET",
-            owner=ticket.tracker.owner.canonical_name(),
+            owner=ticket.tracker.owner.canonical_name,
             name=ticket.tracker.name,
             ticket_id=ticket.scoped_id)
 
@@ -24,19 +24,19 @@ def ticket_url(ticket, comment=None):
 
 def ticket_edit_url(ticket):
     return url_for("ticket.ticket_edit_GET",
-        owner=ticket.tracker.owner.canonical_name(),
+        owner=ticket.tracker.owner.canonical_name,
         name=ticket.tracker.name,
         ticket_id=ticket.scoped_id)
 
 def ticket_assign_url(ticket):
     return url_for("ticket.ticket_assign",
-        owner=ticket.tracker.owner.canonical_name(),
+        owner=ticket.tracker.owner.canonical_name,
         name=ticket.tracker.name,
         ticket_id=ticket.scoped_id)
 
 def ticket_unassign_url(ticket):
     return url_for("ticket.ticket_unassign",
-        owner=ticket.tracker.owner.canonical_name(),
+        owner=ticket.tracker.owner.canonical_name,
         name=ticket.tracker.name,
         ticket_id=ticket.scoped_id)
 
@@ -50,14 +50,14 @@ def label_search_url(label):
 def label_add_url(label, ticket):
     """Return the URL to remove a label from a ticket."""
     return url_for("ticket.ticket_add_label",
-            owner=ticket.tracker.owner.canonical_name(),
+            owner=ticket.tracker.owner.canonical_name,
             name=ticket.tracker.name,
             ticket_id=ticket.scoped_id)
 
 def label_remove_url(label, ticket):
     """Return the URL to add a label to a ticket."""
     return url_for("ticket.ticket_remove_label",
-            owner=ticket.tracker.owner.canonical_name(),
+            owner=ticket.tracker.owner.canonical_name,
             name=ticket.tracker.name,
             ticket_id=ticket.scoped_id,
             label_id=label.id)

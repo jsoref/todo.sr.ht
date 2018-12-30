@@ -61,7 +61,7 @@ def _create_event_notification(user, event):
 
 def _send_comment_notification(subscription, ticket, user, comment, resolution):
     subject = "Re: {}/{}/#{}: {}".format(
-        ticket.tracker.owner.canonical_name(),
+        ticket.tracker.owner.canonical_name,
         ticket.tracker.name,
         ticket.scoped_id,
         ticket.title)

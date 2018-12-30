@@ -51,7 +51,7 @@
                 method="post"
                 style="margin-bottom: 0"
                 action="{{url_for(".delete_label",
-                    owner=tracker.owner.canonical_name(),
+                    owner=tracker.owner.canonical_name,
                     name=tracker.name,
                     label_id=label.id
                   )}}">

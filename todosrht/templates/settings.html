@@ -20,17 +20,17 @@
         </li>
         <li class="nav-item">
           {{link(url_for(".settings_details_GET",
-            owner=tracker.owner.canonical_name(),
+            owner=tracker.owner.canonical_name,
             name=tracker.name), "details")}}
         </li>
         <li class="nav-item">
           {{link(url_for(".settings_access_GET",
-            owner=tracker.owner.canonical_name(),
+            owner=tracker.owner.canonical_name,
             name=tracker.name), "access")}}
         </li>
         <li class="nav-item">
           {{link(url_for(".settings_delete_GET",
-            owner=tracker.owner.canonical_name(),
+            owner=tracker.owner.canonical_name,
             name=tracker.name), "delete")}}
         </li>
       </ul>

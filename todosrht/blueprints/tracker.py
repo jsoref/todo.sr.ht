@@ -351,7 +351,7 @@ def tracker_submit_POST(owner, name):
     db.session.flush()
 
     ticket_url = url_for("ticket.ticket_GET",
-            owner=tracker.owner.canonical_name(),
+            owner=tracker.owner.canonical_name,
             name=name,
             ticket_id=ticket.scoped_id)
 
@@ -366,7 +366,7 @@ def tracker_submit_POST(owner, name):
             subscribed = True
             continue
         notify(sub, "new_ticket", "{}/{}/#{}: {}".format(
-            tracker.owner.canonical_name(), tracker.name,
+            tracker.owner.canonical_name, tracker.name,
             ticket.scoped_id, ticket.title),
                 headers={
                     "From": "~{} <{}>".format(
@@ -386,7 +386,7 @@ def tracker_submit_POST(owner, name):
     if another:
         session["another"] = True
         return redirect(url_for(".tracker_GET",
-                owner=tracker.owner.canonical_name(),
+                owner=tracker.owner.canonical_name,
                 name=name))
     else:
         return redirect(ticket_url)
