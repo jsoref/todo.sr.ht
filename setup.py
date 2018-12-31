@@ -58,5 +58,8 @@ setup(
           'static/icons/*',
           'emails/*'
       ]
-  }
+  },
+  scripts = [
+      'todosrht-migrate',
+  ]
 )

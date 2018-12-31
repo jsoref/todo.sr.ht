@@ -1,0 +1,5 @@
+#!/usr/bin/env python3
+import todosrht.alembic
+from srht.config import cfg
+from srht.database import alembic
+alembic("todo.sr.ht", todosrht.alembic)
