@@ -14,6 +14,7 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
     oauth_token = FuzzyText(length=32)
     oauth_token_expires = future_datetime
     oauth_token_scopes = "profile:read"
+    oauth_revocation_token = "rev-token"
 
     class Meta:
         model = User
