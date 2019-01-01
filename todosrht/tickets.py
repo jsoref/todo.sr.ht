@@ -149,6 +149,24 @@ def mark_seen(ticket, user):
 
     return seen
 
+def get_or_create_subscription(ticket, user):
+    """
+    If user is subscribed to ticket or tracker, returns that subscription,
+    otherwise subscribes the user to the ticket and returns that one.
+    """
+    subscription = TicketSubscription.query.filter(
+        (TicketSubscription.user == user) & (
+            (TicketSubscription.ticket == ticket) |
+            (TicketSubscription.tracker == ticket.tracker)
+        )
+    ).first()
+
+    if not subscription:
+        subscription = TicketSubscription(ticket=ticket, user=user)
+        db.session.add(subscription)
+
+    return subscription
+
 def assign(ticket, assignee, assigner):
     role = ""  # Role is not yet implemented
 
