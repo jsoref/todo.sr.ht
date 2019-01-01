@@ -7,10 +7,7 @@ from unittest.mock import patch
 
 from .factories import UserFactory, TrackerFactory, TicketFactory
 
-
-@patch('todosrht.email.send_email')
-@patch('todosrht.email.lookup_key', return_value=None)
-def test_ticket_comment(lookup_key, send_email):
+def test_ticket_comment(mailbox):
     user = UserFactory()
     tracker = TrackerFactory()
     ticket = TicketFactory(tracker=tracker)
@@ -32,17 +29,18 @@ def test_ticket_comment(lookup_key, send_email):
 
     def assert_notifications_sent(starts_with=""):
         """Checks a notification was sent to the three subscribed users."""
-        assert send_email.call_count == 3
-        assert {c[1][1] for c in send_email.mock_calls} == {
+        emails = mailbox[-3:]
+
+        assert {e.to for e in emails} == {
             subscribed_to_ticket.email,
             subscribed_to_tracker.email,
             subscribed_to_both.email,
         }
-        for call in send_email.mock_calls:
-            assert call[2]['From'].startswith(user.canonical_name)
+
+        for e in emails:
+            assert e.headers['From'].startswith(user.canonical_name)
             if starts_with:
-                assert call[1][0].startswith(starts_with)
-        send_email.reset_mock()
+                assert e.body.startswith(starts_with)
 
     def assert_event_notifications_created(event):
         assert {en.user.email for en in event.notifications} == {
@@ -52,6 +50,7 @@ def test_ticket_comment(lookup_key, send_email):
             event.user.email,
         }
 
+    assert len(mailbox) == 0
     assert ticket.status == TicketStatus.reported
     assert ticket.resolution == TicketResolution.unresolved
 
@@ -75,6 +74,7 @@ def test_ticket_comment(lookup_key, send_email):
     assert event.comment == comment
     assert event.event_type == EventType.comment
 
+    assert len(mailbox) == 3
     assert_notifications_sent(comment.text)
     assert_event_notifications_created(event)
 
@@ -100,6 +100,7 @@ def test_ticket_comment(lookup_key, send_email):
     assert event.old_resolution == TicketResolution.unresolved
     assert event.new_resolution == TicketResolution.fixed
 
+    assert len(mailbox) == 6
     assert_notifications_sent("Ticket resolved: fixed")
     assert_event_notifications_created(event)
 
@@ -119,6 +120,7 @@ def test_ticket_comment(lookup_key, send_email):
     assert event.ticket == ticket
     assert event.comment == comment
 
+    assert len(mailbox) == 9
     assert_notifications_sent(comment.text)
     assert_event_notifications_created(event)
 
@@ -137,6 +139,7 @@ def test_ticket_comment(lookup_key, send_email):
     assert event.ticket == ticket
     assert event.comment == comment
 
+    assert len(mailbox) == 12
     assert_notifications_sent("Ticket resolved: wont_fix")
     assert_event_notifications_created(event)
 
@@ -154,6 +157,7 @@ def test_ticket_comment(lookup_key, send_email):
     assert event.ticket == ticket
     assert event.comment == comment
 
+    assert len(mailbox) == 15
     assert_notifications_sent()
     assert_event_notifications_created(event)
 
