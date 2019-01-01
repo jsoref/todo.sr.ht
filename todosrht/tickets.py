@@ -155,14 +155,17 @@ def assign(ticket, assignee, assigner):
     ticket_assignee = TicketAssignee.query.filter_by(
         ticket=ticket, assignee=assignee).one_or_none()
 
-    if not ticket_assignee:
-        ticket_assignee = TicketAssignee(
-            ticket=ticket,
-            assignee=assignee,
-            assigner=assigner,
-            role=role,
-        )
-        db.session.add(ticket_assignee)
+    # If already assigned, do nothing
+    if ticket_assignee:
+        return ticket_assignee
+
+    ticket_assignee = TicketAssignee(
+        ticket=ticket,
+        assignee=assignee,
+        assigner=assigner,
+        role=role,
+    )
+    db.session.add(ticket_assignee)
 
     event = Event()
     event.event_type = EventType.assigned_user
@@ -174,7 +177,14 @@ def assign(ticket, assignee, assigner):
     return ticket_assignee
 
 def unassign(ticket, assignee, assigner):
-    TicketAssignee.query.filter_by(ticket=ticket, assignee=assignee).delete()
+    ticket_assignee = TicketAssignee.query.filter_by(
+        ticket=ticket, assignee=assignee).one_or_none()
+
+    # If not assigned, do nothing
+    if not ticket_assignee:
+        return None
+
+    db.session.delete(ticket_assignee)
 
     event = Event()
     event.event_type = EventType.unassigned_user
