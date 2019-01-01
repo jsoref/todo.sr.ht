@@ -167,6 +167,29 @@ def get_or_create_subscription(ticket, user):
 
     return subscription
 
+def notify_assignee(subscription, ticket, assigner, assignee):
+    """
+    Sends a notification email to the person who was assigned to the issue.
+    """
+    ticket_path = "{}/{}/#{}".format(
+        ticket.tracker.owner.canonical_name,
+        ticket.tracker.name,
+        ticket.scoped_id)
+    subject = "{}: {}".format(ticket_path, ticket.title)
+
+    headers = {
+        "From": "~{} <{}>".format(assigner.username, notify_from),
+        "Sender": smtp_user,
+    }
+
+    context = {
+        "assigner": assigner.canonical_name,
+        "ticket_path": ticket_path,
+        "ticket_url": ticket_url(ticket).replace("%7E", "~")  # hack
+    }
+
+    notify(subscription, "ticket_assigned", subject, headers, **context)
+
 def assign(ticket, assignee, assigner):
     role = ""  # Role is not yet implemented
 
@@ -184,6 +207,10 @@ def assign(ticket, assignee, assigner):
         role=role,
     )
     db.session.add(ticket_assignee)
+
+    subscription = get_or_create_subscription(ticket, assignee)
+    if assigner != assignee:
+        notify_assignee(subscription, ticket, assigner, assignee)
 
     event = Event()
     event.event_type = EventType.assigned_user

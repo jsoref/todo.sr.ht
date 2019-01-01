@@ -1,0 +1,8 @@
+{{! vim: set ft=email }}
+You were assigned to {{ ticket_path }} by {{ assigner }}.
+
+--
+
+View on the web:
+
+{{root}}{{ticket_url}}
