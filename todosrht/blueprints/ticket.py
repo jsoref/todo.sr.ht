@@ -39,6 +39,9 @@ def get_ticket_context(ticket, tracker, access):
     return {
         "tracker": tracker,
         "ticket": ticket,
+        "events": (Event.query
+            .filter(Event.ticket_id == ticket.id)
+            .order_by(Event.created)),
         "access": access,
         "tracker_sub": tracker_sub,
         "ticket_sub": ticket_sub,
