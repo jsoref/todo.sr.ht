@@ -18,7 +18,7 @@
             >{{ tracker.name }}</a>/#{{ ticket.scoped_id }}<span
               class="d-none d-md-inline">:</span>
         </span>
-        <span class="d-block d-md-inline">
+        <span id="title-field" class="d-block d-md-inline">
           {{ticket.title}}
         </span>
       </h2>
@@ -86,12 +86,14 @@
   <div class="row">
     <div class="col-md-6">
       {% if ticket.description %}
+      <span id="description-field">
       {{ ticket.description | extended_md(baselevel=4) }}
+      </span>
       {% endif %}
       <dl class="row" style="margin-top: 1rem">
         <dt class="col-md-3">Status</dt>
         <dd class="col-md-9">
-          <strong class="text-success">
+          <strong id="status-field" class="text-success">
             {{ ticket.status.name.upper() }}
             {% if ticket.status == TicketStatus.resolved %}
             {{ ticket.resolution.name.upper() }}
@@ -100,12 +102,12 @@
         </dd>
         <dt class="col-md-3">Submitter</dt>
         <dd class="col-md-9">
-          <a href="{{ ticket.submitter|user_url }}">
+          <a id="submitter-field" href="{{ ticket.submitter|user_url }}">
             {{ ticket.submitter }}
           </a>
         </dd>
         <dt class="col-md-3">Assigned to</dt>
-        <dd class="col-md-9">
+        <dd id="assignee-field" class="col-md-9">
           {% for assignee in ticket.assigned_users %}
           <div class="row">
             <div class="col">
@@ -176,11 +178,13 @@
           {% endif %}
         </dd>
         <dt class="col-md-3">Submitted</dt>
-        <dd class="col-md-9">{{ ticket.created | date }}</dd>
+        <dd id="submitted-field" class="col-md-9">
+        {{ ticket.created | date }}</dd>
         <dt class="col-md-3">Updated</dt>
-        <dd class="col-md-9">{{ ticket.updated | date }}</dd>
+        <dd id="updated-field" class="col-md-9">
+        {{ ticket.updated | date }}</dd>
         <dt class="col-md-3">Labels</dt>
-        <dd class="col-md-9">
+        <dd id="labels-field" class="col-md-9">
           {% for label in ticket.labels %}
             {% if TicketAccess.edit in access %}
               {{ label|label_badge(remove_from_ticket=ticket) }}
