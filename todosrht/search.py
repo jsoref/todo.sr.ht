@@ -7,8 +7,8 @@ from todosrht.types import User
 # Property with a quoted value, e.g.: label:"help wanted"
 TERM_PROPERTY_QUOTED = re.compile(r"(\w+):\"(.+?)\"")
 
-# Property with an unquoted value, e.g.: status:closed
-TERM_PROPERTY_UNQUOTED = re.compile(r"(\w+):(\w+)")
+# Property with an unquoted value, e.g.: status:closed, submitter:~username
+TERM_PROPERTY_UNQUOTED = re.compile(r"(\w+):([\w~]+)")
 
 # Quoted search string, e.g.: "some thing"
 TERM_SEARCH_QUOTED = re.compile(r"\"(.+?)\"")
@@ -65,13 +65,26 @@ def filter_by_status(query, value):
 
     return query.filter(False)
 
-def filter_by_submitter(query, value, current_user):
-    if value == "me":
-        return query.filter(Ticket.submitter_id == current_user.id)
+def _get_user(value, current_user):
+    if not value:
+        return None
 
-    user = User.query.filter(User.username == value).first()
+    if value == "me":
+        return current_user
+
+    return User.query.filter_by(username=value.lstrip("~")).first()
+
+def filter_by_submitter(query, value, current_user):
+    user = _get_user(value, current_user)
     if user:
-        return query.filter(Ticket.submitter_id == user.id)
+        return query.filter_by(submitter=user)
+
+    return query.filter(False)
+
+def filter_by_assignee(query, value, current_user):
+    user = _get_user(value, current_user)
+    if user:
+        return query.filter(Ticket.assigned_users.contains(user))
 
     return query.filter(False)
 
@@ -94,6 +107,10 @@ def apply_search(query, search, tracker, current_user):
 
         if prop == "submitter":
             query = filter_by_submitter(query, value, current_user)
+            continue
+
+        if prop == "assigned":
+            query = filter_by_assignee(query, value, current_user)
             continue
 
         if prop == "label":
