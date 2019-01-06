@@ -176,6 +176,10 @@
             </form>
           </details>
           {% endif %}
+
+          {% if TicketAccess.triage not in access and not ticket.assigned_users %}
+          No-one
+          {% endif %}
         </dd>
         <dt class="col-md-3">Submitted</dt>
         <dd id="submitted-field" class="col-md-9">
