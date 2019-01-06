@@ -459,17 +459,20 @@ function UserAutoComplete(input, list) {
 (function() {
   const input = document.getElementById("assignee-input");
   const list = document.getElementById("assignee-list");
-
-  autocomplete = new UserAutoComplete(input, list);
-  autocomplete.register();
+  if (input && list) {
+    autocomplete = new UserAutoComplete(input, list);
+    autocomplete.register();
+  }
 
   // Submit comment when Ctrl+Enter is pressed
   const comment = document.getElementById("comment");
-  comment.addEventListener("keypress", function (e) {
-    if (e.ctrlKey && e.key === 'Enter') {
-      document.getElementById('comment-submit').click();
-    }
-  });
+  if (comment) {
+    comment.addEventListener("keypress", function (e) {
+      if (e.ctrlKey && e.key === 'Enter') {
+        document.getElementById('comment-submit').click();
+      }
+    });
+  }
 })();
 </script>
 {% endblock %}
