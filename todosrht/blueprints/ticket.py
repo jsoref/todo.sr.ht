@@ -129,9 +129,8 @@ def ticket_comment_POST(owner, name, ticket_id):
     resolution = valid.optional("resolution")
     reopen = valid.optional("reopen")
 
-    valid.expect(not text or 3 < len(text) < 16384,
+    valid.expect(not text or 3 <= len(text) <= 16384,
             "Comment must be between 3 and 16384 characters.", field="comment")
-
     valid.expect(text or resolve or reopen,
             "Comment is required", field="comment")
 
