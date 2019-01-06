@@ -300,14 +300,13 @@ def _assignment_get_ticket(owner, name, ticket_id):
     return ticket
 
 def _assignment_get_user(valid):
-    username = valid.optional('username')
-    if not username:
-        if 'myself' in valid:
-            username = current_user.username
-        else:
-            valid.error("Username is required", field="username")
-    if not valid.ok:
-        return None
+    if 'myself' in valid:
+        username = current_user.username
+    else:
+        username = valid.require('username', friendly_name="Username")
+        if not valid.ok:
+            return None
+
     if username.startswith("~"):
         username = username[1:]
 
