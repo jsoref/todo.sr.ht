@@ -1,10 +1,14 @@
 import sqlalchemy as sa
 from srht.database import Base
 from srht.flagtype import FlagType
-from todosrht.types import TicketAccess, TicketStatus, TicketResolution, TicketSeen
+from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
 class Ticket(Base):
     __tablename__ = 'ticket'
+    __table_args__ = (
+        sa.UniqueConstraint('tracker_id', 'scoped_id',
+            name="uq_ticket_tracker_id_scoped_id"),
+    )
     id = sa.Column(sa.Integer, primary_key=True)
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
@@ -15,10 +19,7 @@ class Ticket(Base):
     tracker = sa.orm.relationship("Tracker",
             backref=sa.orm.backref("tickets", cascade="all, delete-orphan"))
 
-    scoped_id = sa.Column(sa.Integer,
-            nullable=False,
-            index=True,
-            unique=sa.UniqueConstraint('scoped_id', 'tracker_id'))
+    scoped_id = sa.Column(sa.Integer, nullable=False, index=True)
 
     dupe_of_id = sa.Column(sa.Integer,
             sa.ForeignKey("ticket.id", ondelete="SET NULL"))
