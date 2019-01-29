@@ -71,7 +71,7 @@ def _send_comment_notification(subscription, ticket, user, comment, resolution):
         "Sender": smtp_user,
     }
 
-    url = ticket_url(ticket, comment=comment).replace("%7E", "~")  # hack
+    url = ticket_url(ticket, comment=comment)
 
     notify(subscription, "ticket_comment", subject,
         headers=headers,
@@ -185,7 +185,7 @@ def notify_assignee(subscription, ticket, assigner, assignee):
     context = {
         "assigner": assigner.canonical_name,
         "ticket_path": ticket_path,
-        "ticket_url": ticket_url(ticket).replace("%7E", "~")  # hack
+        "ticket_url": ticket_url(ticket)
     }
 
     notify(subscription, "ticket_assigned", subject, headers, **context)

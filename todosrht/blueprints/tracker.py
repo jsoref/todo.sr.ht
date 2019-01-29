@@ -372,8 +372,7 @@ def tracker_submit_POST(owner, name):
                     "From": "~{} <{}>".format(
                         current_user.username, notify_from),
                     "Sender": smtp_user,
-                }, ticket=ticket,
-                ticket_url=ticket_url.replace("%7E", "~")) # hack
+                }, ticket=ticket, ticket_url=ticket_url)
 
     if not subscribed:
         sub = TicketSubscription()
