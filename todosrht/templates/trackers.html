@@ -11,9 +11,11 @@
       {% endif %}
       {% if profile.get("url") %}
       <p>
-        <a href="{{profile["url"]}}" target="_blank" rel="me noopener noreferrer nofollow">
-          {{profile["url"]}}
-        </a>
+        <a
+          href="{{profile["url"]}}"
+          target="_blank"
+          rel="me noopener noreferrer nofollow"
+        >{{profile["url"]}}</a>
       </p>
       {% endif %}
       {% if profile.get("bio") %}
