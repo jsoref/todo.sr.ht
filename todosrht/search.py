@@ -1,50 +1,8 @@
-import re
 from sqlalchemy import or_
+from srht.search import search
 from todosrht.types import Label, TicketLabel
 from todosrht.types import Ticket, TicketStatus, TicketComment
 from todosrht.types import User
-
-# Property with a quoted value, e.g.: label:"help wanted"
-TERM_PROPERTY_QUOTED = re.compile(r"(\w+):\"(.+?)\"")
-
-# Property with an unquoted value, e.g.: status:closed, submitter:~username
-TERM_PROPERTY_UNQUOTED = re.compile(r"(\w+):([\w~]+)")
-
-# Quoted search string, e.g.: "some thing"
-TERM_SEARCH_QUOTED = re.compile(r"\"(.+?)\"")
-
-# Unquoted search string, e.g.: foo
-TERM_SEARCH_UNQUOTED = re.compile(r"(\w+)")
-
-TERM_PATTERNS = (
-    TERM_PROPERTY_QUOTED,
-    TERM_PROPERTY_UNQUOTED,
-    TERM_SEARCH_QUOTED,
-    TERM_SEARCH_UNQUOTED
-)
-
-def _process_term_match(match):
-    """Parses a matched search term.
-
-    Returns (prop, value) for properties, and (None, value) for other terms.
-    """
-    groups = match.groups()
-    if len(groups) == 2:
-        prop, term = groups
-        return prop.strip().lower(), term.strip()
-
-    return None, groups[0].strip()
-
-def find_search_terms(search):
-    """Extracts search terms from a search string"""
-    for pattern in TERM_PATTERNS:
-        m = re.search(pattern, search)
-        while m:
-            yield _process_term_match(m)
-            # Remove matched term from search string
-            start, end = m.span()
-            search = search[:start] + search[end:]
-            m = re.search(pattern, search)
 
 STATUS_ALIASES = {
     "open": [
@@ -98,29 +56,20 @@ def filter_by_label(query, value, tracker):
 
     return query.filter(False)
 
-def apply_search(query, search, tracker, current_user):
-    terms = find_search_terms(search)
-    for prop, value in terms:
-        if prop == "status":
-            query = filter_by_status(query, value)
-            continue
+def apply_search(query, terms, tracker, current_user):
+    if not terms:
+        return query.filter(Ticket.status == TicketStatus.reported)
 
-        if prop == "submitter":
-            query = filter_by_submitter(query, value, current_user)
-            continue
-
-        if prop == "assigned":
-            query = filter_by_assignee(query, value, current_user)
-            continue
-
-        if prop == "label":
-            query = filter_by_label(query, value, tracker)
-            continue
-
-        query = query.filter(or_(
-            Ticket.description.ilike("%" + value + "%"),
-            Ticket.title.ilike("%" + value + "%"),
-            Ticket.comments.any(TicketComment.text.ilike("%" + value + "%"))))
+    return search(query, terms, [
+        Ticket.description,
+        Ticket.title,
+        lambda v: Ticket.comments.any(TicketComment.text.ilike(f"%{v}%"))
+    ], {
+        "status": lambda q, v: filter_by_status(q, v),
+        "submitter": lambda q, v: filter_by_submitter(q, v, current_user),
+        "assigned": lambda q, v: filter_by_assignee(q, v, current_user),
+        "label": lambda q, v: filter_by_label(q, v, tracker),
+    })
 
     return query
 

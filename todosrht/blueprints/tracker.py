@@ -105,11 +105,8 @@ def return_tracker(tracker, access, **kwargs):
         .options(subqueryload(Ticket.submitter))
         .order_by(Ticket.updated.desc()))
 
-    search = request.args.get("search")
-    if search:
-        tickets = apply_search(tickets, search, tracker, current_user)
-    else:
-        tickets = tickets.filter(Ticket.status == TicketStatus.reported)
+    terms = request.args.get("search")
+    tickets = apply_search(tickets, terms, tracker, current_user)
     tickets, pagination = paginate_query(tickets, results_per_page=25)
 
     # Find which tickets were seen by the user since last update
@@ -128,7 +125,7 @@ def return_tracker(tracker, access, **kwargs):
 
     return render_template("tracker.html",
             tracker=tracker, another=another, tickets=tickets,
-            access=access, is_subscribed=is_subscribed, search=search,
+            access=access, is_subscribed=is_subscribed, search=terms,
             comment_counts=comment_counts, seen_ticket_ids=seen_ticket_ids,
             **pagination, **kwargs)
 
