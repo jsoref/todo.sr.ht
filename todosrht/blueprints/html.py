@@ -6,7 +6,6 @@ from todosrht.types import User
 from srht.config import cfg
 from srht.flask import paginate_query
 from sqlalchemy import and_, or_
-import requests
 
 html = Blueprint('html', __name__)
 
