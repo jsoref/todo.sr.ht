@@ -104,17 +104,8 @@ def user_GET(username):
         events = filter_authorized_events(events)
     events = events.limit(10).all()
 
-    r = requests.get(meta_uri + "/api/user/profile", headers={
-        "Authorization": "token " + user.oauth_token
-    }) # TODO: cache this
-    if r.status_code == 200:
-        profile = r.json()
-    else:
-        profile = dict()
-
     return render_template("dashboard.html",
         user=user,
-        profile=profile,
         trackers=trackers,
         tracker_list_msg="Trackers",
         more_trackers=total_trackers > limit_trackers,
@@ -142,14 +133,5 @@ def trackers_for_user(username):
     trackers = trackers.order_by(Tracker.updated.desc())
     trackers, pagination = paginate_query(trackers)
 
-    r = requests.get(meta_uri + "/api/user/profile", headers={
-        "Authorization": "token " + user.oauth_token
-    }) # TODO: cache this
-    if r.status_code == 200:
-        profile = r.json()
-    else:
-        profile = dict()
-
     return render_template("trackers.html",
-            user=user, profile=profile,
-            trackers=trackers, search=search, **pagination)
+            user=user, trackers=trackers, search=search, **pagination)

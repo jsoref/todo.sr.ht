@@ -3,9 +3,9 @@
 <div class="container">
   <div class="row">
     <div class="col-md-4">
-      {% if profile %}
+      {% if user %}
       <h2>
-        ~{{ profile.get("name") }}
+        ~{{ user.username }}
       </h2>
       {% else %}
       <p>
@@ -21,21 +21,21 @@
       </div>
       {% endif %}
 
-      {% if profile %}
-      {% if profile.get("location") %}
-      <p>{{profile["location"]}}</p>
+      {% if user %}
+      {% if user.location %}
+      <p>{{user.location}}</p>
       {% endif %}
-      {% if profile.get("url") %}
+      {% if user.url %}
       <p>
         <a
-          href="{{profile["url"]}}"
+          href="{{user.url}}"
           target="_blank"
           rel="me noopener noreferrer nofollow"
-        >{{profile["url"]}}</a>
+        >{{user.url}}</a>
       </p>
       {% endif %}
-      {% if profile.get("bio") %}
-      <p>{{profile["bio"] | md}}</p>
+      {% if user.bio %}
+      <p>{{user.bio | md}}</p>
       {% endif %}
       {% endif %}
 
