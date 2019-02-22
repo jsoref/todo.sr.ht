@@ -76,7 +76,7 @@ select.form-control {
   grid-template-columns: auto 1fr auto auto auto;
 
   .title a {
-    color: $black;
+    color: $gray-900;
   }
 
   @include media-breakpoint-down(xs) {
