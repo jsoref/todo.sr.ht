@@ -200,8 +200,8 @@ access_help_map={
         "Permission to resolve, re-open, or label tickets",
 }
 
-@loginrequired
 @tracker.route("/<owner>/<name>/settings/details")
+@loginrequired
 def settings_details_GET(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
@@ -211,8 +211,8 @@ def settings_details_GET(owner, name):
     return render_template("tracker-details.html",
         view="details", tracker=tracker)
 
-@loginrequired
 @tracker.route("/<owner>/<name>/settings/details", methods=["POST"])
+@loginrequired
 def settings_details_POST(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
@@ -233,8 +233,8 @@ def settings_details_POST(owner, name):
     db.session.commit()
     return redirect(tracker_url(tracker))
 
-@loginrequired
 @tracker.route("/<owner>/<name>/settings/access")
+@loginrequired
 def settings_access_GET(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
@@ -246,8 +246,8 @@ def settings_access_GET(owner, name):
         access_type_list=TicketAccess,
         access_help_map=access_help_map)
 
-@loginrequired
 @tracker.route("/<owner>/<name>/settings/access", methods=["POST"])
+@loginrequired
 def settings_access_POST(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
@@ -275,8 +275,8 @@ def settings_access_POST(owner, name):
     db.session.commit()
     return redirect(tracker_url(tracker))
 
-@loginrequired
 @tracker.route("/<owner>/<name>/settings/delete")
+@loginrequired
 def settings_delete_GET(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
@@ -286,8 +286,8 @@ def settings_delete_GET(owner, name):
     return render_template("tracker-delete.html",
         view="delete", tracker=tracker)
 
-@loginrequired
 @tracker.route("/<owner>/<name>/settings/delete", methods=["POST"])
+@loginrequired
 def settings_delete_POST(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
@@ -304,8 +304,8 @@ def settings_delete_POST(owner, name):
     db.session.commit()
     return redirect(url_for("html.index"))
 
-@loginrequired
 @tracker.route("/<owner>/<name>/submit", methods=["POST"])
+@loginrequired
 def tracker_submit_POST(owner, name):
     tracker, access = get_tracker(owner, name, True)
     if not tracker:
