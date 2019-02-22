@@ -75,6 +75,10 @@ select.form-control {
   // id title updated submitter comments
   grid-template-columns: auto 1fr auto auto auto;
 
+  .title a {
+    color: $black;
+  }
+
   @include media-breakpoint-down(xs) {
     display: block;
     border: none;

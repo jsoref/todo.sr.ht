@@ -141,7 +141,9 @@
           <a href="{{ ticket|ticket_url }}">#{{ticket.scoped_id}}</a>
         </div>
         <div class="title">
-          {{ ticket.title }}
+          <a href="{{ ticket|ticket_url }}">
+            {{ ticket.title }}
+          </a>
           <span class="pull-right">
             {% for label in ticket.labels %}
               {{ label|label_badge(cls="small") }}
