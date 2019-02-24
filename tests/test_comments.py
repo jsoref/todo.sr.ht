@@ -1,9 +1,8 @@
 import pytest
 from srht.database import db
-from todosrht.tickets import add_comment
+from todosrht.tickets import add_comment, find_mentioned_users
 from todosrht.types import TicketResolution, TicketStatus
 from todosrht.types import TicketSubscription, EventType
-from unittest.mock import patch
 
 from .factories import UserFactory, TrackerFactory, TicketFactory
 
@@ -170,3 +169,21 @@ def test_failed_comments():
 
     with pytest.raises(AssertionError):
         add_comment(user, ticket)
+
+
+def test_find_mentioned_users():
+    comment = "mentioning users ~mention1, ~mention2, and ~mention3 in a comment"
+
+    assert find_mentioned_users(comment) == set()
+
+    u1 = UserFactory(username="mention1")
+    db.session.commit()
+    assert find_mentioned_users(comment) == {u1}
+
+    u2 = UserFactory(username="mention2")
+    db.session.commit()
+    assert find_mentioned_users(comment) == {u1, u2}
+
+    u3 = UserFactory(username="mention3")
+    db.session.commit()
+    assert find_mentioned_users(comment) == {u1, u2, u3}

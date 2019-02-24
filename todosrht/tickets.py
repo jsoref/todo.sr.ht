@@ -1,3 +1,4 @@
+import re
 from collections import namedtuple
 from datetime import datetime
 from srht.config import cfg
@@ -5,7 +6,7 @@ from srht.database import db
 from todosrht.email import notify
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
-from todosrht.types import TicketSeen, TicketAssignee
+from todosrht.types import TicketSeen, TicketAssignee, User
 from todosrht.urls import ticket_url
 from sqlalchemy import func
 
@@ -19,6 +20,14 @@ StatusChange = namedtuple("StatusChange", [
     "old_resolution",
     "new_resolution",
 ])
+
+# Matches user mentions, e.g. ~username
+USER_MENTION_PATTERN = re.compile(r"~(\w+)\b")
+
+def find_mentioned_users(text):
+    usernames = re.findall(USER_MENTION_PATTERN, text)
+    users = User.query.filter(User.username.in_(usernames)).all()
+    return set(users)
 
 def _create_comment(ticket, user, text):
     comment = TicketComment()
