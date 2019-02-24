@@ -1,5 +1,5 @@
 {{! vim: set ft=email }}
-You were assigned to {{ ticket_path }} by {{ assigner }}.
+You were assigned to {{ ticket_ref }} by {{ assigner }}.
 
 --
 

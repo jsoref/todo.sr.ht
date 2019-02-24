@@ -22,9 +22,9 @@ def test_assignment(mailbox):
 
     assert len(mailbox) == 1
     assert mailbox[0].to == assignee1.email
-    assert mailbox[0].subject == "~foo/bar/#1: Hilfe!"
+    assert mailbox[0].subject == "~foo/bar#1: Hilfe!"
     assert mailbox[0].body.startswith(
-        "You were assigned to ~foo/bar/#1 by ~assigner")
+        "You were assigned to ~foo/bar#1 by ~assigner")
 
     # Assignment is idempotent
     assign(ticket, assignee1, assigner)
@@ -37,9 +37,9 @@ def test_assignment(mailbox):
 
     assert len(mailbox) == 2
     assert mailbox[1].to == assignee2.email
-    assert mailbox[1].subject == "~foo/bar/#1: Hilfe!"
+    assert mailbox[1].subject == "~foo/bar#1: Hilfe!"
     assert mailbox[1].body.startswith(
-        "You were assigned to ~foo/bar/#1 by ~assigner")
+        "You were assigned to ~foo/bar#1 by ~assigner")
 
     unassign(ticket, assignee1, assigner)
     db.session.commit()

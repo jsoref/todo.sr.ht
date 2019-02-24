@@ -69,12 +69,7 @@ def _create_event_notification(user, event):
     return notification
 
 def _send_comment_notification(subscription, ticket, user, comment, resolution):
-    subject = "Re: {}/{}/#{}: {}".format(
-        ticket.tracker.owner.canonical_name,
-        ticket.tracker.name,
-        ticket.scoped_id,
-        ticket.title)
-
+    subject = "Re: {}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "~{} <{}>".format(user.username, notify_from),
         "Sender": smtp_user,
@@ -180,12 +175,7 @@ def notify_assignee(subscription, ticket, assigner, assignee):
     """
     Sends a notification email to the person who was assigned to the issue.
     """
-    ticket_path = "{}/{}/#{}".format(
-        ticket.tracker.owner.canonical_name,
-        ticket.tracker.name,
-        ticket.scoped_id)
-    subject = "{}: {}".format(ticket_path, ticket.title)
-
+    subject = "{}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "~{} <{}>".format(assigner.username, notify_from),
         "Sender": smtp_user,
@@ -193,7 +183,7 @@ def notify_assignee(subscription, ticket, assigner, assignee):
 
     context = {
         "assigner": assigner.canonical_name,
-        "ticket_path": ticket_path,
+        "ticket_ref": ticket.ref(),
         "ticket_url": ticket_url(ticket)
     }
 

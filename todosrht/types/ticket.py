@@ -61,3 +61,9 @@ class Ticket(Base):
     assigned_users = sa.orm.relationship("User",
         secondary="ticket_assignee",
         foreign_keys="[TicketAssignee.ticket_id,TicketAssignee.assignee_id]")
+
+    def ref(self):
+        return "{}/{}#{}".format(
+            self.tracker.owner.canonical_name,
+            self.tracker.name,
+            self.scoped_id)
