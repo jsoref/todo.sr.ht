@@ -187,3 +187,32 @@ def test_find_mentioned_users():
     u3 = UserFactory(username="mention3")
     db.session.commit()
     assert find_mentioned_users(comment) == {u1, u2, u3}
+
+
+def test_mentioned_users_are_notified(mailbox):
+    u1 = UserFactory()
+    u2 = UserFactory()
+    u3 = UserFactory()  # not mentioned
+
+    commenter = UserFactory()
+    ticket = TicketFactory()
+
+    text = (
+        f"mentioning users ~{u1.canonical_name}, ~doesnotexist, "
+        f"and ~{u2.canonical_name}"
+    )
+    add_comment(commenter, ticket, text)
+
+    assert len(mailbox) == 2
+
+    email1 = next(e for e in mailbox if e.to == u1.email)
+    email2 = next(e for e in mailbox if e.to == u2.email)
+
+    expected_title = f"{ticket.ref()}: {ticket.title}"
+    expected_body = f"You were mentioned in {ticket.ref()} by {commenter}."
+
+    assert email1.subject == expected_title
+    assert email1.body.startswith(expected_body)
+
+    assert email2.subject == expected_title
+    assert email2.body.startswith(expected_body)

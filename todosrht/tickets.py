@@ -102,6 +102,10 @@ def _change_ticket_status(ticket, resolve, resolution, reopen):
         old_status, ticket.status, old_resolution, ticket.resolution)
 
 def _send_comment_notifications(user, ticket, event, comment, resolution):
+    """
+    Notify users subscribed to the ticket or tracker.
+    Returns a list of notified users.
+    """
     # Find subscribers, eliminate duplicates
     subscriptions = {sub.user: sub
         for sub in ticket.tracker.subscriptions + ticket.subscriptions}
@@ -120,6 +124,38 @@ def _send_comment_notifications(user, ticket, event, comment, resolution):
             _send_comment_notification(
                 subscription, ticket, user, comment, resolution)
 
+    return subscriptions.keys()
+
+def _send_mention_notification(subscription, comment, mentioned_user):
+    ticket = comment.ticket
+    subject = "{}: {}".format(ticket.ref(), ticket.title)
+    headers = {
+        "From": "~{} <{}>".format(comment.submitter.username, notify_from),
+        "Sender": smtp_user,
+    }
+
+    context = {
+        "submitter": comment.submitter.canonical_name,
+        "ticket_ref": ticket.ref(),
+        "ticket_url": ticket_url(ticket)
+    }
+
+    notify(subscription, "ticket_mention", subject, headers, **context)
+
+def _notify_mentioned_users(comment, notified_users):
+    """
+    Sends a notification email to users mentioned in the comment text.
+
+    Skips users in `notified_users`, they already received an email because
+    they are subscribed so there's no need to send another email.
+    """
+    mentioned_users = find_mentioned_users(comment.text)
+    notify_users = set(mentioned_users) - set(notified_users)
+
+    for user in notify_users:
+        subscription = get_or_create_subscription(comment.ticket, user)
+        _send_mention_notification(subscription, comment, user)
+
 def add_comment(user, ticket,
         text=None, resolve=False, resolution=None, reopen=False):
     """
@@ -134,7 +170,11 @@ def add_comment(user, ticket,
     comment = _create_comment(ticket, user, text) if text else None
     status_change = _change_ticket_status(ticket, resolve, resolution, reopen)
     event = _create_comment_event(ticket, user, comment, status_change)
-    _send_comment_notifications(user, ticket, event, comment, resolution)
+    notified_users = _send_comment_notifications(
+        user, ticket, event, comment, resolution)
+
+    if text:
+        _notify_mentioned_users(comment, notified_users)
 
     ticket.updated = datetime.utcnow()
     ticket.tracker.updated = datetime.utcnow()
