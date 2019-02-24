@@ -49,7 +49,13 @@ setup(
   author = 'Drew DeVault',
   author_email = 'sir@cmpwn.com',
   url = 'https://todo.sr.ht/~sircmpwn/todo.sr.ht',
-  install_requires = ['srht', 'flask-login', 'alembic', 'pystache'],
+  install_requires = [
+    'alembic',
+    'flask-login',
+    'pystache',
+    'redis',
+    'srht',
+  ],
   license = 'AGPL-3.0',
   package_data={
       'todosrht': [

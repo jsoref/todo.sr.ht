@@ -1,13 +1,31 @@
 import re
 
+from datetime import timedelta
+from functools import wraps
 from jinja2.utils import Markup, escape
 from srht.flask import icon, csrf_token
 from srht.markdown import markdown
 from todosrht import urls
+from todosrht.redis import redis
 from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
 from todosrht.tickets import TICKET_MENTION_PATTERN, USER_MENTION_PATTERN
 
 
+def cache_comment_markup(func):
+    @wraps(func)
+    def wrap(comment):
+        key = f"todo.sr.ht:render_comment:{comment.id}"
+        value = redis.get(key)
+        if value:
+            return Markup(value.decode())
+
+        value = func(comment)
+        redis.setex(key, timedelta(days=30), value)
+        return value
+    return wrap
+
+
+@cache_comment_markup
 def render_comment(comment):
     users = find_mentioned_users(comment.text)
     tickets = find_mentioned_tickets(comment.ticket.tracker, comment.text)
