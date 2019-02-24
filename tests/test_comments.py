@@ -189,7 +189,7 @@ def test_find_mentioned_users():
     assert find_mentioned_users(comment) == {u1, u2, u3}
 
 
-def test_mentioned_users_are_notified(mailbox):
+def test_notifications_and_events(mailbox):
     u1 = UserFactory()
     u2 = UserFactory()
     u3 = UserFactory()  # not mentioned
@@ -197,11 +197,16 @@ def test_mentioned_users_are_notified(mailbox):
     commenter = UserFactory()
     ticket = TicketFactory()
 
+    t1 = TicketFactory(tracker=ticket.tracker)
+    t2 = TicketFactory(tracker=ticket.tracker)
+    t3 = TicketFactory(tracker=ticket.tracker)  # not mentioned
+
     text = (
         f"mentioning users ~{u1.canonical_name}, ~doesnotexist, "
-        f"and ~{u2.canonical_name}"
+        f"and ~{u2.canonical_name} "
+        f"also mentioning tickets #{t1.id}, and #{t2.id} and #999999"
     )
-    add_comment(commenter, ticket, text)
+    comment = add_comment(commenter, ticket, text)
 
     assert len(mailbox) == 2
 
@@ -216,3 +221,34 @@ def test_mentioned_users_are_notified(mailbox):
 
     assert email2.subject == expected_title
     assert email2.body.startswith(expected_body)
+
+    # Check correct events are generated
+    comment_events = {e for e in ticket.events
+        if e.event_type == EventType.comment}
+    user_events = {e for e in ticket.events
+        if e.event_type == EventType.user_mentioned}
+
+    assert len(comment_events) == 1
+    assert len(user_events) == 2
+
+    u1_mention = next(e for e in user_events if e.user == u1)
+    u2_mention = next(e for e in user_events if e.user == u2)
+
+    assert u1_mention.comment == comment
+    assert u1_mention.ticket == ticket
+
+    assert u2_mention.comment == comment
+    assert u2_mention.ticket == ticket
+
+    assert len(t1.events) == 1
+    assert len(t2.events) == 1
+    assert len(t3.events) == 0
+
+    t1_mention = t1.events[0]
+    t2_mention = t2.events[0]
+
+    assert t1_mention.comment == comment
+    assert t1_mention.user == commenter
+
+    assert t2_mention.comment == comment
+    assert t2_mention.user == commenter

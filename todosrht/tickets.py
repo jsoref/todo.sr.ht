@@ -153,19 +153,38 @@ def _send_mention_notification(subscription, comment, mentioned_user):
 
     notify(subscription, "ticket_mention", subject, headers, **context)
 
-def _notify_mentioned_users(comment, notified_users):
-    """
-    Sends a notification email to users mentioned in the comment text.
 
-    Skips users in `notified_users`, they already received an email because
-    they are subscribed so there's no need to send another email.
+def _handle_mentions(ticket, comment, notified_users):
+    """
+    Create events for mentioned tickets and users and notify mentioned users.
     """
     mentioned_users = find_mentioned_users(comment.text)
-    notify_users = set(mentioned_users) - set(notified_users)
+    mentioned_tickets = find_mentioned_tickets(ticket.tracker, comment.text)
 
-    for user in notify_users:
-        subscription = get_or_create_subscription(comment.ticket, user)
-        _send_mention_notification(subscription, comment, user)
+    for user in mentioned_users:
+        db.session.add(Event(
+            event_type=EventType.user_mentioned,
+            user=user,
+            ticket=ticket,
+            comment=comment,
+        ))
+
+    for mentioned_ticket in mentioned_tickets:
+        db.session.add(Event(
+            event_type=EventType.ticket_mentioned,
+            user=comment.submitter,
+            ticket=mentioned_ticket,
+            comment=comment,
+        ))
+
+    # Notify users who are mentioned, but only if they haven't already received
+    # a notification due to being subscribed to the event or tracker
+    to_notify_users = set(mentioned_users) - set(notified_users)
+    if comment and to_notify_users:
+        for user in to_notify_users:
+            subscription = get_or_create_subscription(comment.ticket, user)
+            _send_mention_notification(subscription, comment, user)
+
 
 def add_comment(user, ticket,
         text=None, resolve=False, resolution=None, reopen=False):
@@ -184,8 +203,8 @@ def add_comment(user, ticket,
     notified_users = _send_comment_notifications(
         user, ticket, event, comment, resolution)
 
-    if text:
-        _notify_mentioned_users(comment, notified_users)
+    if comment and comment.text:
+        _handle_mentions(ticket, comment, notified_users)
 
     ticket.updated = datetime.utcnow()
     ticket.tracker.updated = datetime.utcnow()

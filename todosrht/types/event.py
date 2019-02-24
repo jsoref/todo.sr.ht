@@ -12,6 +12,8 @@ class EventType(IntFlag):
     label_removed = 16
     assigned_user = 32
     unassigned_user = 64
+    user_mentioned = 128
+    ticket_mentioned = 256
 
 class Event(Base):
     """
