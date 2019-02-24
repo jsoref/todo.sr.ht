@@ -30,6 +30,7 @@ class TodoApp(SrhtFlask):
         self.register_blueprint(ticket)
 
         self.add_template_filter(filters.label_badge)
+        self.add_template_filter(filters.render_comment)
         self.add_template_filter(urls.label_search_url)
         self.add_template_filter(urls.ticket_assign_url)
         self.add_template_filter(urls.ticket_edit_url)

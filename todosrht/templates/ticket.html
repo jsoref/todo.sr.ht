@@ -255,7 +255,7 @@
       {% endif %}
       {% if EventType.comment in event.event_type %}
       {% set comment = event.comment %}
-      {{ comment.text | md }}
+      {{ comment | render_comment }}
       {% endif %}
       {% if EventType.status_change in event.event_type %}
       <p>

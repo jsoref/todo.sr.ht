@@ -6,7 +6,7 @@ from srht.database import db
 from todosrht.email import notify
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
-from todosrht.types import TicketSeen, TicketAssignee, User
+from todosrht.types import TicketSeen, TicketAssignee, User, Ticket
 from todosrht.urls import ticket_url
 from sqlalchemy import func
 
@@ -24,10 +24,21 @@ StatusChange = namedtuple("StatusChange", [
 # Matches user mentions, e.g. ~username
 USER_MENTION_PATTERN = re.compile(r"~(\w+)\b")
 
+# Matches ticket mentions, e.g. #17
+TICKET_MENTION_PATTERN = re.compile(r"#(\d+)\b")
+
 def find_mentioned_users(text):
     usernames = re.findall(USER_MENTION_PATTERN, text)
     users = User.query.filter(User.username.in_(usernames)).all()
     return set(users)
+
+def find_mentioned_tickets(tracker, text):
+    ids = re.findall(TICKET_MENTION_PATTERN, text)
+    tickets = (Ticket.query
+        .filter_by(tracker=tracker)
+        .filter(Ticket.scoped_id.in_(ids))
+        .all())
+    return set(tickets)
 
 def _create_comment(ticket, user, text):
     comment = TicketComment()

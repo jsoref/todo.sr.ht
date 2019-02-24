@@ -1,6 +1,44 @@
+import re
+
 from jinja2.utils import Markup, escape
 from srht.flask import icon, csrf_token
+from srht.markdown import markdown
 from todosrht import urls
+from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
+from todosrht.tickets import TICKET_MENTION_PATTERN, USER_MENTION_PATTERN
+
+
+def render_comment(comment):
+    users = find_mentioned_users(comment.text)
+    tickets = find_mentioned_tickets(comment.ticket.tracker, comment.text)
+
+    users_map = {str(u): u for u in users}
+    tickets_map = {str(t.scoped_id): t for t in tickets}
+
+    def urlize_user(match):
+        username = match.group(0)
+        if username in users_map:
+            url = urls.user_url(users_map[username])
+            return f'<a href="{url}">{escape(username)}</a>'
+
+        return username
+
+    def urlize_ticket(match):
+        scoped_id = match.group(1)
+        if scoped_id in tickets_map:
+            ticket = tickets_map[scoped_id]
+            url = urls.ticket_url(ticket)
+            title = escape(f"{ticket.ref()}: {ticket.title}")
+            return f'<a href="{url}" title="{title}">#{scoped_id}</a>'
+
+        return match.group(0)
+
+    # Replace ticket and username mentions with linked version
+    text = comment.text
+    text = re.sub(USER_MENTION_PATTERN, urlize_user, text)
+    text = re.sub(TICKET_MENTION_PATTERN, urlize_ticket, text)
+
+    return markdown(text)
 
 
 def label_badge(label, cls="", remove_from_ticket=None):
