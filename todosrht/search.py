@@ -56,6 +56,13 @@ def filter_by_label(query, value, tracker):
 
     return query.filter(False)
 
+def filter_no(query, value, tracker):
+    filterNo = {
+        'assignee': Ticket.assigned_users == None,
+        'label': Ticket.labels == None,
+    }
+    return query.filter(filterNo.get(value, False))
+
 def apply_search(query, terms, tracker, current_user):
     if not terms:
         return query.filter(Ticket.status == TicketStatus.reported)
@@ -69,9 +76,8 @@ def apply_search(query, terms, tracker, current_user):
         "submitter": lambda q, v: filter_by_submitter(q, v, current_user),
         "assigned": lambda q, v: filter_by_assignee(q, v, current_user),
         "label": lambda q, v: filter_by_label(q, v, tracker),
+        "no": lambda q, v: filter_no(q, v, tracker),
     })
-
-    return query
 
 def find_usernames(query, limit=20):
     """Given a partial username string, returns matching usernames."""
