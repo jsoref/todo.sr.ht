@@ -1,5 +1,4 @@
 import re
-
 from datetime import timedelta
 from functools import wraps
 from jinja2.utils import Markup, escape
@@ -9,7 +8,6 @@ from todosrht import urls
 from todosrht.redis import redis
 from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
 from todosrht.tickets import TICKET_MENTION_PATTERN, USER_MENTION_PATTERN
-
 
 def cache_comment_markup(func):
     @wraps(func)
@@ -23,7 +21,6 @@ def cache_comment_markup(func):
         redis.setex(key, timedelta(days=30), value)
         return value
     return wrap
-
 
 @cache_comment_markup
 def render_comment(comment):
@@ -57,7 +54,6 @@ def render_comment(comment):
     text = re.sub(TICKET_MENTION_PATTERN, urlize_ticket, text)
 
     return markdown(text)
-
 
 def label_badge(label, cls="", remove_from_ticket=None):
     """Return HTML markup rendering a label badge.
