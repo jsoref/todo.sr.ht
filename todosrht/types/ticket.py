@@ -62,7 +62,9 @@ class Ticket(Base):
         secondary="ticket_assignee",
         foreign_keys="[TicketAssignee.ticket_id,TicketAssignee.assignee_id]")
 
-    def ref(self):
+    def ref(self, short=False):
+        if short:
+            return "#" + str(self.scoped_id)
         return "{}/{}#{}".format(
             self.tracker.owner.canonical_name,
             self.tracker.name,

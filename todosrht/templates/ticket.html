@@ -237,82 +237,68 @@
         {% endif %}
       </dl>
     </div>
-    <div class="col-md-6">
+    <div class="col-md-6 event-list ticket-events">
       {% for event in events %}
       {% if event.event_type not in [
-        EventType.created,
-        EventType.assigned_user,
-        EventType.unassigned_user,
+          EventType.created,
+          EventType.user_mentioned,
       ] %}
-      <h4>
-        <a href="{{ event.user|user_url }}">
-          {{ event.user }}
-        </a>
-        <span class="pull-right">
-          <small>{{ event.created | date }}</small>
-        </span>
-      </h4>
-      {% endif %}
-      {% if EventType.comment in event.event_type %}
-      {% set comment = event.comment %}
-      {{ comment | render_comment }}
-      {% endif %}
-      {% if EventType.status_change in event.event_type %}
-      <p>
-        <strong class="text-success">
-          {{ event.old_status.name.upper() }}
-          {% if event.old_status == TicketStatus.resolved %}
-          {{ event.old_resolution.name.upper() }}
+      <div class="event">
+        <h4 id="event-{{event.id}}">
+          <a href="{{ event.user|user_url }}">
+            {{ event.user }}
+          </a>
+          {% if EventType.status_change in event.event_type %}
+            <strong class="text-success">
+              {{ event.old_status.name.upper() }}
+              {% if event.old_status == TicketStatus.resolved %}
+              {{ event.old_resolution.name.upper() }}
+              {% endif %}
+            </strong>
+            {{icon("arrow-right", cls="sm")}}
+            <strong class="text-success">
+              {{ event.new_status.name.upper() }}
+              {% if event.new_status == TicketStatus.resolved %}
+              {{ event.new_resolution.name.upper() }}
+              {% endif %}
+            </strong>
           {% endif %}
-        </strong>
-        {{icon("arrow-right", cls="sm")}}
-        <strong class="text-success">
-          {{ event.new_status.name.upper() }}
-          {% if event.new_status == TicketStatus.resolved %}
-          {{ event.new_resolution.name.upper() }}
+          {% if EventType.label_added in event.event_type %}
+            added {{ event.label|label_badge(cls="small") }}
           {% endif %}
-        </strong>
-      </p>
-      {% endif %}
-      {% if EventType.label_added in event.event_type %}
-      <p>
-        {{ event.label|label_badge() }}
-        <span class="text-muted">added</span>
-      </p>
-      {% endif %}
-      {% if EventType.label_removed in event.event_type %}
-      <p>
-        {{ event.label|label_badge() }}
-        <span class="text-muted">removed</span>
-      </p>
-      {% endif %}
-      {% if EventType.assigned_user in event.event_type %}
-      <h4 style="font-size: 1rem">
-        <a href="{{event.user|user_url}}">
-          {{event.user}}
-        </a>
-        assigned
-        <a href="{{event.assigned_user|user_url}}">
-          {{event.assigned_user}}
-        </a>
-        <span class="pull-right">
-          <small>{{ event.created | date }}</small>
-        </span>
-      </h4>
-      {% endif %}
-      {% if EventType.unassigned_user in event.event_type %}
-      <h4 style="font-size: 1rem">
-        <a href="{{event.user|user_url}}">
-          {{event.user}}
-        </a>
-        unassigned
-        <a href="{{event.assigned_user|user_url}}">
-          {{event.assigned_user}}
-        </a>
-        <span class="pull-right">
-          <small>{{ event.created | date }}</small>
-        </span>
-      </h4>
+          {% if EventType.label_removed in event.event_type %}
+            removed {{ event.label|label_badge(cls="small") }}
+          {% endif %}
+          {% if EventType.assigned_user in event.event_type %}
+            assigned
+            <a href="{{event.assigned_user|user_url}}">
+              {{event.assigned_user}}
+            </a>
+          {% endif %}
+          {% if EventType.unassigned_user in event.event_type %}
+            unassigned
+            <a href="{{event.assigned_user|user_url}}">
+              {{event.assigned_user}}
+            </a>
+          {% endif %}
+          {% if EventType.ticket_mentioned in event.event_type %}
+            referenced this from
+            <a href="{{event.comment.ticket|ticket_url}}#event-{{event.id}}">
+              {{event.comment.ticket.ref(
+                short=event.comment.ticket.tracker_id == ticket.tracker_id)}}
+            </a>
+          {% endif %}
+          <span class="pull-right">
+            <small>{{ event.created | date }}</small>
+          </span>
+        </h4>
+        {% if EventType.comment in event.event_type %}
+        <blockquote>
+          {% set comment = event.comment %}
+          {{ comment | render_comment }}
+        </blockquote>
+        {% endif %}
+      </div>
       {% endif %}
       {% endfor %}
       {% if TicketAccess.comment in access %}
