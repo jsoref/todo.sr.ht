@@ -92,7 +92,7 @@ def _send_comment_notification(subscription, ticket, user, comment, resolution):
         headers=headers,
         ticket=ticket,
         comment=comment,
-        comment_text=format_lines(comment.text),
+        comment_text=format_lines(comment.text) if comment else "",
         resolution=resolution.name if resolution else None,
         ticket_url=url)
 
