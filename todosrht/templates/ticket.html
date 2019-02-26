@@ -250,16 +250,18 @@
           </a>
           {% if EventType.status_change in event.event_type %}
             <strong class="text-success">
-              {{ event.old_status.name.upper() }}
               {% if event.old_status == TicketStatus.resolved %}
               {{ event.old_resolution.name.upper() }}
+              {% else %}
+              {{ event.old_status.name.upper() }}
               {% endif %}
             </strong>
             {{icon("arrow-right", cls="sm")}}
             <strong class="text-success">
-              {{ event.new_status.name.upper() }}
               {% if event.new_status == TicketStatus.resolved %}
               {{ event.new_resolution.name.upper() }}
+              {% else %}
+              {{ event.new_status.name.upper() }}
               {% endif %}
             </strong>
           {% endif %}
