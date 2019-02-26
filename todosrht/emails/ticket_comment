@@ -2,7 +2,7 @@
 {{#resolution}}
 Ticket resolved: {{resolution}}
 
-{{/resolution}}{{comment.text}}
+{{/resolution}}{{comment_text}}
 
 --
 

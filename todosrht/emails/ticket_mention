@@ -1,6 +1,8 @@
 {{! vim: set ft=email }}
 You were mentioned in {{ ticket_ref }} by {{ submitter }}.
 
+{{comment_text}}
+
 --
 
 View on the web:

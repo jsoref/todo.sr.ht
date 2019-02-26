@@ -3,7 +3,7 @@ from collections import namedtuple
 from datetime import datetime
 from srht.config import cfg
 from srht.database import db
-from todosrht.email import notify
+from todosrht.email import notify, format_lines
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
 from todosrht.types import TicketSeen, TicketAssignee, User, Ticket
@@ -92,6 +92,7 @@ def _send_comment_notification(subscription, ticket, user, comment, resolution):
         headers=headers,
         ticket=ticket,
         comment=comment,
+        comment_text=format_lines(comment.text),
         resolution=resolution.name if resolution else None,
         ticket_url=url)
 
@@ -146,6 +147,7 @@ def _send_mention_notification(subscription, comment, mentioned_user):
     }
 
     context = {
+        "comment_text": format_lines(comment.text),
         "submitter": comment.submitter.canonical_name,
         "ticket_ref": ticket.ref(),
         "ticket_url": ticket_url(ticket)
