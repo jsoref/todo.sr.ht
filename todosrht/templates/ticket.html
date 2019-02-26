@@ -282,8 +282,13 @@
             </a>
           {% endif %}
           {% if EventType.ticket_mentioned in event.event_type %}
-            referenced this from
             {% set relation = event.comment.ticket %}
+            {% if relation.status == TicketStatus.resolved and
+              relation.resolution == TicketResolution.duplicate %}
+            closed duplicate ticket
+            {% else %}
+            referenced this from
+            {% endif %}
             {% if relation.status == TicketStatus.resolved %}
             <s>
             {% endif %}
