@@ -283,10 +283,19 @@
           {% endif %}
           {% if EventType.ticket_mentioned in event.event_type %}
             referenced this from
-            <a href="{{event.comment.ticket|ticket_url}}#event-{{event.id}}">
-              {{event.comment.ticket.ref(
-                short=event.comment.ticket.tracker_id == ticket.tracker_id)}}
+            {% set relation = event.comment.ticket %}
+            {% if relation.status == TicketStatus.resolved %}
+            <s>
+            {% endif %}
+            <a
+              href="{{relation|ticket_url}}#event-{{event.id}}"
+              title="{{relation.title}}"
+            >
+              {{relation.ref(short=relation.tracker_id == ticket.tracker_id) -}}
             </a>
+            {%- if relation.status == TicketStatus.resolved -%}
+            </s>
+            {% endif %}
           {% endif %}
           <span class="pull-right">
             <small>{{ event.created | date }}</small>
