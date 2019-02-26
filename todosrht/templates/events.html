@@ -50,7 +50,8 @@
     <blockquote>
       {% if event.comment %}
       {{ event.comment.text | md }}
-      {% elif EventType.created in event.event_type %}
+      {% elif EventType.created in event.event_type
+        and event.ticket.description %}
       {{ event.ticket.description | md }}
       {% endif %}
     </blockquote>
