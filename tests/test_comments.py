@@ -1,6 +1,9 @@
 import pytest
+import re
+
 from srht.database import db
 from todosrht.tickets import add_comment, find_mentioned_users
+from todosrht.tickets import USER_MENTION_PATTERN
 from todosrht.types import TicketResolution, TicketStatus
 from todosrht.types import TicketSubscription, EventType
 
@@ -169,6 +172,25 @@ def test_failed_comments():
 
     with pytest.raises(AssertionError):
         add_comment(user, ticket)
+
+
+def test_user_mention_pattern():
+    def match(text):
+        return re.findall(USER_MENTION_PATTERN, text)
+
+    assert match("mentioning ~u1, ~u2, and ~u3 here") == ['u1', 'u2', 'u3']
+    assert match("~user at start") == ['user']
+    assert match("in ~user middle") == ['user']
+    assert match("at end ~user.") == ['user']
+
+    assert match("no leading whitespace~user") == []
+    assert match("double tilde ~~user") == []
+    assert match("other leading chars #~user /~user \\~user") == []
+
+    # Should not match URLs containing usernames
+    # https://todo.sr.ht/~sircmpwn/todo.sr.ht/162
+    assert match("~user1 and https://todo.sr.ht/~user2") == ['user1']
+    assert match("~user1 and https://todo.sr.ht/~user2/tracker") == ['user1']
 
 
 def test_find_mentioned_users():

@@ -22,7 +22,7 @@ StatusChange = namedtuple("StatusChange", [
 ])
 
 # Matches user mentions, e.g. ~username
-USER_MENTION_PATTERN = re.compile(r"~(\w+)\b")
+USER_MENTION_PATTERN = re.compile(r"(?<!\S)~(\w+)\b")
 
 # Matches ticket mentions, e.g. #17
 TICKET_MENTION_PATTERN = re.compile(r"#(\d+)\b")
