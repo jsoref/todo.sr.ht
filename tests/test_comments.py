@@ -202,8 +202,8 @@ def test_notifications_and_events(mailbox):
     t3 = TicketFactory(tracker=ticket.tracker)  # not mentioned
 
     text = (
-        f"mentioning users ~{u1.canonical_name}, ~doesnotexist, "
-        f"and ~{u2.canonical_name} "
+        f"mentioning users {u1.canonical_name}, ~doesnotexist, "
+        f"and {u2.canonical_name} "
         f"also mentioning tickets #{t1.id}, and #{t2.id} and #999999"
     )
     comment = add_comment(commenter, ticket, text)
