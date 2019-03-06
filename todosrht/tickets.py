@@ -327,3 +327,55 @@ def get_comment_counts(tickets):
         .query(col, func.count(col))
         .filter(col.in_([t.id for t in tickets]))
         .group_by(col))
+
+def submit_ticket(tracker, submitter, title, description):
+    ticket = Ticket()
+    ticket.submitter_id = submitter.id
+    ticket.tracker_id = tracker.id
+    ticket.scoped_id = tracker.next_ticket_id
+    tracker.next_ticket_id += 1
+    ticket.title = title
+    ticket.description = description
+    db.session.add(ticket)
+    tracker.updated = datetime.utcnow()
+    # TODO: Handle unique constraint failure (contention) and retry?
+    db.session.commit()
+    event = Event()
+    event.event_type = EventType.created
+    event.user_id = submitter.id
+    event.ticket_id = ticket.id
+    db.session.add(event)
+    db.session.flush()
+
+    from flask import url_for
+    ticket_url = url_for("ticket.ticket_GET",
+            owner=tracker.owner.canonical_name,
+            name=tracker.name,
+            ticket_id=ticket.scoped_id)
+
+    subscribed = False
+    for sub in tracker.subscriptions:
+        notification = EventNotification()
+        notification.user_id = sub.user_id
+        notification.event_id = event.id
+        db.session.add(notification)
+
+        if sub.user_id == ticket.submitter_id:
+            subscribed = True
+            continue
+        notify(sub, "new_ticket", "{}/{}#{}: {}".format(
+            tracker.owner.canonical_name, tracker.name,
+            ticket.scoped_id, ticket.title),
+                headers={
+                    "From": "~{} <{}>".format(
+                        submitter.username, notify_from),
+                    "Sender": smtp_user,
+                }, ticket=ticket, ticket_url=ticket_url)
+
+    if not subscribed:
+        sub = TicketSubscription()
+        sub.ticket_id = ticket.id
+        sub.user_id = submitter.id
+        db.session.add(sub)
+
+    return ticket

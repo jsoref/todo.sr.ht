@@ -5,19 +5,18 @@ from flask import session
 from flask_login import current_user
 from todosrht import color
 from todosrht.access import get_tracker
-from todosrht.email import notify
 from todosrht.search import apply_search
 from todosrht.tickets import get_last_seen_times, get_comment_counts
+from todosrht.tickets import submit_ticket
 from todosrht.types import TicketSubscription
-from todosrht.types import Event, EventType, EventNotification
-from todosrht.types import Tracker, Ticket, TicketStatus, TicketAccess
+from todosrht.types import Event
+from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.types import Label, TicketLabel
-from todosrht.urls import tracker_url
+from todosrht.urls import tracker_url, ticket_url
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
 from srht.validation import Validation
-from datetime import datetime
 from sqlalchemy.orm import subqueryload
 
 tracker = Blueprint("tracker", __name__)
@@ -329,54 +328,7 @@ def tracker_submit_POST(owner, name):
         db.session.commit() # Unlock tracker row
         return return_tracker(tracker, access, **valid.kwargs), 400
 
-    ticket = Ticket()
-    ticket.submitter_id = current_user.id
-    ticket.tracker_id = tracker.id
-    ticket.scoped_id = tracker.next_ticket_id
-    tracker.next_ticket_id += 1
-    ticket.title = title
-    ticket.description = desc
-    db.session.add(ticket)
-    tracker.updated = datetime.utcnow()
-    # TODO: Handle unique constraint failure (contention) and retry?
-    db.session.commit()
-    event = Event()
-    event.event_type = EventType.created
-    event.user_id = current_user.id
-    event.ticket_id = ticket.id
-    db.session.add(event)
-    db.session.flush()
-
-    ticket_url = url_for("ticket.ticket_GET",
-            owner=tracker.owner.canonical_name,
-            name=name,
-            ticket_id=ticket.scoped_id)
-
-    subscribed = False
-    for sub in tracker.subscriptions:
-        notification = EventNotification()
-        notification.user_id = sub.user_id
-        notification.event_id = event.id
-        db.session.add(notification)
-
-        if sub.user_id == ticket.submitter_id:
-            subscribed = True
-            continue
-        notify(sub, "new_ticket", "{}/{}/#{}: {}".format(
-            tracker.owner.canonical_name, tracker.name,
-            ticket.scoped_id, ticket.title),
-                headers={
-                    "From": "~{} <{}>".format(
-                        current_user.username, notify_from),
-                    "Sender": smtp_user,
-                }, ticket=ticket, ticket_url=ticket_url)
-
-    if not subscribed:
-        sub = TicketSubscription()
-        sub.ticket_id = ticket.id
-        sub.user_id = current_user.id
-        db.session.add(sub)
-
+    ticket = submit_ticket(tracker, current_user, title, desc)
     db.session.commit()
 
     if another:
@@ -385,7 +337,7 @@ def tracker_submit_POST(owner, name):
                 owner=tracker.owner.canonical_name,
                 name=name))
     else:
-        return redirect(ticket_url)
+        return redirect(ticket_url(ticket))
 
 @tracker.route("/<owner>/<name>/labels")
 @loginrequired
