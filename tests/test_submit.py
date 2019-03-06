@@ -25,7 +25,6 @@ def test_submit_ticket(client, mailbox, submitter_subscribed):
     description = "It does not work."
 
     ticket = submit_ticket(tracker, submitter, title, description)
-    db.session.commit()
 
     # Check ticket is created
     assert isinstance(ticket, Ticket)

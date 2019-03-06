@@ -328,8 +328,8 @@ def tracker_submit_POST(owner, name):
         db.session.commit() # Unlock tracker row
         return return_tracker(tracker, access, **valid.kwargs), 400
 
+    # TODO: Handle unique constraint failure (contention) and retry?
     ticket = submit_ticket(tracker, current_user, title, desc)
-    db.session.commit()
 
     if another:
         session["another"] = True
