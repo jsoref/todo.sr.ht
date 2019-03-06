@@ -187,10 +187,9 @@ def _handle_mentions(ticket, comment, notified_users):
     # Notify users who are mentioned, but only if they haven't already received
     # a notification due to being subscribed to the event or tracker
     to_notify_users = set(mentioned_users) - set(notified_users)
-    if comment and to_notify_users:
-        for user in to_notify_users:
-            subscription = get_or_create_subscription(comment.ticket, user)
-            _send_mention_notification(subscription, comment, user)
+    for user in to_notify_users:
+        subscription = get_or_create_subscription(comment.ticket, user)
+        _send_mention_notification(subscription, comment, user)
 
 
 def add_comment(user, ticket,
