@@ -196,6 +196,7 @@ def test_user_mention_pattern():
     # Should not match usernames in qualified ticket mentions
     assert match("~user1/repo#123") == []
 
+
 def test_find_mentioned_users():
     comment = "mentioning users ~mention1, ~mention2, and ~mention3 in a comment"
 
@@ -302,6 +303,10 @@ def test_ticket_mention_pattern():
         ('~baz/', 'baz', 'trackers', '372')
     ]
 
+    # "Special" chars in username and tracker name
+    assert match("~foo_bar_1/some-funky_tracker.name._-2#1") == [
+        ('~foo_bar_1/', 'foo_bar_1', 'some-funky_tracker.name._-2', '1')
+    ]
 
 def test_find_mentioned_tickets():
     u1 = UserFactory()

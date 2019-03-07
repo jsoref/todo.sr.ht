@@ -32,11 +32,11 @@ USER_MENTION_PATTERN = re.compile(r"""
 
 # Matches ticket mentions, e.g. #17, tracker#17 and ~user/tracker#17
 TICKET_MENTION_PATTERN = re.compile(r"""
-    (?<!\S)                 # No leading non-whitespace characters)
-    (~(?P<username>\w+)/)?  # Optional username
-    (?P<tracker_name>\w+)?  # Optional tracker name
-    \#(?P<ticket_id>\d+)    # Ticket ID
-    \b                      # Word boundary
+    (?<!\S)                          # No leading non-whitespace characters
+    (~(?P<username>\w+)/)?           # Optional username
+    (?P<tracker_name>[a-z0-9_.-]+)?  # Optional tracker name
+    \#(?P<ticket_id>\d+)             # Ticket ID
+    \b                               # Word boundary
 """, re.VERBOSE)
 
 def find_mentioned_users(text):
