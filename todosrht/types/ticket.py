@@ -69,3 +69,6 @@ class Ticket(Base):
             self.tracker.owner.canonical_name,
             self.tracker.name,
             self.scoped_id)
+
+    def __repr__(self):
+        return f"<Ticket {self.id}>"

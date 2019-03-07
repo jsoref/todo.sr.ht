@@ -24,11 +24,12 @@ def cache_comment_markup(func):
 
 @cache_comment_markup
 def render_comment(comment):
+    tracker = comment.ticket.tracker
     users = find_mentioned_users(comment.text)
-    tickets = find_mentioned_tickets(comment.ticket.tracker, comment.text)
+    tickets = find_mentioned_tickets(tracker, comment.text)
 
     users_map = {str(u): u for u in users}
-    tickets_map = {str(t.scoped_id): t for t in tickets}
+    tickets_map = {t.ref(): t for t in tickets}
 
     def urlize_user(match):
         username = match.group(0)
@@ -39,14 +40,19 @@ def render_comment(comment):
         return username
 
     def urlize_ticket(match):
-        scoped_id = match.group(1)
-        if scoped_id in tickets_map:
-            ticket = tickets_map[scoped_id]
-            url = urls.ticket_url(ticket)
-            title = escape(f"{ticket.ref()}: {ticket.title}")
-            return f'<a href="{url}" title="{title}">#{scoped_id}</a>'
+        text = match.group(0)
+        ticket_id = match.group('ticket_id')
+        tracker_name = match.group('tracker_name') or tracker.name
+        owner = match.group('username') or tracker.owner.username
 
-        return match.group(0)
+        ticket_ref = f"~{owner}/{tracker_name}#{ticket_id}"
+        if ticket_ref not in tickets_map:
+            return text
+
+        ticket = tickets_map[ticket_ref]
+        url = urls.ticket_url(ticket)
+        title = escape(f"{ticket.ref()}: {ticket.title}")
+        return f'<a href="{url}" title="{title}">{text}</a>'
 
     # Replace ticket and username mentions with linked version
     text = comment.text

@@ -6,9 +6,9 @@ from srht.database import db
 from todosrht.email import notify, format_lines
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
-from todosrht.types import TicketSeen, TicketAssignee, User, Ticket
+from todosrht.types import TicketSeen, TicketAssignee, User, Ticket, Tracker
 from todosrht.urls import ticket_url
-from sqlalchemy import func
+from sqlalchemy import func, or_, and_
 
 smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
@@ -29,8 +29,14 @@ USER_MENTION_PATTERN = re.compile(r"""
     \b         # Word boundary
 """, re.VERBOSE)
 
-# Matches ticket mentions, e.g. #17
-TICKET_MENTION_PATTERN = re.compile(r"#(\d+)\b")
+# Matches ticket mentions, e.g. #17, tracker#17 and ~user/tracker#17
+TICKET_MENTION_PATTERN = re.compile(r"""
+    (?<!\S)                 # No leading non-whitespace characters)
+    (~(?P<username>\w+)/)?  # Optional username
+    (?P<tracker_name>\w+)?  # Optional tracker name
+    \#(?P<ticket_id>\d+)    # Ticket ID
+    \b                      # Word boundary
+""", re.VERBOSE)
 
 def find_mentioned_users(text):
     usernames = re.findall(USER_MENTION_PATTERN, text)
@@ -38,12 +44,27 @@ def find_mentioned_users(text):
     return set(users)
 
 def find_mentioned_tickets(tracker, text):
-    ids = re.findall(TICKET_MENTION_PATTERN, text)
-    tickets = (Ticket.query
-        .filter_by(tracker=tracker)
-        .filter(Ticket.scoped_id.in_(ids))
+    filters = or_()
+
+    for match in re.finditer(TICKET_MENTION_PATTERN, text):
+        username = match.group('username') or tracker.owner.username
+        tracker_name = match.group('tracker_name') or tracker.name
+        ticket_id = int(match.group('ticket_id'))
+
+        filters.append(and_(
+            Ticket.scoped_id == ticket_id,
+            Tracker.name == tracker_name,
+            User.username == username,
+        ))
+
+    # No tickets mentioned
+    if len(filters) == 0:
+        return set()
+
+    return set(Ticket.query
+        .join(Tracker, User)
+        .filter(filters)
         .all())
-    return set(tickets)
 
 def _create_comment(ticket, user, text):
     comment = TicketComment()

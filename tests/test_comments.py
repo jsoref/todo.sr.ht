@@ -2,8 +2,9 @@ import pytest
 import re
 
 from srht.database import db
-from todosrht.tickets import add_comment, find_mentioned_users
-from todosrht.tickets import USER_MENTION_PATTERN
+from todosrht.tickets import add_comment
+from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
+from todosrht.tickets import USER_MENTION_PATTERN, TICKET_MENTION_PATTERN
 from todosrht.types import TicketResolution, TicketStatus
 from todosrht.types import TicketSubscription, EventType
 
@@ -276,3 +277,82 @@ def test_notifications_and_events(mailbox):
 
     assert t2_mention.comment == comment
     assert t2_mention.user == commenter
+
+def test_ticket_mention_pattern():
+    def match(text):
+        return re.findall(TICKET_MENTION_PATTERN, text)
+
+    assert match("#1, #13, and #372") == [
+        ('', '', '', '1'),
+        ('', '', '', '13'),
+        ('', '', '', '372')
+    ]
+
+    assert match("some#1, other#13, and trackers#372") == [
+        ('', '', 'some', '1'),
+        ('', '', 'other', '13'),
+        ('', '', 'trackers', '372')
+    ]
+
+    assert match("~foo/some#1, ~bar/other#13, and ~baz/trackers#372") == [
+        ('~foo/', 'foo', 'some', '1'),
+        ('~bar/', 'bar', 'other', '13'),
+        ('~baz/', 'baz', 'trackers', '372')
+    ]
+
+
+def test_find_mentioned_tickets():
+    u1 = UserFactory()
+    tr1 = TrackerFactory(owner=u1)
+    t11 = TicketFactory(tracker=tr1, scoped_id=1)
+    t12 = TicketFactory(tracker=tr1, scoped_id=13)
+
+    tr2 = TrackerFactory(owner=u1)
+    t21 = TicketFactory(tracker=tr2, scoped_id=1)
+    t22 = TicketFactory(tracker=tr2, scoped_id=42)
+
+    u3 = UserFactory()
+    tr3 = TrackerFactory(owner=u3)
+    t31 = TicketFactory(tracker=tr3, scoped_id=1)
+    t32 = TicketFactory(tracker=tr3, scoped_id=442)
+
+    db.session.commit()
+
+    # Texts with no matching ticket mentions
+    texts = [
+        "Nothing to see here, move along",
+        "Do not exist: #500, foo#300, ~bar/foo#123",
+        f"Also do not exist: {u1}/{tr1.name}#42, {u1}/{tr1.name}#442",
+    ]
+    for text in texts:
+        for tr in [tr1, tr2, tr3]:
+            assert find_mentioned_tickets(tr, text) == set()
+
+    # Mentioning ticket by number only matches tickets in the same tracker
+    text = "winning tickets are: #1, #13 and #42"
+    assert find_mentioned_tickets(tr1, text) == {t11, t12}
+    assert find_mentioned_tickets(tr2, text) == {t21, t22}
+    assert find_mentioned_tickets(tr3, text) == {t31}
+
+    # Mentioning ticket by number and tracker name matches tickets in the
+    # repository with the given name, owned by the same user as the repository
+    # on which the comment is posted
+    text = f"winning tickets are: {tr1.name}#1, {tr1.name}#13 and {tr1.name}#42"
+    assert find_mentioned_tickets(tr1, text) == {t11, t12}
+    assert find_mentioned_tickets(tr2, text) == {t11, t12}
+    assert find_mentioned_tickets(tr3, text) == set()  # owned by u3
+
+    text = f"winning tickets are: {tr2.name}#1, {tr2.name}#13 and {tr2.name}#42"
+    assert find_mentioned_tickets(tr1, text) == {t21, t22}
+    assert find_mentioned_tickets(tr2, text) == {t21, t22}
+    assert find_mentioned_tickets(tr3, text) == set()  # owned by u3
+
+    text = f"winning tickets are: {tr3.name}#1, {tr3.name}#13 and {tr3.name}#42"
+    assert find_mentioned_tickets(tr1, text) == set()  # owned by u1
+    assert find_mentioned_tickets(tr2, text) == set()  # owned by u1
+    assert find_mentioned_tickets(tr3, text) == {t31}
+
+    # Fully qualified mentions include user, tracker and ticket ID
+    for tr in [tr1, tr2, tr3]:
+        for t in [t11, t12, t21, t22, t31, t32]:
+            assert find_mentioned_tickets(tr, f"mentioning {t.ref()}") == {t}
