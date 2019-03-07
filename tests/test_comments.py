@@ -193,6 +193,8 @@ def test_user_mention_pattern():
     assert match("~user1 and https://todo.sr.ht/~user2") == ['user1']
     assert match("~user1 and https://todo.sr.ht/~user2/tracker") == ['user1']
 
+    # Should not match usernames in qualified ticket mentions
+    assert match("~user1/repo#123") == []
 
 def test_find_mentioned_users():
     comment = "mentioning users ~mention1, ~mention2, and ~mention3 in a comment"

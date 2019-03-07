@@ -27,6 +27,7 @@ USER_MENTION_PATTERN = re.compile(r"""
     ~          # Literal tilde
     (\w+)      # The username
     \b         # Word boundary
+    (?!/)      # Not followed by slash, possible qualified ticket mention
 """, re.VERBOSE)
 
 # Matches ticket mentions, e.g. #17, tracker#17 and ~user/tracker#17
