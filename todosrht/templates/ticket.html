@@ -1,8 +1,7 @@
 {% extends "layout-full.html" %}
 {% block title %}
 <title>
-  {{tracker.name}}/#{{ticket.scoped_id}}:
-  {{ticket.title}}
+  {{ ticket.ref() }}: {{ ticket.title }}
   &mdash;
   {{ cfg("sr.ht", "site-name") }} todo
 </title>
@@ -15,7 +14,7 @@
         <span class="d-block d-md-inline">
           <a href="{{ tracker.owner|user_url }}"
             >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
-            >{{ tracker.name }}</a>/#{{ ticket.scoped_id }}<span
+            >{{ tracker.name }}</a>#{{ ticket.scoped_id }}<span
               class="d-none d-md-inline">:</span>
         </span>
         <span id="title-field" class="d-block d-md-inline">
