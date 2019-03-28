@@ -57,7 +57,7 @@ def index():
         .filter(Tracker.owner_id == current_user.id)
         .order_by(Tracker.updated.desc())
     )
-    limit_trackers = 5
+    limit_trackers = 10
     total_trackers = trackers.count()
     trackers = trackers.limit(limit_trackers).all()
 
@@ -88,7 +88,7 @@ def user_GET(username):
         trackers = trackers.filter(Tracker.default_user_perms > 0)
     elif not current_user:
         trackers = trackers.filter(Tracker.default_anonymous_perms > 0)
-    limit_trackers = 5
+    limit_trackers = 10
     total_trackers = trackers.count()
     trackers = (trackers
         .order_by(Tracker.updated.desc())
