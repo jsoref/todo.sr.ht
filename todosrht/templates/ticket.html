@@ -202,15 +202,7 @@
         {% if TicketAccess.edit in access
            and tracker.labels|count > ticket.labels|count %}
         <dd class="col-md-9 offset-md-3">
-          <form
-            method="POST"
-            action="{{
-              url_for(".ticket_add_label",
-                owner=tracker.owner.canonical_name,
-                name=tracker.name,
-                ticket_id=ticket.scoped_id,
-              )
-          }}">
+          <form method="POST" action="{{ ticket|label_add_url }}">
             {{csrf_token()}}
             <select
               id="label_id"

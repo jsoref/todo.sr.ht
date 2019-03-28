@@ -47,15 +47,15 @@ def label_search_url(label):
         tracker_url(label.tracker),
         unicode_urlencode(label.name))
 
-def label_add_url(label, ticket):
-    """Return the URL to remove a label from a ticket."""
+def label_add_url(ticket):
+    """Return the URL to add a label to a ticket."""
     return url_for("ticket.ticket_add_label",
             owner=ticket.tracker.owner.canonical_name,
             name=ticket.tracker.name,
             ticket_id=ticket.scoped_id)
 
 def label_remove_url(label, ticket):
-    """Return the URL to add a label to a ticket."""
+    """Return the URL to remove a label from a ticket."""
     return url_for("ticket.ticket_remove_label",
             owner=ticket.tracker.owner.canonical_name,
             name=ticket.tracker.name,
