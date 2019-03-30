@@ -86,7 +86,7 @@
     <div class="col-md-6">
       {% if ticket.description %}
       <span id="description-field">
-      {{ ticket.description | extended_md(baselevel=4) }}
+        {{ ticket|render_ticket_description }}
       </span>
       {% endif %}
       <dl class="row" style="margin-top: 1rem">

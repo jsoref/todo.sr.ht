@@ -9,24 +9,23 @@ from todosrht.redis import redis
 from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
 from todosrht.tickets import TICKET_MENTION_PATTERN, USER_MENTION_PATTERN
 
-def cache_comment_markup(func):
+def cache_rendered_markup(func):
     @wraps(func)
-    def wrap(comment):
-        key = f"todo.sr.ht:render_comment:{comment.id}"
+    def wrap(obj):
+        class_name = obj.__class__.__name__
+        key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{obj.id}"
         value = redis.get(key)
         if value:
             return Markup(value.decode())
 
-        value = func(comment)
+        value = func(obj)
         redis.setex(key, timedelta(days=30), value)
         return value
     return wrap
 
-@cache_comment_markup
-def render_comment(comment):
-    tracker = comment.ticket.tracker
-    users = find_mentioned_users(comment.text)
-    tickets = find_mentioned_tickets(tracker, comment.text)
+def render_markup(tracker, text):
+    users = find_mentioned_users(text)
+    tickets = find_mentioned_tickets(tracker, text)
 
     users_map = {str(u): u for u in users}
     tickets_map = {t.ref(): t for t in tickets}
@@ -55,11 +54,18 @@ def render_comment(comment):
         return f'<a href="{url}" title="{title}">{text}</a>'
 
     # Replace ticket and username mentions with linked version
-    text = comment.text
     text = re.sub(USER_MENTION_PATTERN, urlize_user, text)
     text = re.sub(TICKET_MENTION_PATTERN, urlize_ticket, text)
 
     return markdown(text)
+
+@cache_rendered_markup
+def render_comment(comment):
+    return render_markup(comment.ticket.tracker, comment.text)
+
+@cache_rendered_markup
+def render_ticket_description(ticket):
+    return render_markup(ticket.tracker, ticket.description)
 
 def label_badge(label, cls="", remove_from_ticket=None):
     """Return HTML markup rendering a label badge.
