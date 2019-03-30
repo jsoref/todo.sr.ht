@@ -236,9 +236,15 @@
       ] %}
       <div class="event">
         <h4 id="event-{{event.id}}">
-          <a href="{{ event.user|user_url }}">
-            {{ event.user }}
-          </a>
+          {% if event.event_type not in [
+            EventType.assigned_user,
+            EventType.unassigned_user,
+            EventType.ticket_mentioned,
+          ] %}
+            <a href="{{ event.user|user_url }}">
+              {{ event.user }}
+            </a>
+          {% endif %}
           {% if EventType.status_change in event.event_type %}
             <strong class="text-success">
               {% if event.old_status == TicketStatus.resolved %}
@@ -263,19 +269,28 @@
             removed {{ event.label|label_badge(cls="small") }}
           {% endif %}
           {% if EventType.assigned_user in event.event_type %}
+            <a href="{{event.by_user|user_url}}">
+              {{event.by_user}}
+            </a>
             assigned
-            <a href="{{event.assigned_user|user_url}}">
-              {{event.assigned_user}}
+            <a href="{{event.user|user_url}}">
+              {{event.user}}
             </a>
           {% endif %}
           {% if EventType.unassigned_user in event.event_type %}
+            <a href="{{event.by_user|user_url}}">
+              {{event.by_user}}
+            </a>
             unassigned
-            <a href="{{event.assigned_user|user_url}}">
-              {{event.assigned_user}}
+            <a href="{{event.user|user_url}}">
+              {{event.user}}
             </a>
           {% endif %}
           {% if EventType.ticket_mentioned in event.event_type %}
-            {% set relation = event.comment.ticket %}
+            <a href="{{ event.by_user|user_url }}">
+              {{ event.by_user }}
+            </a>
+            {% set relation = event.from_ticket %}
             {% if relation.status == TicketStatus.resolved and
               relation.resolution == TicketResolution.duplicate %}
             closed duplicate ticket

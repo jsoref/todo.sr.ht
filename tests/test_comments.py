@@ -253,20 +253,25 @@ def test_notifications_and_events(mailbox):
     # Check correct events are generated
     comment_events = {e for e in ticket.events
         if e.event_type == EventType.comment}
-    user_events = {e for e in ticket.events
+    u1_events = {e for e in u1.events
+        if e.event_type == EventType.user_mentioned}
+    u2_events = {e for e in u2.events
         if e.event_type == EventType.user_mentioned}
 
     assert len(comment_events) == 1
-    assert len(user_events) == 2
+    assert len(u1_events) == 1
+    assert len(u2_events) == 1
 
-    u1_mention = next(e for e in user_events if e.user == u1)
-    u2_mention = next(e for e in user_events if e.user == u2)
+    u1_mention = u1_events.pop()
+    u2_mention = u2_events.pop()
 
     assert u1_mention.comment == comment
-    assert u1_mention.ticket == ticket
+    assert u1_mention.from_ticket == ticket
+    assert u1_mention.by_user == commenter
 
     assert u2_mention.comment == comment
-    assert u2_mention.ticket == ticket
+    assert u2_mention.from_ticket == ticket
+    assert u2_mention.by_user == commenter
 
     assert len(t1.events) == 1
     assert len(t2.events) == 1
@@ -276,10 +281,12 @@ def test_notifications_and_events(mailbox):
     t2_mention = t2.events[0]
 
     assert t1_mention.comment == comment
-    assert t1_mention.user == commenter
+    assert t1_mention.from_ticket == ticket
+    assert t1_mention.by_user == commenter
 
     assert t2_mention.comment == comment
-    assert t2_mention.user == commenter
+    assert t2_mention.from_ticket == ticket
+    assert t2_mention.by_user == commenter
 
 def test_ticket_mention_pattern():
     def match(text):

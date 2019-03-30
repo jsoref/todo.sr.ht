@@ -194,15 +194,17 @@ def _handle_mentions(ticket, comment, notified_users):
         db.session.add(Event(
             event_type=EventType.user_mentioned,
             user=user,
-            ticket=ticket,
+            from_ticket=ticket,
+            by_user=comment.submitter,
             comment=comment,
         ))
 
     for mentioned_ticket in mentioned_tickets:
         db.session.add(Event(
             event_type=EventType.ticket_mentioned,
-            user=comment.submitter,
             ticket=mentioned_ticket,
+            from_ticket=comment.ticket,
+            by_user=comment.submitter,
             comment=comment,
         ))
 
@@ -311,9 +313,9 @@ def assign(ticket, assignee, assigner):
 
     event = Event()
     event.event_type = EventType.assigned_user
-    event.user_id = assigner.id
+    event.user_id = assignee.id
     event.ticket_id = ticket.id
-    event.assigned_user_id = assignee.id
+    event.by_user_id = assigner.id
     db.session.add(event)
 
     return ticket_assignee
@@ -330,9 +332,9 @@ def unassign(ticket, assignee, assigner):
 
     event = Event()
     event.event_type = EventType.unassigned_user
-    event.user_id = assigner.id
+    event.user_id = assignee.id
     event.ticket_id = ticket.id
-    event.assigned_user_id = assignee.id
+    event.by_user_id = assigner.id
     db.session.add(event)
 
 def get_last_seen_times(user, tickets):

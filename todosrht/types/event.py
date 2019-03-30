@@ -31,15 +31,14 @@ class Event(Base):
     new_status = sa.Column(FlagType(TicketStatus), default=0)
     new_resolution = sa.Column(FlagType(TicketResolution), default=0)
 
-    user_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id"), nullable=False)
+    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
     user = sa.orm.relationship("User",
             backref=sa.orm.backref("events"), foreign_keys=[user_id])
 
     ticket_id = sa.Column(sa.Integer,
-            sa.ForeignKey("ticket.id", ondelete="CASCADE"),
-            nullable=False)
+            sa.ForeignKey("ticket.id", ondelete="CASCADE"))
     ticket = sa.orm.relationship("Ticket",
+            foreign_keys=[ticket_id],
             backref=sa.orm.backref("events", cascade="all, delete-orphan"))
 
     comment_id = sa.Column(sa.Integer,
@@ -51,9 +50,12 @@ class Event(Base):
     label = sa.orm.relationship("Label",
             backref=sa.orm.backref("events", cascade="all, delete-orphan"))
 
-    assigned_user_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id"))
-    assigned_user = sa.orm.relationship("User", foreign_keys=[assigned_user_id])
+    by_user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
+    by_user = sa.orm.relationship("User", foreign_keys=[by_user_id])
+
+    from_ticket_id = sa.Column(sa.Integer,
+            sa.ForeignKey("ticket.id", ondelete="CASCADE"))
+    from_ticket = sa.orm.relationship("Ticket", foreign_keys=[from_ticket_id])
 
     def __repr__(self):
         return '<Event {}>'.format(self.id)

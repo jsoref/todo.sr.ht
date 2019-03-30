@@ -1,5 +1,6 @@
 <div class="event-list">
 {% for event in events %}
+{% if event.ticket %}
   <div class="event">
     <h4>
       <a href="{{ event.ticket|ticket_url }}">
@@ -23,21 +24,21 @@
       {{ event.label|label_badge(cls="small") }} removed by
       <a href="{{ event.user|user_url }}">{{ event.user }}</a>
     {% elif EventType.assigned_user in event.event_type %}
-      <a href="{{event.user|user_url}}">
-        {{event.user}}
+      <a href="{{event.by_user|user_url}}">
+        {{event.by_user}}
       </a>
       assigned
-      <a href="{{event.assigned_user|user_url}}">
-        {{event.assigned_user}}
+      <a href="{{event.user|user_url}}">
+        {{event.user}}
       </a>
       to #{{event.ticket.scoped_id}}
     {% elif EventType.unassigned_user in event.event_type %}
-      <a href="{{event.user|user_url}}">
-        {{event.user}}
+      <a href="{{event.by_user|user_url}}">
+        {{event.by_user}}
       </a>
       unassigned
-      <a href="{{event.assigned_user|user_url}}">
-        {{event.assigned_user}}
+      <a href="{{event.user|user_url}}">
+        {{event.user}}
       </a>
       from #{{event.ticket.scoped_id}}
     {% endif %}
@@ -73,6 +74,7 @@
     </p>
     {% endif %}
   </div>
+{% endif %}
 {% else %}
   <p>Nothing here yet!</p>
 {% endfor %}
