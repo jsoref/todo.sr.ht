@@ -165,37 +165,36 @@ def _send_comment_notifications(user, ticket, event, comment, resolution):
 
     return subscriptions.keys()
 
-def _send_mention_notification(subscription, comment, mentioned_user):
-    ticket = comment.ticket
+def _send_mention_notification(sub, submitter, text, ticket, comment=None):
     subject = "{}: {}".format(ticket.ref(), ticket.title)
     headers = {
-        "From": "~{} <{}>".format(comment.submitter.username, notify_from),
+        "From": "~{} <{}>".format(submitter.username, notify_from),
         "Sender": smtp_user,
     }
 
     context = {
-        "comment_text": format_lines(comment.text),
-        "submitter": comment.submitter.canonical_name,
+        "text": format_lines(text),
+        "submitter": submitter.canonical_name,
         "ticket_ref": ticket.ref(),
-        "ticket_url": ticket_url(ticket)
+        "ticket_url": ticket_url(ticket, comment),
     }
 
-    notify(subscription, "ticket_mention", subject, headers, **context)
+    notify(sub, "ticket_mention", subject, headers, **context)
 
 
-def _handle_mentions(ticket, comment, notified_users):
+def _handle_mentions(ticket, submitter, text, notified_users, comment=None):
     """
     Create events for mentioned tickets and users and notify mentioned users.
     """
-    mentioned_users = find_mentioned_users(comment.text)
-    mentioned_tickets = find_mentioned_tickets(ticket.tracker, comment.text)
+    mentioned_users = find_mentioned_users(text)
+    mentioned_tickets = find_mentioned_tickets(ticket.tracker, text)
 
     for user in mentioned_users:
         db.session.add(Event(
             event_type=EventType.user_mentioned,
             user=user,
             from_ticket=ticket,
-            by_user=comment.submitter,
+            by_user=submitter,
             comment=comment,
         ))
 
@@ -203,17 +202,18 @@ def _handle_mentions(ticket, comment, notified_users):
         db.session.add(Event(
             event_type=EventType.ticket_mentioned,
             ticket=mentioned_ticket,
-            from_ticket=comment.ticket,
-            by_user=comment.submitter,
+            from_ticket=ticket,
+            by_user=submitter,
             comment=comment,
         ))
 
     # Notify users who are mentioned, but only if they haven't already received
     # a notification due to being subscribed to the event or tracker
-    to_notify_users = set(mentioned_users) - set(notified_users)
+    # Also don't notify the submitter if they mention themselves.
+    to_notify_users = mentioned_users - set(notified_users) - set([submitter])
     for user in to_notify_users:
-        subscription = get_or_create_subscription(comment.ticket, user)
-        _send_mention_notification(subscription, comment, user)
+        sub = get_or_create_subscription(ticket, user)
+        _send_mention_notification(sub, submitter, text, ticket, comment)
 
 
 def add_comment(user, ticket,
@@ -234,7 +234,13 @@ def add_comment(user, ticket,
         user, ticket, event, comment, resolution)
 
     if comment and comment.text:
-        _handle_mentions(ticket, comment, notified_users)
+        _handle_mentions(
+            ticket,
+            comment.submitter,
+            comment.text,
+            notified_users,
+            comment,
+        )
 
     ticket.updated = datetime.utcnow()
     ticket.tracker.updated = datetime.utcnow()
@@ -387,6 +393,14 @@ def submit_ticket(tracker, submitter, title, description):
         _create_event_notification(sub.user, event)
         if sub.user != submitter:
             _send_new_ticket_notification(sub, ticket)
+
+    notified_users = [sub.user for sub in tracker.subscriptions]
+    _handle_mentions(
+        ticket,
+        ticket.submitter,
+        ticket.description,
+        notified_users,
+    )
 
     db.session.commit()
     return ticket
