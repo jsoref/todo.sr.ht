@@ -113,7 +113,7 @@
               <a href="{{ assignee|user_url }}">{{ assignee }}</a>
             </div>
             <div class="col">
-              {% if TicketAccess.edit in access %}
+              {% if TicketAccess.triage in access %}
               <form
                 method="POST"
                 action="{{ ticket|ticket_unassign_url }}"
