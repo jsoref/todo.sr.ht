@@ -134,7 +134,6 @@
           placeholder="Search tickets...     status:closed     label:label     order:updated     submitter:me"
           class="form-control"
           value="{{ search if search else "" }}" />
-        {{csrf_token()}}
       </form>
       {% if len(tickets) %}
       <div class="ticket-list">

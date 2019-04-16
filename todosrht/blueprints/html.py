@@ -9,8 +9,6 @@ from sqlalchemy import and_, or_
 
 html = Blueprint('html', __name__)
 
-meta_uri = cfg("meta.sr.ht", "origin")
-
 def filter_authorized_events(events):
     events = (events
         .join(Ticket, Ticket.id == Event.ticket_id)
