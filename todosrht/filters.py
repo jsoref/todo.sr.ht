@@ -67,6 +67,11 @@ def render_comment(comment):
 def render_ticket_description(ticket):
     return render_markup(ticket.tracker, ticket.description)
 
+def invalidate_markup_cache(obj):
+    class_name = obj.__class__.__name__
+    key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{obj.id}"
+    redis.delete(key)
+
 def label_badge(label, cls="", remove_from_ticket=None):
     """Return HTML markup rendering a label badge.
 

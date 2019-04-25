@@ -5,6 +5,7 @@ from srht.database import db
 from srht.flask import loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
+from todosrht.filters import invalidate_markup_cache
 from todosrht.search import find_usernames
 from todosrht.tickets import add_comment, mark_seen, assign, unassign
 from todosrht.types import Event, EventType
@@ -198,6 +199,8 @@ def ticket_edit_POST(owner, name, ticket_id):
     ticket.title = title
     ticket.description = desc
     db.session.commit()
+
+    invalidate_markup_cache(ticket)
 
     return redirect(ticket_url(ticket))
 
