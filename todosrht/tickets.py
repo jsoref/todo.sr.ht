@@ -13,6 +13,7 @@ from sqlalchemy import func, or_, and_
 smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
 notify_from = cfg("todo.sr.ht", "notify-from", default=smtp_from)
+posting_domain = cfg("todo.sr.ht::mail", "posting-domain")
 
 StatusChange = namedtuple("StatusChange", [
     "old_status",
@@ -110,6 +111,7 @@ def _send_comment_notification(subscription, ticket, user, comment, resolution):
     subject = "Re: {}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "~{} <{}>".format(user.username, notify_from),
+        "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }
 
@@ -169,6 +171,7 @@ def _send_mention_notification(sub, submitter, text, ticket, comment=None):
     subject = "{}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "~{} <{}>".format(submitter.username, notify_from),
+        "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }
 
@@ -284,6 +287,7 @@ def notify_assignee(subscription, ticket, assigner, assignee):
     subject = "{}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "~{} <{}>".format(assigner.username, notify_from),
+        "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }
 
@@ -361,6 +365,7 @@ def _send_new_ticket_notification(subscription, ticket):
     subject = f"{ticket.ref()}: {ticket.title}"
     headers = {
         "From": "~{} <{}>".format(ticket.submitter.username, notify_from),
+        "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }
 

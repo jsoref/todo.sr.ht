@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-from srht.config import cfg
+from srht.config import cfg, get_origin
 from srht.database import db, DbSession
 db = DbSession(cfg("todo.sr.ht", "connection-string"))
 import todosrht.types
@@ -8,14 +8,15 @@ db.init()
 from aiosmtpd.lmtp import SMTP, LMTP
 from email.utils import parseaddr
 from grp import getgrnam
-from todosrht.access import get_tracker
-from todosrht.types import TicketAccess, Tracker, Ticket, User
-from todosrht.tickets import submit_ticket
+from todosrht.access import get_tracker, get_ticket
+from todosrht.types import TicketAccess, TicketResolution, Tracker, Ticket, User
+from todosrht.tickets import submit_ticket, add_comment
 from srht.validation import Validation
 import asyncio
 import email
 import email.policy
 import os
+import shlex
 import signal
 import sys
 
@@ -65,7 +66,11 @@ class MailHandler:
             else:
                 # TODO: user groups
                 return None, None
-        return get_tracker(owner, tracker_name, user=sender)
+        tracker, access = get_tracker(owner, tracker_name, user=sender)
+        if not ticket_id:
+            return tracker, access
+        ticket, access = get_ticket(tracker, ticket_id, user=sender)
+        return ticket, access
 
     async def handle_RCPT(self, server, session,
             envelope, address, rcpt_options):
@@ -73,7 +78,11 @@ class MailHandler:
         envelope.rcpt_tos.append(address)
         return "250 OK"
 
-    async def handle_tracker_message(self, tracker, sender, mail, body):
+    async def handle_tracker_message(self, tracker, sender, access, mail, body):
+        if not TicketAccess.submit in access:
+            print("Rejected, insufficient permissions")
+            return "550 You do not have permission to post on this tracker."
+
         subject = mail["Subject"]
         valid = Validation({
             "title": subject,
@@ -96,6 +105,39 @@ class MailHandler:
 
         ticket = submit_ticket(tracker, sender, title, desc)
         print(f"Created ticket {ticket.ref()}")
+        return "250 Message accepted for delivery"
+
+    async def handle_ticket_message(self, ticket, sender, access, mail, body):
+        required_access = TicketAccess.comment
+        last_line = body.splitlines()[-1]
+
+        resolution = None
+        resolve = reopen = False
+        cmds = ["!resolve", "!reopen", "!assign", "!label", "!unlabel"]
+        if any(last_line.startswith(cmd) for cmd in cmds):
+            cmd = shlex.split(last_line)
+            body = body[:-len(last_line)-1].rstrip()
+            required_access = TicketAccess.triage
+            if cmd[0] == "!resolve" and len(cmd) == 2:
+                resolve = True
+                resolution = TicketResolution[cmd[1].lower()]
+            elif cmd[0] == "!reopen":
+                reopen = True
+            # TODO: Remaining commands
+
+        if not required_access in access:
+            print(f"Rejected, {sender.canonical_name} has insufficient " +
+                f"permissions (have {access}, want {required_access})")
+            return "550 You do not have permission to post on this tracker."
+
+        if not body or 3 > len(body) > 16384:
+            print("Rejected, invalid comment length")
+            return "550 Comment must be between 3 and 16384 characters."
+
+        comment = add_comment(sender, ticket, text=body,
+                resolution=resolution, resolve=resolve, reopen=reopen)
+        print(f"Added comment to {comment.ticket.ref()}")
+        return "250 Message accepted for delivery"
 
     async def handle_DATA(self, server, session, envelope):
         try:
@@ -123,10 +165,6 @@ class MailHandler:
             print("Rejected, destination not found")
             return "550 The tracker or ticket you requested does not exist."
 
-        if not TicketAccess.submit in access:
-            print("Rejected, insufficient permissions")
-            return "550 You do not have permission to post on this tracker."
-
         body = None
         for part in mail.walk():
             if part.is_multipart():
@@ -138,10 +176,11 @@ class MailHandler:
                 break
 
         if isinstance(dest, Tracker):
-            await self.handle_tracker_message(dest, sender, mail, body)
-            return "250 Message accepted for delivery"
+            return await self.handle_tracker_message(
+                    dest, sender, access, mail, body)
         elif isinstance(dest, Ticket):
-            pass # TODO
+            return await self.handle_ticket_message(
+                    dest, sender, access, mail, body)
         else:
             assert False
 

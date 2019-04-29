@@ -1,4 +1,4 @@
-from flask import url_for
+from flask import has_app_context, url_for
 from jinja2.utils import unicode_urlencode
 
 def tracker_url(tracker):
@@ -12,10 +12,15 @@ def tracker_labels_url(tracker):
         name=tracker.name)
 
 def ticket_url(ticket, comment=None):
-    ticket_url = url_for("ticket.ticket_GET",
-            owner=ticket.tracker.owner.canonical_name,
-            name=ticket.tracker.name,
-            ticket_id=ticket.scoped_id)
+    if has_app_context():
+        ticket_url = url_for("ticket.ticket_GET",
+                owner=ticket.tracker.owner.canonical_name,
+                name=ticket.tracker.name,
+                ticket_id=ticket.scoped_id)
+    else:
+        ticket_url = (f"/{ticket.tracker.owner.canonical_name}" +
+            f"/{ticket.tracker.name}" +
+            f"/{ticket.scoped_id}")
 
     if comment:
         ticket_url += "#comment-" + str(comment.id)

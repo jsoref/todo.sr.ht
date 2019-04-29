@@ -45,13 +45,13 @@ def get_tracker(owner, name, with_for_update=False, user=None):
     # TODO: org trackers
     return None, None
 
-def get_ticket(tracker, ticket_id):
+def get_ticket(tracker, ticket_id, user=None):
     ticket = (Ticket.query
             .filter(Ticket.scoped_id == ticket_id)
             .filter(Ticket.tracker_id == tracker.id)).one_or_none()
     if not ticket:
         return None, None
-    access = get_access(tracker, ticket)
+    access = get_access(tracker, ticket, user=user)
     if not TicketAccess.browse in access:
         return None, None
     return ticket, access
