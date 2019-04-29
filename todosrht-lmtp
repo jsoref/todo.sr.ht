@@ -105,6 +105,12 @@ class MailHandler:
         _from = parseaddr(mail["From"])
         sender = User.query.filter(User.email == _from[1]).one_or_none()
 
+        if not sender:
+            print(f"Rejecting email from unknown sender {_from[1]}")
+            # TODO: allow posting from users without an account
+            return ("550 There is no account associated with this address. " +
+                "Have you logged into todo.sr.ht on the web before?")
+
         dest, access = self.lookup_destination(address, sender)
         if dest is None:
             print("Rejected, destination not found")
@@ -123,12 +129,6 @@ class MailHandler:
             if content_type == 'text/plain':
                 body = part.get_payload(decode=True).decode(charset)
                 break
-
-        if not sender:
-            print("Rejecting email from unknown sender")
-            # TODO: allow posting from users without an account
-            return ("550 There is no account associated with this address. " +
-                "Have you logged into todo.sr.ht on the web before?")
 
         if isinstance(dest, Tracker):
             await self.handle_tracker_message(dest, sender, mail, body)
