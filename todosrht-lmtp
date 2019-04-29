@@ -22,7 +22,7 @@ import sys
 loop = asyncio.new_event_loop()
 
 class MailHandler:
-    def lookup_destination(self, address):
+    def lookup_destination(self, address, sender):
         # Address formats are:
         # Tracker (opening a new ticket):
         # ~username/tracker@todo.sr.ht
@@ -65,7 +65,7 @@ class MailHandler:
             else:
                 # TODO: user groups
                 return None, None
-        return get_tracker(owner, tracker_name)
+        return get_tracker(owner, tracker_name, sender)
 
     async def handle_RCPT(self, server, session,
             envelope, address, rcpt_options):
@@ -99,16 +99,20 @@ class MailHandler:
 
     async def handle_DATA(self, server, session, envelope):
         address = envelope.rcpt_tos[0]
-        dest, access = self.lookup_destination(address)
+        _from = parseaddr(mail["From"])
+        sender = User.query.filter(User.email == _from[1]).one_or_none()
+
+        dest, access = self.lookup_destination(address, sender)
         if dest is None:
             print("Rejected, destination not found")
             return "550 The tracker or ticket you requested does not exist."
 
+        if not TicketAccess.submit in access:
+            print("Rejected, insufficient permissions")
+            return "550 You do not have permission to post on this tracker."
+
         mail = email.message_from_bytes(envelope.content,
                 policy=email.policy.SMTP)
-
-        _from = parseaddr(mail["From"])
-        sender = User.query.filter(User.email == _from[1]).one_or_none()
 
         body = None
         for part in mail.walk():

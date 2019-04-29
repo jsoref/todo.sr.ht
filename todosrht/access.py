@@ -2,12 +2,14 @@ from flask_login import current_user
 from todosrht.types import User, Tracker, Ticket
 from todosrht.types import TicketAccess
 
-def get_access(tracker, ticket):
+def get_access(tracker, ticket, user=None):
+    if user == None:
+        user = current_user
     # TODO: flesh out
-    if current_user and current_user.id == tracker.owner_id:
+    if user and user.id == tracker.owner_id:
         return TicketAccess.all
-    elif current_user:
-        if ticket and current_user.id == ticket.submitter_id:
+    elif user:
+        if ticket and user.id == ticket.submitter_id:
             return ticket.submitter_perms or tracker.default_submitter_perms
         return tracker.default_user_perms
 
@@ -18,7 +20,7 @@ def get_access(tracker, ticket):
 def get_owner(owner):
     pass
 
-def get_tracker(owner, name, with_for_update=False):
+def get_tracker(owner, name, with_for_update=False, user=None):
     if not owner:
         return None, None
 
@@ -36,7 +38,7 @@ def get_tracker(owner, name, with_for_update=False):
     tracker = tracker.one_or_none()
     if not tracker:
         return None, None
-    access = get_access(tracker, None)
+    access = get_access(tracker, None, user=user)
     if access:
         return tracker, access
 
