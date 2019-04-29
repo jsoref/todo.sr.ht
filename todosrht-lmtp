@@ -65,7 +65,7 @@ class MailHandler:
             else:
                 # TODO: user groups
                 return None, None
-        return get_tracker(owner, tracker_name, sender)
+        return get_tracker(owner, tracker_name, user=sender)
 
     async def handle_RCPT(self, server, session,
             envelope, address, rcpt_options):
