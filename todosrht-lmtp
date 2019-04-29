@@ -99,6 +99,9 @@ class MailHandler:
 
     async def handle_DATA(self, server, session, envelope):
         address = envelope.rcpt_tos[0]
+
+        mail = email.message_from_bytes(envelope.content,
+                policy=email.policy.SMTP)
         _from = parseaddr(mail["From"])
         sender = User.query.filter(User.email == _from[1]).one_or_none()
 
@@ -110,9 +113,6 @@ class MailHandler:
         if not TicketAccess.submit in access:
             print("Rejected, insufficient permissions")
             return "550 You do not have permission to post on this tracker."
-
-        mail = email.message_from_bytes(envelope.content,
-                policy=email.policy.SMTP)
 
         body = None
         for part in mail.walk():
