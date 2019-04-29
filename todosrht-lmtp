@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+from srht.config import cfg
+from srht.database import db, DbSession
+db = DbSession(cfg("todo.sr.ht", "connection-string"))
+import todosrht.types
+db.init()
+
+from aiosmtpd.lmtp import SMTP, LMTP
+from email.utils import parseaddr
+from grp import getgrnam
+from todosrht.access import get_tracker
+from todosrht.types import TicketAccess, Tracker, Ticket, User
+from todosrht.tickets import submit_ticket
+from srht.validation import Validation
+import asyncio
+import email
+import email.policy
+import os
+import signal
+import sys
+
+loop = asyncio.new_event_loop()
+
+class MailHandler:
+    def lookup_destination(self, address):
+        # Address formats are:
+        # Tracker (opening a new ticket):
+        # ~username/tracker@todo.sr.ht
+        #   or (for shitty MTAs):
+        # u.username.tracker@todo.sr.ht
+        # Ticket (participating in dicsussion):
+        # ~username/tracker/1234@todo.sr.ht
+        #   or (for shitty MTAs):
+        # u.username.tracker.1234@todo.sr.ht
+        address = address[:address.rfind("@")]
+        # TODO: Subscribe to trackers & tickets via email
+        ticket_id = None, None
+        if address.startswith("~"):
+            # TODO: user groups
+            parts = address.split("/")
+            if len(parts) == 2:
+                owner, tracker_name = parts
+            elif len(parts) == 3:
+                owner, tracker_name, ticket_id = parts
+                try:
+                    ticket_id = int(ticket_id)
+                except:
+                    return None, None
+            else:
+                return None, None
+        else:
+            address = address.split(".")
+            if len(address) == 3:
+                prefix, owner, list_name = address
+            elif len(address) == 4:
+                prefix, owner, list_name, ticket_id = address
+                try:
+                    ticket_id = int(ticket_id)
+                except:
+                    return None, None
+            else:
+                return None, None
+            if prefix == "u":
+                owner = "~" + owner
+            else:
+                # TODO: user groups
+                return None, None
+        return get_tracker(owner, tracker_name)
+
+    async def handle_RCPT(self, server, session,
+            envelope, address, rcpt_options):
+        print("RCPT {}".format(address))
+        envelope.rcpt_tos.append(address)
+        return "250 OK"
+
+    async def handle_tracker_message(self, tracker, sender, mail, body):
+        subject = mail["Subject"]
+        valid = Validation({
+            "title": subject,
+            "description": body,
+        })
+
+        title = valid.require("title")
+        desc = valid.optional("description")
+
+        valid.expect(not title or 3 <= len(title) <= 2048,
+                "Title must be between 3 and 2048 characters",
+                field="title")
+        valid.expect(not desc or len(desc) < 16384,
+                "Description must be no more than 16384 characters",
+                field="description")
+
+        if not valid.ok:
+            print("Rejecting email due to validation errors")
+            return "550 " + ", ".join([e["reason"] for e in valid.errors])
+
+        ticket = submit_ticket(tracker, sender, title, desc)
+        print(f"Created ticket {ticket.ref()}")
+
+    async def handle_DATA(self, server, session, envelope):
+        address = envelope.rcpt_tos[0]
+        dest, access = self.lookup_destination(address)
+        if dest is None:
+            print("Rejected, destination not found")
+            return "550 The tracker or ticket you requested does not exist."
+
+        mail = email.message_from_bytes(envelope.content,
+                policy=email.policy.SMTP)
+
+        _from = parseaddr(mail["From"])
+        sender = User.query.filter(User.email == _from[1]).one_or_none()
+
+        body = None
+        for part in mail.walk():
+            if part.is_multipart():
+                continue
+            content_type = part.get_content_type()
+            [charset] = part.get_charsets("utf-8")
+            if content_type == 'text/plain':
+                body = part.get_payload(decode=True).decode(charset)
+                break
+
+        if not sender:
+            print("Rejecting email from unknown sender")
+            # TODO: allow posting from users without an account
+            return ("550 There is no account associated with this address. " +
+                "Have you logged into todo.sr.ht on the web before?")
+
+        if isinstance(dest, Tracker):
+            await self.handle_tracker_message(dest, sender, mail, body)
+            return "250 Message accepted for delivery"
+        elif isinstance(dest, Ticket):
+            pass # TODO
+        else:
+            assert False
+
+async def create_server():
+    sock_gid = getgrnam(cfg("todo.sr.ht::mail", "sock-group")).gr_gid
+    handler = MailHandler()
+    sock = cfg("todo.sr.ht::mail", "sock")
+    if "/" in sock:
+        await loop.create_unix_server(
+                lambda: LMTP(handler, enable_SMTPUTF8=True),
+                path=sock)
+        os.chmod(sock, 0o775)
+        os.chown(sock, os.getuid(), sock_gid)
+    else:
+        host, port = sock.split(":")
+        await loop.create_server(
+                lambda: SMTP(handler, enable_SMTPUTF8=True),
+                host=host, port=int(port))
+
+def sigint_handler():
+    print("Exiting due to SIGINT")
+    sys.exit(0)
+
+loop.add_signal_handler(signal.SIGINT, sigint_handler)
+
+print("Starting incoming mail daemon")
+loop.run_until_complete(create_server())
+loop.run_forever()
+loop.close()

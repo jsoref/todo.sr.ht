@@ -66,6 +66,7 @@ setup(
       ]
   },
   scripts = [
+      'todosrht-lmtp',
       'todosrht-migrate',
   ]
 )
