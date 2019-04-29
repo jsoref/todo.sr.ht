@@ -98,6 +98,13 @@ class MailHandler:
         print(f"Created ticket {ticket.ref()}")
 
     async def handle_DATA(self, server, session, envelope):
+        try:
+            return await self._handle_data(server, session, envelope)
+        except:
+            db.session.rollback()
+            raise
+
+    async def _handle_DATA(self, server, session, envelope):
         address = envelope.rcpt_tos[0]
 
         mail = email.message_from_bytes(envelope.content,

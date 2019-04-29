@@ -3,7 +3,7 @@ from todosrht.types import User, Tracker, Ticket
 from todosrht.types import TicketAccess
 
 def get_access(tracker, ticket, user=None):
-    if user == None:
+    if user is None:
         user = current_user
     # TODO: flesh out
     if user and user.id == tracker.owner_id:
