@@ -99,7 +99,7 @@ class MailHandler:
 
     async def handle_DATA(self, server, session, envelope):
         try:
-            return await self._handle_data(server, session, envelope)
+            return await self._handle_DATA(server, session, envelope)
         except:
             db.session.rollback()
             raise
