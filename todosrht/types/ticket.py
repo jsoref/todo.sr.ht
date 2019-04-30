@@ -77,3 +77,32 @@ class Ticket(Base):
 
     def __repr__(self):
         return f"<Ticket {self.id}>"
+
+    def to_dict(self, short=False):
+        def permissions(w):
+            return [p.name for p in TicketAccess
+                    if p in w and p not in [TicketAccess.none, TicketAccess.all]]
+        return {
+            "id": self.scoped_id,
+            "ref": self.ref(),
+            "tracker": self.tracker.to_dict(short=True),
+            **({
+                "title": self.title,
+                "created": self.created,
+                "updated": self.updated,
+                "submitter": self.submitter.to_dict(short=True),
+                "description": self.description,
+                "status": self.status.name,
+                "resolution": self.resolution.name,
+                "permissions": {
+                    "anonymous": permissions(self.anonymous_perms)
+                        if self.anonymous_perms else None,
+                    "submitter": permissions(self.submitter_perms)
+                        if self.submitter_perms else None,
+                    "user": permissions(self.user_perms)
+                        if self.user_perms else None,
+                },
+                "labels": [l.name for l in self.labels],
+                "assignees": [u.to_dict(short=True) for u in self.assigned_users],
+            } if not short else {}),
+        }

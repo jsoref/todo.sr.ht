@@ -58,45 +58,41 @@ def test_ticket_comment(mailbox):
     assert ticket.resolution == TicketResolution.unresolved
 
     # Comment without status change
-    comment = add_comment(user, ticket, text="how do you do, i")
+    event = add_comment(user, ticket, text="how do you do, i")
 
     # Submitter gets automatically subscribed
     assert TicketSubscription.query.filter_by(ticket=ticket, user=user).first()
 
-    assert comment.submitter == user
-    assert comment.ticket == ticket
-    assert comment.text == "how do you do, i"
+    assert event.comment.submitter == user
+    assert event.comment.ticket == ticket
+    assert event.comment.text == "how do you do, i"
 
     assert ticket.status == TicketStatus.reported
     assert ticket.resolution == TicketResolution.unresolved
     assert len(ticket.comments) == 1
     assert len(ticket.events) == 1
 
-    event = ticket.events[0]
     assert event.ticket == ticket
-    assert event.comment == comment
     assert event.event_type == EventType.comment
 
     assert len(mailbox) == 3
-    assert_notifications_sent(comment.text)
+    assert_notifications_sent(event.comment.text)
     assert_event_notifications_created(event)
 
     # Comment and resolve issue
-    comment = add_comment(user, ticket, text="see you've met my",
+    event = add_comment(user, ticket, text="see you've met my",
             resolve=True, resolution=TicketResolution.fixed)
 
-    assert comment.submitter == user
-    assert comment.ticket == ticket
-    assert comment.text == "see you've met my"
+    assert event.comment.submitter == user
+    assert event.comment.ticket == ticket
+    assert event.comment.text == "see you've met my"
 
     assert ticket.status == TicketStatus.resolved
     assert ticket.resolution == TicketResolution.fixed
     assert len(ticket.comments) == 2
     assert len(ticket.events) == 2
 
-    event = ticket.events[1]
     assert event.ticket == ticket
-    assert event.comment == comment
     assert event.event_type == EventType.status_change | EventType.comment
     assert event.old_status == TicketStatus.reported
     assert event.new_status == TicketStatus.resolved
@@ -108,30 +104,26 @@ def test_ticket_comment(mailbox):
     assert_event_notifications_created(event)
 
     # Comment and reopen issue
-    comment = add_comment(user, ticket, text="faithful handyman", reopen=True)
+    event = add_comment(user, ticket, text="faithful handyman", reopen=True)
 
-    assert comment.submitter == user
-    assert comment.ticket == ticket
-    assert comment.text == "faithful handyman"
+    assert event.comment.submitter == user
+    assert event.comment.ticket == ticket
+    assert event.comment.text == "faithful handyman"
 
     assert ticket.status == TicketStatus.reported
     assert ticket.resolution == TicketResolution.fixed
     assert len(ticket.comments) == 3
     assert len(ticket.events) == 3
 
-    event = ticket.events[2]
     assert event.ticket == ticket
-    assert event.comment == comment
 
     assert len(mailbox) == 9
-    assert_notifications_sent(comment.text)
+    assert_notifications_sent(event.comment.text)
     assert_event_notifications_created(event)
 
     # Resolve without commenting
-    comment = add_comment(user, ticket,
+    event = add_comment(user, ticket,
             resolve=True, resolution=TicketResolution.wont_fix)
-
-    assert comment is None
 
     assert ticket.status == TicketStatus.resolved
     assert ticket.resolution == TicketResolution.wont_fix
@@ -140,25 +132,20 @@ def test_ticket_comment(mailbox):
 
     event = ticket.events[3]
     assert event.ticket == ticket
-    assert event.comment == comment
 
     assert len(mailbox) == 12
     assert_notifications_sent("Ticket resolved: wont_fix")
     assert_event_notifications_created(event)
 
     # Reopen without commenting
-    comment = add_comment(user, ticket, reopen=True)
-
-    assert comment is None
+    event = add_comment(user, ticket, reopen=True)
 
     assert ticket.status == TicketStatus.reported
     assert ticket.resolution == TicketResolution.wont_fix
     assert len(ticket.comments) == 3
     assert len(ticket.events) == 5
 
-    event = ticket.events[4]
     assert event.ticket == ticket
-    assert event.comment == comment
 
     assert len(mailbox) == 15
     assert_notifications_sent()
@@ -234,7 +221,7 @@ def test_notifications_and_events(mailbox):
         f"and {u2.canonical_name} "
         f"also mentioning tickets #{t1.scoped_id}, and #{t2.scoped_id} and #999999"
     )
-    comment = add_comment(commenter, ticket, text)
+    event = add_comment(commenter, ticket, text)
 
     assert len(mailbox) == 2
 
@@ -265,11 +252,11 @@ def test_notifications_and_events(mailbox):
     u1_mention = u1_events.pop()
     u2_mention = u2_events.pop()
 
-    assert u1_mention.comment == comment
+    assert u1_mention.comment == event.comment
     assert u1_mention.from_ticket == ticket
     assert u1_mention.by_user == commenter
 
-    assert u2_mention.comment == comment
+    assert u2_mention.comment == event.comment
     assert u2_mention.from_ticket == ticket
     assert u2_mention.by_user == commenter
 
@@ -280,11 +267,11 @@ def test_notifications_and_events(mailbox):
     t1_mention = t1.events[0]
     t2_mention = t2.events[0]
 
-    assert t1_mention.comment == comment
+    assert t1_mention.comment == event.comment
     assert t1_mention.from_ticket == ticket
     assert t1_mention.by_user == commenter
 
-    assert t2_mention.comment == comment
+    assert t2_mention.comment == event.comment
     assert t2_mention.from_ticket == ticket
     assert t2_mention.by_user == commenter
 

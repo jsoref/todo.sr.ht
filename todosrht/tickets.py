@@ -249,7 +249,7 @@ def add_comment(user, ticket,
     ticket.tracker.updated = datetime.utcnow()
     db.session.commit()
 
-    return comment
+    return event
 
 def mark_seen(ticket, user):
     """Mark the ticket as seen by user."""

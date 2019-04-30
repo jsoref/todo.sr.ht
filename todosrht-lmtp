@@ -134,9 +134,9 @@ class MailHandler:
             print("Rejected, invalid comment length")
             return "550 Comment must be between 3 and 16384 characters."
 
-        comment = add_comment(sender, ticket, text=body,
+        event = add_comment(sender, ticket, text=body,
                 resolution=resolution, resolve=resolve, reopen=reopen)
-        print(f"Added comment to {comment.ticket.ref()}")
+        print(f"Added comment to {ticket.ref()}")
         return "250 Message accepted for delivery"
 
     async def handle_DATA(self, server, session, envelope):

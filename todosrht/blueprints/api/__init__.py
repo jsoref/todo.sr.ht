@@ -15,10 +15,13 @@ def get_user(username):
 
 def register_api(app):
     from todosrht.blueprints.api.trackers import trackers
+    from todosrht.blueprints.api.tickets import tickets
 
     trackers = csrf_bypass(trackers)
+    tickets = csrf_bypass(tickets)
 
     app.register_blueprint(trackers)
+    app.register_blueprint(tickets)
 
     @app.route("/api/version")
     def version():

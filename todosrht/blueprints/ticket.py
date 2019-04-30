@@ -150,10 +150,10 @@ def ticket_comment_POST(owner, name, ticket_id):
         ctx = get_ticket_context(ticket, tracker, access)
         return render_template("ticket.html", **ctx, **valid.kwargs)
 
-    comment = add_comment(current_user, ticket,
+    event = add_comment(current_user, ticket,
         text=text, resolve=resolve, resolution=resolution, reopen=reopen)
 
-    return redirect(ticket_url(ticket, comment))
+    return redirect(ticket_url(ticket, event.comment))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/edit")
 @loginrequired

@@ -60,6 +60,28 @@ class Event(Base):
     def __repr__(self):
         return '<Event {}>'.format(self.id)
 
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "created": self.created,
+            "event_type": [t.name for t in EventType if t in self.event_type],
+            "old_status": self.old_status.name,
+            "old_resolution": self.old_resolution.name,
+            "new_status": self.new_status.name,
+            "new_resolution": self.new_resolution.name,
+            "user": self.user.to_dict(short=True)
+                if self.user else None,
+            "ticket": self.ticket.to_dict(short=True)
+                if self.ticket else None,
+            "comment": self.comment.to_dict(short=True)
+                if self.comment else None,
+            "label": self.label.name if self.label else None,
+            "by_user": self.by_user.to_dict(short=True)
+                if self.by_user else None,
+            "from_ticket": self.from_ticket.to_dict(short=True)
+                if self.from_ticket else None,
+        }
+
 class EventNotification(Base):
     __tablename__ = 'event_notification'
     id = sa.Column(sa.Integer, primary_key=True)

@@ -84,28 +84,30 @@ class Tracker(Base):
             return
 
         self.owner_id = user.id
+        self.owner = user
         self.name = name
         self.description = desc
 
     def __repr__(self):
         return '<Tracker {} {}>'.format(self.id, self.name)
 
-    def to_dict(self):
+    def to_dict(self, short=False):
         def permissions(w):
             return [p.name for p in TicketAccess
                     if p in w and p not in [TicketAccess.none, TicketAccess.all]]
         return {
-            "id": self.id,
             "owner": self.owner.to_dict(short=True),
             "created": self.created,
             "updated": self.updated,
             "name": self.name,
-            "description": self.description,
-            "default_permissions": {
-                "anonymous": permissions(self.default_anonymous_perms),
-                "submitter": permissions(self.default_submitter_perms),
-                "user": permissions(self.default_user_perms),
-            },
+            **({
+                "description": self.description,
+                "default_permissions": {
+                    "anonymous": permissions(self.default_anonymous_perms),
+                    "submitter": permissions(self.default_submitter_perms),
+                    "user": permissions(self.default_user_perms),
+                },
+            } if not short else {})
         }
 
     def update(self, valid):

@@ -20,3 +20,14 @@ class TicketComment(Base):
             backref=sa.orm.backref("comments", cascade="all, delete-orphan"))
 
     text = sa.Column(sa.Unicode(16384))
+
+    def to_dict(self, short=False):
+        return {
+            "id": self.id,
+            "created": self.created,
+            "submitter": self.submitter.to_dict(short=True),
+            "text": self.text,
+            **({
+                "ticket": self.ticket.to_dict(short=True),
+            } if not short else {})
+        }
