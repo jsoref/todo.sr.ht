@@ -24,12 +24,12 @@ def get_tracker(owner, name, with_for_update=False, user=None):
     if not owner:
         return None, None
 
-    if owner.startswith("~"):
-        owner = owner[1:]
-
-    owner = User.query.filter(User.username == owner).one_or_none()
-    if not owner:
-        return None, None
+    if not isinstance(owner, User):
+        if owner.startswith("~"):
+            owner = owner[1:]
+        owner = User.query.filter(User.username == owner).one_or_none()
+        if not owner:
+            return None, None
     tracker = (Tracker.query
         .filter(Tracker.owner_id == owner.id)
         .filter(Tracker.name == name.lower()))

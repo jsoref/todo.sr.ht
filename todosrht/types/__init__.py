@@ -1,7 +1,11 @@
 from srht.database import Base
 from srht.oauth import ExternalUserMixin
+from srht.oauth import ExternalOAuthTokenMixin
 
 class User(Base, ExternalUserMixin):
+    pass
+
+class OAuthToken(Base, ExternalOAuthTokenMixin):
     pass
 
 from todosrht.types.ticketaccess import TicketAccess

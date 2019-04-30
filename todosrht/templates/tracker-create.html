@@ -14,29 +14,29 @@
       <form method="POST" action="/tracker/create">
         {{csrf_token()}}
         <div class="form-group">
-          <label for="tracker_name">Name</label>
+          <label for="name">Name</label>
           <input
             type="text"
-            name="tracker_name"
-            id="tracker_name"
-            class="form-control {{valid.cls("tracker_name")}}"
-            value="{{ tracker_name or "" }}"
-            aria-describedby="tracker_name-help" />
-          {{valid.summary("tracker_name")}}
+            name="name"
+            id="name"
+            class="form-control {{valid.cls("name")}}"
+            value="{{ name or "" }}"
+            aria-describedby="name-help" />
+          {{valid.summary("name")}}
         </div>
         <div class="form-group">
-          <label for="tracker_desc">Description</label>
+          <label for="description">Description</label>
           <textarea
-            name="tracker_desc"
-            id="tracker_desc"
-            class="form-control {{valid.cls("tracker_desc")}}"
-            value="{{ tracker_desc or "" }}"
+            name="description"
+            id="description"
+            class="form-control {{valid.cls("description")}}"
+            value="{{ description or "" }}"
             rows="5"
-            aria-describedby="tracker_desc-help">{{tracker_desc or ""}}</textarea>
-          <p id="tracker_desc-help" class="form-text text-muted">
+            aria-describedby="description-help">{{description or ""}}</textarea>
+          <p id="description-help" class="form-text text-muted">
             Markdown supported
           </p>
-          {{valid.summary("tracker_desc")}}
+          {{valid.summary("description")}}
         </div>
         {{valid.summary()}}
         <button

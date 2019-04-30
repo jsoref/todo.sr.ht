@@ -3,16 +3,9 @@ from srht.database import db
 from srht.flask import SrhtFlask
 from srht.oauth import AbstractOAuthService
 from todosrht import urls, filters
+from todosrht.service import TodoOAuthService
 from todosrht.types import EventType
-from todosrht.types import TicketAccess, TicketStatus, TicketResolution
-from todosrht.types import User
-
-client_id = cfg("todo.sr.ht", "oauth-client-id")
-client_secret = cfg("todo.sr.ht", "oauth-client-secret")
-
-class TodoOAuthService(AbstractOAuthService):
-    def __init__(self):
-        super().__init__(client_id, client_secret, user_class=User)
+from todosrht.types import TicketAccess, TicketStatus, TicketResolution, User
 
 class TodoApp(SrhtFlask):
     def __init__(self):
@@ -21,10 +14,12 @@ class TodoApp(SrhtFlask):
 
         self.url_map.strict_slashes = False
 
+        from todosrht.blueprints.api import register_api
         from todosrht.blueprints.html import html
         from todosrht.blueprints.tracker import tracker
         from todosrht.blueprints.ticket import ticket
 
+        register_api(self)
         self.register_blueprint(html)
         self.register_blueprint(tracker)
         self.register_blueprint(ticket)
