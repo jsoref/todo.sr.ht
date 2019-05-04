@@ -65,10 +65,12 @@ class Event(Base):
             "id": self.id,
             "created": self.created,
             "event_type": [t.name for t in EventType if t in self.event_type],
-            "old_status": self.old_status.name,
-            "old_resolution": self.old_resolution.name,
-            "new_status": self.new_status.name,
-            "new_resolution": self.new_resolution.name,
+            "old_status": self.old_status.name if self.old_status else None,
+            "old_resolution": self.old_resolution.name
+                if self.old_resolution else None,
+            "new_status": self.new_status.name if self.new_status else None,
+            "new_resolution": self.new_resolution.name
+                if self.new_resolution else None,
             "user": self.user.to_dict(short=True)
                 if self.user else None,
             "ticket": self.ticket.to_dict(short=True)

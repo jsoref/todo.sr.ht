@@ -7,6 +7,7 @@ from todosrht.access import get_tracker, get_ticket
 from todosrht.tickets import submit_ticket, add_comment
 from todosrht.blueprints.api import get_user
 from todosrht.types import Ticket, TicketAccess, TicketStatus, TicketResolution
+from todosrht.types import Event, EventType, Label, TicketLabel
 
 tickets = Blueprint("api.tickets", __name__)
 
@@ -84,12 +85,16 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
     valid = Validation(request)
     comment = resolution = None
     resolve = reopen = False
+    labels = None
+    events = list()
     if "comment" in valid:
+        required_access |= TicketAccess.comment
         comment = valid.optional("comment")
         valid.expect(not comment or 3 <= len(comment) <= 16384,
                 "Comment must be between 3 and 16384 characters.",
                 field="comment")
     if "status" in valid:
+        required_access |= TicketAccess.triage
         status = valid.optional("status",
                 cls=TicketStatus, default=valid.status)
         if status != ticket.status:
@@ -98,6 +103,64 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
                 resolution = valid.require("resolution", cls=TicketResolution)
             else:
                 reopen = True
+    if "labels" in valid:
+        required_access |= TicketAccess.triage
+        labels = valid.optional("labels", cls=list)
+        valid.expect(all(isinstance(x, str) for x in labels),
+                "Expected array of strings", field="labels")
+        if not valid.ok:
+            return valid.response
+        have = set(label.name for label in ticket.labels)
+        want = set(labels)
+        to_remove = have - want
+        to_add = want - have
+        for name in to_remove:
+            label = (Label.query
+                    .filter(Label.tracker_id == tracker.id)
+                    .filter(Label.name == name)).one_or_none()
+            (TicketLabel.query
+                    .filter(TicketLabel.ticket_id == ticket.id)
+                    .filter(TicketLabel.label_id == label.id)).delete()
+            event = Event()
+            event.event_type = EventType.label_removed
+            event.user_id = current_token.user_id
+            event.ticket_id = ticket.id
+            event.label_id = label.id
+            db.session.add(event)
+            events.append(event)
+        for name in to_add:
+            label = (Label.query
+                    .filter(Label.tracker_id == tracker.id)
+                    .filter(Label.name == name)).one_or_none()
+            valid.expect(label, f"Unknown label {name}", field="labels")
+            tl = TicketLabel()
+            tl.ticket_id = ticket.id
+            tl.label_id = label.id
+            tl.user_id = current_token.user_id
+            db.session.add(tl)
+            event = Event()
+            event.event_type = EventType.label_added
+            event.user_id = current_token.user_id
+            event.ticket_id = ticket.id
+            event.label_id = label.id
+            db.session.add(event)
+            events.append(event)
+        if not valid.ok:
+            return valid.response
 
-    event = add_comment(user, ticket, comment, resolve, resolution, reopen)
-    return event.to_dict()
+    if not valid.ok:
+        return valid.response
+
+    if access & required_access != required_access:
+        abort(401)
+
+    if comment or resolve or resolution or reopen:
+        events.append(add_comment(
+            user, ticket, comment, resolve, resolution, reopen))
+
+    db.session.commit()
+
+    return {
+        "ticket": ticket.to_dict(),
+        "events": [event.to_dict() for event in events],
+    }
