@@ -164,3 +164,18 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         "ticket": ticket.to_dict(),
         "events": [event.to_dict() for event in events],
     }
+
+@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>/events")
+@tickets.route("/api/trackers/<tracker_name>/tickets/<ticket_id>/events",
+        defaults={"username": None})
+@oauth("tickets:read")
+def tracker_ticket_by_id_events_GET(username, tracker_name, ticket_id):
+    user = get_user(username)
+    tracker, _ = get_tracker(user, tracker_name, user=current_token.user)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id, user=current_token.user)
+    if not TicketAccess.browse in access:
+        abort(401)
+    events = Event.query.filter(Event.ticket_id == ticket.id)
+    return paginated_response(Event.id, events)
