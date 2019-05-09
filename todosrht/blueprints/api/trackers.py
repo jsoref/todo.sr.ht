@@ -5,7 +5,7 @@ from srht.oauth import oauth, current_token
 from srht.validation import Validation
 from todosrht.access import get_tracker
 from todosrht.blueprints.api import get_user
-from todosrht.types import Tracker, TicketAccess
+from todosrht.types import Label, Tracker, TicketAccess
 
 trackers = Blueprint("api.trackers", __name__)
 
@@ -76,3 +76,16 @@ def user_tracker_by_name_DELETE(username, tracker_name):
     db.session.delete(tracker)
     db.session.commit()
     return {}, 204
+
+@trackers.route("/api/user/<username>/trackers/<tracker_name>/labels")
+@trackers.route("/api/trackers/<tracker_name>/labels", defaults={"username": None})
+@oauth("trackers:read")
+def trakcer_labels_GET(username, tracker_name):
+    user = get_user(username)
+    tracker, access = get_tracker(user, tracker_name, user=current_token.user)
+    if not tracker:
+        abort(404)
+    if not TicketAccess.browse in access:
+        abort(401)
+    labels = Label.query.filter(Label.tracker_id == tracker.id)
+    return paginated_response(Label.id, labels)

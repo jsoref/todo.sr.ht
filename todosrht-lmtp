@@ -35,7 +35,7 @@ class MailHandler:
         # u.username.tracker.1234@todo.sr.ht
         address = address[:address.rfind("@")]
         # TODO: Subscribe to trackers & tickets via email
-        ticket_id = None, None
+        ticket_id = None
         if address.startswith("~"):
             # TODO: user groups
             parts = address.split("/")

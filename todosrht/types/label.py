@@ -28,6 +28,19 @@ class Label(Base):
     def __repr__(self):
         return '<Label {} {}>'.format(self.id, self.name)
 
+    def to_dict(self, short=False):
+        return {
+            "name": self.name,
+            "colors": {
+                "background": self.color,
+                "text": self.text_color,
+            },
+            **({
+                "created": self.created,
+                "tracker": self.tracker.to_dict(short=True),
+            } if not short else {})
+        }
+
 class TicketLabel(Base):
     __tablename__ = 'ticket_label'
     ticket_id = sa.Column(sa.Integer,
