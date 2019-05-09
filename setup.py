@@ -41,6 +41,7 @@ setup(
       'todosrht',
       'todosrht.types',
       'todosrht.blueprints',
+      'todosrht.blueprints.api',
       'todosrht.alembic',
       'todosrht.alembic.versions'
   ],
