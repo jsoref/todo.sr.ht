@@ -49,7 +49,7 @@ def create_POST():
     if "create-configure" in valid:
         return redirect(url_for(".settings_details_GET",
                 owner=current_user.username,
-                name=name))
+                name=tracker.name))
 
     return redirect(tracker_url(tracker))
 
