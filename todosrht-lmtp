@@ -52,9 +52,9 @@ class MailHandler:
         else:
             address = address.split(".")
             if len(address) == 3:
-                prefix, owner, list_name = address
+                prefix, owner, tracker_name = address
             elif len(address) == 4:
-                prefix, owner, list_name, ticket_id = address
+                prefix, owner, tracker_name, ticket_id = address
                 try:
                     ticket_id = int(ticket_id)
                 except:
