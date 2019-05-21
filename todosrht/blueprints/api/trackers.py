@@ -23,8 +23,7 @@ def user_trackers_GET(username):
 @trackers.route("/api/trackers", methods=["POST"])
 @oauth("trackers:write")
 def user_trackers_POST():
-    valid = Validation(request)
-    tracker = Tracker(current_token.user, valid)
+    tracker, valid = Tracker.create_from_request(request, current_token.user)
     if not valid.ok:
         return valid.response
     db.session.add(tracker)

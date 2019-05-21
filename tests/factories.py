@@ -2,7 +2,6 @@ import factory
 from datetime import datetime, timedelta
 from factory.fuzzy import FuzzyText
 from srht.database import db
-from srht.validation import Validation
 from todosrht.types import Tracker, User, Ticket
 
 future_datetime = datetime.now() + timedelta(days=10)
@@ -22,8 +21,8 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
 
 
 class TrackerFactory(factory.alchemy.SQLAlchemyModelFactory):
-    user = factory.SubFactory(UserFactory)
-    valid = factory.Sequence(lambda n: Validation({ "name": f"tracker{n}" }))
+    owner = factory.SubFactory(UserFactory)
+    name = factory.Sequence(lambda n: f"tracker{n}")
 
     class Meta:
         model = Tracker

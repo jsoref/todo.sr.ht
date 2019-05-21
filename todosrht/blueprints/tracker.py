@@ -31,9 +31,7 @@ def create_GET():
 @tracker.route("/tracker/create", methods=["POST"])
 @loginrequired
 def create_POST():
-    valid = Validation(request)
-
-    tracker = Tracker(current_user, valid)
+    tracker, valid = Tracker.create_from_request(request, current_user)
     if not valid.ok:
         return render_template("tracker-create.html", **valid.kwargs), 400
 

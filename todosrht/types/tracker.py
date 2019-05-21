@@ -3,6 +3,7 @@ import sqlalchemy as sa
 import string
 from srht.database import Base
 from srht.flagtype import FlagType
+from srht.validation import Validation
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
 name_re = re.compile(r"^([a-z][a-z0-9_.-]*?)+$")
@@ -54,11 +55,13 @@ class Tracker(Base):
             default=TicketAccess.browse)
     """Permissions granted to anonymous (non-logged in) users"""
 
-    def __init__(self, user, valid):
+    @staticmethod
+    def create_from_request(request, user):
+        valid = Validation(request)
         name = valid.require("name", friendly_name="Name")
         desc = valid.optional("description")
         if not valid.ok:
-            return
+            return None, valid
 
         valid.expect(2 < len(name) < 256,
                 "Must be between 2 and 256 characters",
@@ -72,7 +75,7 @@ class Tracker(Base):
                 "Must be less than 4096 characters",
                 field="description")
         if not valid.ok:
-            return
+            return None, valid
 
         tracker = (Tracker.query
                 .filter(Tracker.owner_id == user.id)
@@ -81,12 +84,11 @@ class Tracker(Base):
         valid.expect(not tracker,
                 "A tracker by this name already exists", field="name")
         if not valid.ok:
-            return
+            return None, valid
 
-        self.owner_id = user.id
-        self.owner = user
-        self.name = name
-        self.description = desc
+        tracker = Tracker(owner=user, name=name, description=desc)
+
+        return tracker, valid
 
     def __repr__(self):
         return '<Tracker {} {}>'.format(self.id, self.name)
