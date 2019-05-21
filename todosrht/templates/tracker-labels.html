@@ -42,7 +42,7 @@
               {{ label|label_badge }}
             </div>
             <div class="col-auto">
-              <a href="{{ label|label_search_url }}">
+              <a href="{{ label|label_search_url|safe }}">
                 {{ label.tickets|count }} tickets
               </a>
             </div>
