@@ -56,7 +56,9 @@ class Ticket(Base):
     """Permissions granted to anonymous (non-logged in) users"""
 
     view_list = sa.orm.relationship("TicketSeen")
-    labels = sa.orm.relationship("Label", secondary="ticket_label")
+
+    labels = sa.orm.relationship("Label",
+        secondary="ticket_label", order_by="Label.name")
 
     assigned_users = sa.orm.relationship("User",
         secondary="ticket_assignee",

@@ -12,7 +12,8 @@ class Label(Base):
             sa.ForeignKey("tracker.id", ondelete="CASCADE"),
             nullable=False)
     tracker = sa.orm.relationship("Tracker",
-            backref=sa.orm.backref("labels", cascade="all, delete-orphan"))
+            backref=sa.orm.backref(
+                "labels", cascade="all, delete-orphan", order_by="Label.name"))
 
     name = sa.Column(sa.Text, nullable=False)
     color = sa.Column(sa.Text, nullable=False)
