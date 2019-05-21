@@ -1,6 +1,7 @@
 import re
 from collections import namedtuple
 from datetime import datetime
+from itertools import chain
 from srht.config import cfg
 from srht.database import db
 from todosrht.email import notify, format_lines
@@ -14,6 +15,7 @@ smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
 notify_from = cfg("todo.sr.ht", "notify-from", default=smtp_from)
 posting_domain = cfg("todo.sr.ht::mail", "posting-domain")
+origin = cfg("todo.sr.ht", "origin")
 
 StatusChange = namedtuple("StatusChange", [
     "old_status",
@@ -40,6 +42,17 @@ TICKET_MENTION_PATTERN = re.compile(r"""
     \b                               # Word boundary
 """, re.VERBOSE)
 
+# Matches ticket URL
+TICKET_URL_PATTERN = re.compile(f"""
+    (?<!\\S)                          # No leading non-whitespace characters
+    {origin}/                         # Base URL
+    ~(?P<username>\\w+)/              # Username
+    (?P<tracker_name>[a-z0-9_.-]+)/   # Tracker name
+    (?P<ticket_id>\\d+)               # Ticket ID
+    \\b                               # Word boundary
+""", re.VERBOSE)
+
+
 def find_mentioned_users(text):
     usernames = re.findall(USER_MENTION_PATTERN, text)
     users = User.query.filter(User.username.in_(usernames)).all()
@@ -47,8 +60,12 @@ def find_mentioned_users(text):
 
 def find_mentioned_tickets(tracker, text):
     filters = or_()
+    matches = chain(
+        re.finditer(TICKET_MENTION_PATTERN, text),
+        re.finditer(TICKET_URL_PATTERN, text),
+    )
 
-    for match in re.finditer(TICKET_MENTION_PATTERN, text):
+    for match in matches:
         username = match.group('username') or tracker.owner.username
         tracker_name = match.group('tracker_name') or tracker.name
         ticket_id = int(match.group('ticket_id'))
