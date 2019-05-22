@@ -26,16 +26,16 @@ StatusChange = namedtuple("StatusChange", [
 
 # Matches user mentions, e.g. ~username
 USER_MENTION_PATTERN = re.compile(r"""
-    (?<!\S)    # No leading non-whitespace characters
-    ~          # Literal tilde
-    (\w+)      # The username
-    \b         # Word boundary
-    (?!/)      # Not followed by slash, possible qualified ticket mention
+    (?<![^\s(])  # No leading non-whitespace characters
+    ~            # Literal tilde
+    (\w+)        # The username
+    \b           # Word boundary
+    (?!/)        # Not followed by slash, possible qualified ticket mention
 """, re.VERBOSE)
 
 # Matches ticket mentions, e.g. #17, tracker#17 and ~user/tracker#17
 TICKET_MENTION_PATTERN = re.compile(r"""
-    (?<!\S)                          # No leading non-whitespace characters
+    (?<![^\s(])                      # No leading non-whitespace characters
     (~(?P<username>\w+)/)?           # Optional username
     (?P<tracker_name>[a-z0-9_.-]+)?  # Optional tracker name
     \#(?P<ticket_id>\d+)             # Ticket ID
@@ -44,7 +44,7 @@ TICKET_MENTION_PATTERN = re.compile(r"""
 
 # Matches ticket URL
 TICKET_URL_PATTERN = re.compile(f"""
-    (?<!\\S)                          # No leading non-whitespace characters
+    (?<![^\\s(])                      # No leading non-whitespace characters
     {origin}/                         # Base URL
     ~(?P<username>\\w+)/              # Username
     (?P<tracker_name>[a-z0-9_.-]+)/   # Tracker name
