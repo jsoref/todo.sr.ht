@@ -72,7 +72,7 @@ def invalidate_markup_cache(obj):
     key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{obj.id}"
     redis.delete(key)
 
-def label_badge(label, cls="", remove_from_ticket=None):
+def label_badge(label, cls="", remove_from_ticket=None, terms=None):
     """Return HTML markup rendering a label badge.
 
     Additional HTML classes can be passed via the `cls` parameter.
@@ -86,7 +86,10 @@ def label_badge(label, cls="", remove_from_ticket=None):
     html_class = escape(f"label {cls}".strip())
 
     style = f"color: {color}; background-color: {bg_color}"
-    search_url = urls.label_search_url(label)
+    if terms:
+        search_url = urls.label_search_url(label, terms=terms)
+    else:
+        search_url = urls.label_search_url(label)
 
     if remove_from_ticket:
         remove_url = urls.label_remove_url(label, remove_from_ticket)

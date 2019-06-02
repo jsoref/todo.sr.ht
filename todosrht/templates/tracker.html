@@ -147,7 +147,11 @@
           </a>
           <span class="pull-right">
             {% for label in ticket.labels %}
-              {{ label|label_badge(cls="small") }}
+              {% if not search %}
+                {{ label|label_badge(cls="small", terms="status:open") }}
+              {% else %}
+                {{ label|label_badge(cls="small", terms=search) }}
+              {% endif %}
             {% endfor %}
           </span>
         </div>

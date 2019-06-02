@@ -45,12 +45,13 @@ def ticket_unassign_url(ticket):
         name=ticket.tracker.name,
         ticket_id=ticket.scoped_id)
 
-def label_search_url(label):
+def label_search_url(label, terms=""):
     """Return the URL to the tracker page listing all tickets which have the
     label applied."""
-    return "{}?search=label:&quot;{}&quot;".format(
+    return "{}?search=label:&quot;{}&quot;{}".format(
         tracker_url(label.tracker),
-        unicode_urlencode(label.name))
+        unicode_urlencode(label.name),
+        f" {unicode_urlencode(terms)}" if terms else "")
 
 def label_add_url(ticket):
     """Return the URL to add a label to a ticket."""
