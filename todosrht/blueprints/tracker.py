@@ -11,6 +11,7 @@ from todosrht.types import Event
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.types import Label, TicketLabel
 from todosrht.urls import tracker_url, ticket_url
+from todosrht.webhooks import UserWebhook
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
@@ -37,6 +38,10 @@ def create_POST():
 
     db.session.add(tracker)
     db.session.flush()
+
+    UserWebhook.deliver(UserWebhook.Events.tracker_create,
+            tracker.to_dict(),
+            UserWebhook.Subscription.user_id == tracker.owner_id)
 
     sub = TicketSubscription()
     sub.tracker_id = tracker.id
@@ -195,6 +200,11 @@ def settings_details_POST(owner, name):
             tracker=tracker, **valid.kwargs), 400
 
     tracker.description = desc
+
+    UserWebhook.deliver(UserWebhook.Events.tracker_update,
+            tracker.to_dict(),
+            UserWebhook.Subscription.user_id == tracker.owner_id)
+
     db.session.commit()
     return redirect(tracker_url(tracker))
 
@@ -224,8 +234,6 @@ def settings_access_POST(owner, name):
     perm_anon = parse_html_perms('anon', valid)
     perm_user = parse_html_perms('user', valid)
     perm_submit = parse_html_perms('submit', valid)
-    # TODO: once repos are linked
-    #perm_commit = parse_html_perms('commit', valid)
 
     if not valid.ok:
         return render_template("tracker-access.html",
@@ -235,7 +243,10 @@ def settings_access_POST(owner, name):
     tracker.default_anonymous_perms = perm_anon
     tracker.default_user_perms = perm_user
     tracker.default_submitter_perms = perm_submit
-    #tracker.default_committer_perms = perm_commit
+
+    UserWebhook.deliver(UserWebhook.Events.tracker_update,
+            tracker.to_dict(),
+            UserWebhook.Subscription.user_id == tracker.owner_id)
 
     db.session.commit()
     return redirect(tracker_url(tracker))
@@ -261,12 +272,18 @@ def settings_delete_POST(owner, name):
         abort(403)
     session["notice"] = f"{tracker.owner}/{tracker.name} was deleted."
     # SQLAlchemy shits itself on some of our weird constraints/relationships
-    # so fuck it, posgres knows what to do here
+    # so fuck it, postgres knows what to do here
     tracker_id = tracker.id
+    owner_id = tracker.owner_id
     assert isinstance(tracker_id, int)
     db.session.expunge_all()
     db.engine.execute(f"DELETE FROM tracker WHERE id = {tracker_id};")
     db.session.commit()
+
+    UserWebhook.deliver(UserWebhook.Events.tracker_delete,
+            { "id": tracker_id },
+            UserWebhook.Subscription.user_id == owner_id)
+
     return redirect(url_for("html.index"))
 
 @tracker.route("/<owner>/<name>/submit", methods=["POST"])
@@ -296,6 +313,11 @@ def tracker_submit_POST(owner, name):
 
     # TODO: Handle unique constraint failure (contention) and retry?
     ticket = submit_ticket(tracker, current_user, title, desc)
+
+    # TODO: Submit to TrackerWebhook as well
+    UserWebhook.deliver(UserWebhook.Events.ticket_create,
+            ticket.to_dict(),
+            UserWebhook.Subscription.user_id == current_user.id)
 
     if another:
         session["another"] = True

@@ -2,6 +2,7 @@ import pkg_resources
 from todosrht.types import User
 from srht.flask import csrf_bypass
 from srht.oauth import current_token, oauth
+from todosrht.webhooks import UserWebhook
 
 def get_user(username):
     user = None
@@ -38,3 +39,5 @@ def register_api(app):
         if username == None:
             return current_token.user.to_dict()
         return get_user(username).to_dict()
+
+    UserWebhook.api_routes(app, "/api/user")
