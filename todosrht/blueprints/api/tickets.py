@@ -8,6 +8,7 @@ from todosrht.tickets import submit_ticket, add_comment
 from todosrht.blueprints.api import get_user
 from todosrht.types import Ticket, TicketAccess, TicketStatus, TicketResolution
 from todosrht.types import Event, EventType, Label, TicketLabel
+from todosrht.webhooks import TrackerWebhook, TicketWebhook
 
 tickets = Blueprint("api.tickets", __name__)
 
@@ -72,6 +73,31 @@ def tracker_ticket_by_id_GET(username, tracker_name, ticket_id):
         abort(401)
     return ticket.to_dict()
 
+def _webhook_filters(query, username, tracker_name, ticket_id):
+    user = get_user(username)
+    tracker, _ = get_tracker(user, tracker_name, user=current_token.user)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id, user=current_token.user)
+    if not TicketAccess.browse in access:
+        abort(401)
+    return query.filter(TicketWebhook.Subscription.ticket_id == ticket.id)
+
+def _webhook_create(sub, valid, username, tracker_name, ticket_id):
+    user = get_user(username)
+    tracker, _ = get_tracker(user, tracker_name, user=current_token.user)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id, user=current_token.user)
+    if not TicketAccess.browse in access:
+        abort(401)
+    sub.ticket_id = ticket.id
+    return sub
+
+TicketWebhook.api_routes(tickets,
+        "/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>",
+        filters=_webhook_filters, create=_webhook_create)
+
 @tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>",
         methods=["PUT"])
 @tickets.route("/api/trackers/<tracker_name>/tickets/<ticket_id>",
@@ -130,6 +156,10 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
             event.ticket_id = ticket.id
             event.label_id = label.id
             db.session.add(event)
+            db.session.flush()
+            TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                    event.to_dict(),
+                    TicketWebhook.Subscription.ticket_id == ticket.id)
             events.append(event)
         for name in to_add:
             label = (Label.query
@@ -147,6 +177,10 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
             event.ticket_id = ticket.id
             event.label_id = label.id
             db.session.add(event)
+            db.session.flush()
+            TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                    event.to_dict(),
+                    TicketWebhook.Subscription.ticket_id == ticket.id)
             events.append(event)
         if not valid.ok:
             return valid.response
@@ -158,8 +192,14 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         abort(401)
 
     if comment or resolve or resolution or reopen:
-        events.append(add_comment(
-            user, ticket, comment, resolve, resolution, reopen))
+        event = add_comment(
+            user, ticket, comment, resolve, resolution, reopen)
+        db.session.add(event)
+        db.session.flush()
+        events.append(events)
+        TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                event.to_dict(),
+                TicketWebhook.Subscription.ticket_id == ticket.id)
 
     db.session.commit()
 

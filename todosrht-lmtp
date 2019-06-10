@@ -11,6 +11,7 @@ from grp import getgrnam
 from todosrht.access import get_tracker, get_ticket
 from todosrht.types import TicketAccess, TicketResolution, Tracker, Ticket, User
 from todosrht.tickets import submit_ticket, add_comment
+from todosrht.webhooks import UserWebhook, TrackerWebhook, TicketWebhook
 from srht.validation import Validation
 import asyncio
 import email
@@ -104,6 +105,12 @@ class MailHandler:
             return "550 " + ", ".join([e["reason"] for e in valid.errors])
 
         ticket = submit_ticket(tracker, sender, title, desc)
+        UserWebhook.deliver(UserWebhook.Events.ticket_create,
+                ticket.to_dict(),
+                UserWebhook.Subscription.user_id == sender.id)
+        TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
+                ticket.to_dict(),
+                TrackerWebhook.Subscription.tracker_id == tracker.id)
         print(f"Created ticket {ticket.ref()}")
         return "250 Message accepted for delivery"
 
@@ -136,6 +143,9 @@ class MailHandler:
 
         event = add_comment(sender, ticket, text=body,
                 resolution=resolution, resolve=resolve, reopen=reopen)
+        TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                event.to_dict(),
+                TicketWebhook.Subscription.ticket_id == ticket.id)
         print(f"Added comment to {ticket.ref()}")
         return "250 Message accepted for delivery"
 

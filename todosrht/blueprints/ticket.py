@@ -13,9 +13,9 @@ from todosrht.types import Label, Ticket, TicketLabel
 from todosrht.types import TicketAccess, TicketResolution
 from todosrht.types import TicketSubscription, User
 from todosrht.urls import ticket_url
+from todosrht.webhooks import TicketWebhook
 
 ticket = Blueprint("ticket", __name__)
-
 
 def get_ticket_context(ticket, tracker, access):
     """Returns the context required to render ticket.html"""
@@ -153,6 +153,9 @@ def ticket_comment_POST(owner, name, ticket_id):
     event = add_comment(current_user, ticket,
         text=text, resolve=resolve, resolution=resolution, reopen=reopen)
 
+    TicketWebhook.deliver(TicketWebhook.Events.event_create,
+            event.to_dict(),
+            TicketWebhook.Subscription.ticket_id == ticket.id)
     return redirect(ticket_url(ticket, event.comment))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/edit")
@@ -253,6 +256,10 @@ def ticket_add_label(owner, name, ticket_id):
         db.session.add(event)
         db.session.commit()
 
+        TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                event.to_dict(),
+                TicketWebhook.Subscription.ticket_id == ticket.id)
+
     return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/remove_label/<int:label_id>",
@@ -285,6 +292,10 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
         db.session.add(event)
         db.session.delete(ticket_label)
         db.session.commit()
+
+        TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                event.to_dict(),
+                TicketWebhook.Subscription.ticket_id == ticket.id)
 
     return redirect(ticket_url(ticket))
 
