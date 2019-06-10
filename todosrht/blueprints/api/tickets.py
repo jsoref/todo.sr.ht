@@ -53,6 +53,9 @@ def tracker_tickets_POST(username, tracker_name):
         return valid.response
 
     ticket = submit_ticket(tracker, current_token.user, title, desc)
+    TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
+            ticket.to_dict(),
+            TrackerWebhook.Subscription.tracker_id == tracker.id)
     return ticket.to_dict(), 201
 
 @tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>")

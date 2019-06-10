@@ -11,7 +11,7 @@ from todosrht.types import Event
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.types import Label, TicketLabel
 from todosrht.urls import tracker_url, ticket_url
-from todosrht.webhooks import UserWebhook
+from todosrht.webhooks import TrackerWebhook, UserWebhook
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, loginrequired
@@ -314,10 +314,12 @@ def tracker_submit_POST(owner, name):
     # TODO: Handle unique constraint failure (contention) and retry?
     ticket = submit_ticket(tracker, current_user, title, desc)
 
-    # TODO: Submit to TrackerWebhook as well
     UserWebhook.deliver(UserWebhook.Events.ticket_create,
             ticket.to_dict(),
             UserWebhook.Subscription.user_id == current_user.id)
+    TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
+            ticket.to_dict(),
+            TrackerWebhook.Subscription.tracker_id == tracker.id)
 
     if another:
         session["another"] = True
@@ -388,6 +390,9 @@ def tracker_labels_POST(owner, name):
     db.session.add(label)
     db.session.commit()
 
+    TrackerWebhook.deliver(TrackerWebhook.Events.label_create,
+            label.to_dict(),
+            TrackerWebhook.Subscription.tracker_id == tracker.id)
     return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
 
 @tracker.route("/<owner>/<name>/labels/<int:label_id>/delete", methods=["POST"])
@@ -410,7 +415,11 @@ def delete_label(owner, name, label_id):
     TicketLabel.query.filter(TicketLabel.label_id == label.id).delete()
     Event.query.filter(Event.label_id == label.id).delete()
 
+    label_id = label.id
     db.session.delete(label)
     db.session.commit()
 
+    TrackerWebhook.deliver(TrackerWebhook.Events.label_delete,
+            { "id": label_id },
+            TrackerWebhook.Subscription.tracker_id == tracker.id)
     return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
