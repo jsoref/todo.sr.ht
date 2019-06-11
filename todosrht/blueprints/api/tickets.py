@@ -160,6 +160,9 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
             TicketWebhook.deliver(TicketWebhook.Events.event_create,
                     event.to_dict(),
                     TicketWebhook.Subscription.ticket_id == ticket.id)
+            TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                    event.to_dict(),
+                    TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
             events.append(event)
         for name in to_add:
             label = (Label.query
@@ -181,6 +184,9 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
             TicketWebhook.deliver(TicketWebhook.Events.event_create,
                     event.to_dict(),
                     TicketWebhook.Subscription.ticket_id == ticket.id)
+            TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                    event.to_dict(),
+                    TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
             events.append(event)
         if not valid.ok:
             return valid.response
@@ -200,6 +206,9 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         TicketWebhook.deliver(TicketWebhook.Events.event_create,
                 event.to_dict(),
                 TicketWebhook.Subscription.ticket_id == ticket.id)
+        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                event.to_dict(),
+                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
 
     db.session.commit()
 

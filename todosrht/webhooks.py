@@ -17,7 +17,6 @@ class UserWebhook(CeleryWebhook):
         Event("tracker:update", "trackers:read"),
         Event("tracker:delete", "trackers:read"),
         Event("ticket:create", "tickets:read"),
-        Event("ticket:update", "tickets:read"),
     ]
 
 class TrackerWebhook(CeleryWebhook):
@@ -25,6 +24,7 @@ class TrackerWebhook(CeleryWebhook):
         Event("label:create", "trackers:read"),
         Event("label:delete", "trackers:read"),
         Event("ticket:create", "tickets:read"),
+        Event("event:create", "tickets:read"),
     ]
 
     tracker_id = sa.Column(sa.Integer,

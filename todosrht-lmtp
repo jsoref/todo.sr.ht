@@ -146,6 +146,9 @@ class MailHandler:
         TicketWebhook.deliver(TicketWebhook.Events.event_create,
                 event.to_dict(),
                 TicketWebhook.Subscription.ticket_id == ticket.id)
+        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                event.to_dict(),
+                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
         print(f"Added comment to {ticket.ref()}")
         return "250 Message accepted for delivery"
 

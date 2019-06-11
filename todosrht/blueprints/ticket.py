@@ -13,7 +13,7 @@ from todosrht.types import Label, Ticket, TicketLabel
 from todosrht.types import TicketAccess, TicketResolution
 from todosrht.types import TicketSubscription, User
 from todosrht.urls import ticket_url
-from todosrht.webhooks import TicketWebhook
+from todosrht.webhooks import TrackerWebhook, TicketWebhook
 
 ticket = Blueprint("ticket", __name__)
 
@@ -156,6 +156,9 @@ def ticket_comment_POST(owner, name, ticket_id):
     TicketWebhook.deliver(TicketWebhook.Events.event_create,
             event.to_dict(),
             TicketWebhook.Subscription.ticket_id == ticket.id)
+    TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+            event.to_dict(),
+            TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
     return redirect(ticket_url(ticket, event.comment))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/edit")
@@ -259,6 +262,9 @@ def ticket_add_label(owner, name, ticket_id):
         TicketWebhook.deliver(TicketWebhook.Events.event_create,
                 event.to_dict(),
                 TicketWebhook.Subscription.ticket_id == ticket.id)
+        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                event.to_dict(),
+                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
 
     return redirect(ticket_url(ticket))
 
@@ -296,6 +302,9 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
         TicketWebhook.deliver(TicketWebhook.Events.event_create,
                 event.to_dict(),
                 TicketWebhook.Subscription.ticket_id == ticket.id)
+        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                event.to_dict(),
+                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
 
     return redirect(ticket_url(ticket))
 
