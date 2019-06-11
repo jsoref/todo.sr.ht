@@ -63,8 +63,8 @@ class Tracker(Base):
         if not valid.ok:
             return None, valid
 
-        valid.expect(2 < len(name) < 256,
-                "Must be between 2 and 256 characters",
+        valid.expect(2 <= len(name) < 256,
+                "Must be between 2 and 255 characters",
                 field="name")
         valid.expect(not valid.ok or name[0] in string.ascii_lowercase,
                 "Must begin with a lowercase letter", field="name")
