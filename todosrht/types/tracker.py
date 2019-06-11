@@ -95,6 +95,8 @@ class Tracker(Base):
 
     def to_dict(self, short=False):
         def permissions(w):
+            if isinstance(w, int):
+                w = TicketAccess(w)
             return [p.name for p in TicketAccess
                     if p in w and p not in [TicketAccess.none, TicketAccess.all]]
         return {
