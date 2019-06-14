@@ -184,9 +184,15 @@ class MailHandler:
                 continue
             content_type = part.get_content_type()
             [charset] = part.get_charsets("utf-8")
-            if content_type == 'text/plain':
+            if content_type == 'text/plain' and not body:
                 body = part.get_payload(decode=True).decode(charset)
-                break
+            if content_type == 'text/html':
+                print("Rejected, HTML email")
+                return "550 HTML emails are not permitted on SourceHut"
+        if not body:
+            print("Rejected, requires plaintext part")
+            return ("550 At least one text/plain part is required " +
+                "to use this service.")
 
         if isinstance(dest, Tracker):
             return await self.handle_tracker_message(
