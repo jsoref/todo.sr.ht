@@ -2,7 +2,4 @@
 {{ticket.description}}
 
 -- 
-
-View on the web:
-
-{{root}}{{ticket_url}}
+View on the web: {{root}}{{ticket_url}}
