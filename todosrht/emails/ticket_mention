@@ -3,7 +3,7 @@ You were mentioned in {{ ticket_ref }} by {{ submitter }}.
 
 {{ text }}
 
---
+-- 
 
 View on the web:
 

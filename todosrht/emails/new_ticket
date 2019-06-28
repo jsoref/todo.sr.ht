@@ -1,7 +1,7 @@
 {{! vim: set ft=email }}
 {{ticket.description}}
 
---
+-- 
 
 View on the web:
 
