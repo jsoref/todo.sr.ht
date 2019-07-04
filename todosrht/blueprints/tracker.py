@@ -6,8 +6,8 @@ from todosrht.access import get_tracker
 from todosrht.search import apply_search
 from todosrht.tickets import get_last_seen_times, get_comment_counts
 from todosrht.tickets import submit_ticket
-from todosrht.types import TicketSubscription
-from todosrht.types import Event
+from todosrht.types import TicketSubscription, User
+from todosrht.types import Event, UserAccess
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.types import Label, TicketLabel
 from todosrht.urls import tracker_url, ticket_url
@@ -208,6 +208,13 @@ def settings_details_POST(owner, name):
     db.session.commit()
     return redirect(tracker_url(tracker))
 
+
+def render_tracker_access(tracker, **kwargs):
+    return render_template("tracker-access.html",
+        view="access", tracker=tracker, access_type_list=TicketAccess,
+        access_help_map=access_help_map, **kwargs)
+
+
 @tracker.route("/<owner>/<name>/settings/access")
 @loginrequired
 def settings_access_GET(owner, name):
@@ -216,10 +223,7 @@ def settings_access_GET(owner, name):
         abort(404)
     if current_user.id != tracker.owner_id:
         abort(403)
-    return render_template("tracker-access.html",
-        view="access", tracker=tracker,
-        access_type_list=TicketAccess,
-        access_help_map=access_help_map)
+    return render_tracker_access(tracker)
 
 @tracker.route("/<owner>/<name>/settings/access", methods=["POST"])
 @loginrequired
@@ -236,9 +240,7 @@ def settings_access_POST(owner, name):
     perm_submit = parse_html_perms('submit', valid)
 
     if not valid.ok:
-        return render_template("tracker-access.html",
-            tracker=tracker, access_type_list=TicketAccess,
-            access_help_map=access_help_map, **valid.kwargs), 400
+        return render_tracker_access(tracker, **valid.kwargs), 400
 
     tracker.default_anonymous_perms = perm_anon
     tracker.default_user_perms = perm_user
@@ -250,6 +252,61 @@ def settings_access_POST(owner, name):
 
     db.session.commit()
     return redirect(tracker_url(tracker))
+
+@tracker.route("/<owner>/<name>/settings/user-access/create", methods=["POST"])
+@loginrequired
+def settings_user_access_create_POST(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    valid = Validation(request)
+    username = valid.require("username")
+    permissions = parse_html_perms("user_access", valid)
+    if not valid.ok:
+        return render_tracker_access(tracker, **valid.kwargs), 400
+
+    username = username.lstrip("~")
+    user = User.query.filter_by(username=username).one_or_none()
+    valid.expect(user, "User not found.", field="username")
+    if not valid.ok:
+        return render_tracker_access(tracker, **valid.kwargs), 400
+
+    existing = UserAccess.query.filter_by(user=user, tracker=tracker).count()
+
+    valid.expect(user != tracker.owner,
+        "Cannot override tracker owner's permissions.", field="username")
+    valid.expect(existing == 0,
+        "This user already has custom permissions assigned.", field="username")
+    if not valid.ok:
+        return render_tracker_access(tracker, **valid.kwargs), 400
+
+    ua = UserAccess(tracker=tracker, user=user, permissions=permissions)
+    db.session.add(ua)
+    db.session.commit()
+
+    return redirect(url_for("tracker.settings_access_GET",
+            owner=tracker.owner.canonical_name,
+            name=name))
+
+@tracker.route("/<owner>/<name>/settings/user-access/<user_id>/delete",
+    methods=["POST"])
+@loginrequired
+def settings_user_access_delete_POST(owner, name, user_id):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    UserAccess.query.filter_by(user_id=user_id, tracker_id=tracker.id).delete()
+    db.session.commit()
+
+    return redirect(url_for("tracker.settings_access_GET",
+            owner=tracker.owner.canonical_name,
+            name=name))
 
 @tracker.route("/<owner>/<name>/settings/delete")
 @loginrequired

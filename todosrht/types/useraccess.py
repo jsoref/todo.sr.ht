@@ -13,7 +13,8 @@ class UserAccess(Base):
 
     tracker_id = sa.Column(sa.Integer,
             sa.ForeignKey("tracker.id", ondelete="CASCADE"), nullable=False)
-    tracker = sa.orm.relationship("Tracker")
+    tracker = sa.orm.relationship("Tracker",
+            backref=sa.orm.backref("user_accesses"))
 
     user_id = sa.Column(sa.Integer,
             sa.ForeignKey("user.id", ondelete="CASCADE"), nullable=False)

@@ -87,6 +87,94 @@
         </button>
       </span>
     </form>
+
+    <div class="clearfix"></div>
+
+    <h4>User permissions</h4>
+
+    <p>Here you may override permissions for specific users.</p>
+
+    {% if tracker.user_accesses %}
+    <table class="table">
+      <tbody>
+        {% for user_access in tracker.user_accesses %}
+        <tr>
+          <td>{{ user_access.user }}</td>
+          <td>
+            {% if user_access.permissions.name in ["all", "none"] %}
+              {{ user_access.permissions.name }}
+            {% else %}
+            {% for type in access_type_list
+               if type and type in user_access.permissions %}
+               {{ type.name }}{% if not loop.last %},{% endif %}
+            {% endfor %}
+            {% endif %}
+          </td>
+          <td>{{ user_access.created|date }}</td>
+          <td>
+            <form
+              action="{{ url_for(".settings_user_access_delete_POST",
+                  owner=tracker.owner.canonical_name,
+                  name=tracker.name,
+                  user_id=user_access.user_id) }}"
+              method="POST"
+              style="margin: 0"
+            >
+              {{ csrf_token() }}
+              <button type="submit" class="btn btn-link btn-block">
+                (remove)
+              </button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    <form
+      method="POST"
+      class="form-horizontal"
+      action="{{ url_for(".settings_user_access_create_POST",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name) }}"
+    >
+      {{ csrf_token() }}
+
+      <div class="event-list">
+        <div class="event">
+          <h4>Add user permissions</h4>
+
+          <div class="form-group" style="margin-top: 1rem">
+            <label for="username">User</label>
+            <input
+              type="text"
+              class="form-control {{valid.cls("username")}}"
+              id="username"
+              name="username"
+              placeholder="~{{ current_user.username }}"
+              value="{{username or ""}}"
+            />
+            {{ valid.summary("username") }}
+          </div>
+
+          <p>Permissions</p>
+
+          <div class="form-group">
+            {% for a in access_type_list %}
+            {{ perm_checkbox(a, TicketAccess.all, "user_access") }}
+            {% endfor %}
+            {{ valid.summary("user_access") }}
+          </div>
+        </div>
+      </div>
+
+      <span class="pull-right">
+        <button type="submit" class="btn btn-primary">
+          Add {{icon("caret-right")}}
+        </button>
+      </span>
+    </form>
   </div>
 </div>
 {% endblock %}
