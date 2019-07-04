@@ -1,24 +1,38 @@
 from flask_login import current_user
 from todosrht.types import User, Tracker, Ticket
-from todosrht.types import TicketAccess
+from todosrht.types import TicketAccess, UserAccess
+
+def _get_permissions(tracker, ticket, name):
+    """
+    Return ticket permissions of given name, fall back to tracker defaults.
+    """
+    if ticket and getattr(ticket, f"{name}_perms"):
+        return getattr(ticket, f"{name}_perms")
+    return getattr(tracker, f"default_{name}_perms")
 
 def get_access(tracker, ticket, user=None):
-    if user is None:
-        user = current_user
-    # TODO: flesh out
-    if user and user.id == tracker.owner_id:
+    user = user or current_user
+
+    # Anonymous
+    if not user:
+        return _get_permissions(tracker, ticket, "anonymous")
+
+    # Owner
+    if user.id == tracker.owner_id:
         return TicketAccess.all
-    elif user:
-        if ticket and user.id == ticket.submitter_id:
-            return ticket.submitter_perms or tracker.default_submitter_perms
-        return tracker.default_user_perms
 
-    if ticket and ticket.anonymous_perms:
-        return ticket.anonymous_perms
-    return tracker.default_anonymous_perms
+    # Per-user access specified
+    user_access = UserAccess.query.filter_by(tracker=tracker, user=user).first()
+    if user_access:
+        return user_access.permissions
 
-def get_owner(owner):
-    pass
+    # Submitter
+    if ticket and user.id == ticket.submitter_id:
+        return _get_permissions(tracker, ticket, "submitter")
+
+    # Any logged in user
+    return _get_permissions(tracker, ticket, "user")
+
 
 def get_tracker(owner, name, with_for_update=False, user=None):
     if not owner:
