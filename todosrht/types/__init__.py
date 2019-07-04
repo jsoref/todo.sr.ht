@@ -18,3 +18,4 @@ from todosrht.types.ticketcomment import TicketComment
 from todosrht.types.ticketassignee import TicketAssignee
 from todosrht.types.event import Event, EventType, EventNotification
 from todosrht.types.label import Label, TicketLabel
+from todosrht.types.useraccess import UserAccess
