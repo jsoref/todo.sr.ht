@@ -2,32 +2,43 @@
 {% block title %}
 <title>Configure {{tracker.owner}}/{{tracker.name}} &mdash; {{ cfg("sr.ht", "site-name") }}</title>
 {% endblock %}
-{% macro perm_checkbox(type, perms, name) %}
+{% macro perm_checkbox(type, perms, name, readonly=False) %}
 {% if type.name not in ["none", "all"] %}
 <div class="form-check form-check-inline">
   <label class="form-check-label" title="{{access_help_map[type]}}">
-  {% if type %}
-    <input
-      class="form-check-input"
-      type="checkbox"
-      name="perm_{{ name }}_{{ type.name }}"
-      value="{{type.value}}"
-      {{ "checked" if type in perms }}> {{type.name}}
-  {% else %}
-    <input
-      class="form-check-input"
-      type="checkbox"
-      name="perm_{{ name }}_{{ type.name }}"
-      value="{{type.value}}"
-      {{ "checked" if perms == 0 }}> {{type.name}}
-  {% endif %}
+    {% if readonly %}
+      {% if type in perms %}
+        {{icon('check', cls='text-success')}}
+      {% else %}
+        <span style="display: inline-block; min-width: 16px;">
+          {{icon('times', cls='text-danger')}}
+        </span>
+      {% endif %}
+      {{type.name}}
+    {% else %}
+      {% if type %}
+        <input
+          class="form-check-input"
+          type="checkbox"
+          name="perm_{{ name }}_{{ type.name }}"
+          value="{{type.value}}"
+          {{ "checked" if type in perms }}> {{type.name}}
+      {% else %}
+        <input
+          class="form-check-input"
+          type="checkbox"
+          name="perm_{{ name }}_{{ type.name }}"
+          value="{{type.value}}"
+          {{ "checked" if perms == 0 }}> {{type.name}}
+      {% endif %}
+    {% endif %}
   </label>
 </div>
 {% endif %}
 {% endmacro %}
 {% block content %}
 <div class="row">
-  <div class="col-md-7">
+  <div class="col-md-10">
     <form method="POST">
       {{csrf_token()}}
       <div class="form-group {{valid.cls("tracker_any_access")}}">
@@ -48,17 +59,6 @@
             {{ valid.summary("tracker_anon_access") }}
           </div>
           <div class="event">
-            <h4>User Permissions</h4>
-            <p>
-              Permissions granted to any logged-in {{cfg("sr.ht",
-              "site-name")}} user.
-            </p>
-            {% for a in access_type_list %}
-            {{ perm_checkbox(a, tracker.default_user_perms, "user") }}
-            {% endfor %}
-            {{ valid.summary("tracker_user_access") }}
-          </div>
-          <div class="event">
             <h4>Submitter Permissions</h4>
             <p>
               Permissions granted to the ticket submitter on the tickets they
@@ -69,15 +69,17 @@
             {% endfor %}
             {{ valid.summary("tracker_submit_access") }}
           </div>
-          {# TODO: once we link git accounts
           <div class="event">
-            <h4>Committer Permissions</h4>
+            <h4>Account Holder Permissions</h4>
+            <p>
+              Permissions granted to any logged-in {{cfg("sr.ht",
+              "site-name")}} user.
+            </p>
             {% for a in access_type_list %}
-            {{ perm_checkbox(a, tracker.default_committer_perms, "commit") }}
+            {{ perm_checkbox(a, tracker.default_user_perms, "user") }}
             {% endfor %}
-            {{ valid.summary("tracker_commit_access") }}
+            {{ valid.summary("tracker_user_access") }}
           </div>
-          #}
         </div>
       </div>
       {{ valid.summary() }}
@@ -90,27 +92,73 @@
 
     <div class="clearfix"></div>
 
-    <h4>User permissions</h4>
+    <h3>User permissions</h3>
+    <form
+      method="POST"
+      class="form-horizontal"
+      action="{{ url_for(".settings_user_access_create_POST",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name) }}"
+    >
+      {{ csrf_token() }}
+      <div class="form-group" style="margin-top: 1rem">
+        <label for="username">Username or email</label>
+        <input
+          type="text"
+          class="form-control {{valid.cls("username")}}"
+          id="username"
+          name="username"
+          placeholder="~{{ current_user.username }}"
+          value="{{username or ""}}"
+        />
+        {{ valid.summary("username") }}
+      </div>
 
-    <p>Here you may override permissions for specific users.</p>
+      <div class="event-list">
+        <div class="event form-group">
+          <h4>Permissions</h4>
+          <p>
+            These settings will override all permissions for a specific user.
+          </p>
+          {% for a in access_type_list %}
+          {{ perm_checkbox(a, TicketAccess.all, "user_access") }}
+          {% endfor %}
+          {{ valid.summary("user_access") }}
+        </div>
+      </div>
+
+      <span class="pull-right">
+        <button type="submit" class="btn btn-primary">
+          Add {{icon("caret-right")}}
+        </button>
+      </span>
+    </form>
 
     {% if tracker.user_accesses %}
     <table class="table">
+      <thead>
+        <tr>
+          <th>user</th>
+          <th>granted</th>
+          <th>access</th>
+          <th style="width: 10%"></th>
+        </tr>
+      </thead>
       <tbody>
         {% for user_access in tracker.user_accesses %}
         <tr>
-          <td>{{ user_access.user }}</td>
           <td>
-            {% if user_access.permissions.name in ["all", "none"] %}
-              {{ user_access.permissions.name }}
-            {% else %}
-            {% for type in access_type_list
-               if type and type in user_access.permissions %}
-               {{ type.name }}{% if not loop.last %},{% endif %}
-            {% endfor %}
-            {% endif %}
+            <a
+              href="{{url_for("html.user_GET",
+                username=user_access.user.username)}}"
+            >~{{user_access.user.username}}</a>
           </td>
           <td>{{ user_access.created|date }}</td>
+          <td>
+            {% for a in access_type_list %}
+            {{ perm_checkbox(a, user_access.permissions, "user", readonly=True) }}
+            {% endfor %}
+          </td>
           <td>
             <form
               action="{{ url_for(".settings_user_access_delete_POST",
@@ -121,8 +169,8 @@
               style="margin: 0"
             >
               {{ csrf_token() }}
-              <button type="submit" class="btn btn-link btn-block">
-                (remove)
+              <button type="submit" class="btn btn-danger btn-fill">
+                Delete
               </button>
             </form>
           </td>
@@ -131,50 +179,6 @@
       </tbody>
     </table>
     {% endif %}
-
-    <form
-      method="POST"
-      class="form-horizontal"
-      action="{{ url_for(".settings_user_access_create_POST",
-          owner=tracker.owner.canonical_name,
-          name=tracker.name) }}"
-    >
-      {{ csrf_token() }}
-
-      <div class="event-list">
-        <div class="event">
-          <h4>Add user permissions</h4>
-
-          <div class="form-group" style="margin-top: 1rem">
-            <label for="username">User</label>
-            <input
-              type="text"
-              class="form-control {{valid.cls("username")}}"
-              id="username"
-              name="username"
-              placeholder="~{{ current_user.username }}"
-              value="{{username or ""}}"
-            />
-            {{ valid.summary("username") }}
-          </div>
-
-          <p>Permissions</p>
-
-          <div class="form-group">
-            {% for a in access_type_list %}
-            {{ perm_checkbox(a, TicketAccess.all, "user_access") }}
-            {% endfor %}
-            {{ valid.summary("user_access") }}
-          </div>
-        </div>
-      </div>
-
-      <span class="pull-right">
-        <button type="submit" class="btn btn-primary">
-          Add {{icon("caret-right")}}
-        </button>
-      </span>
-    </form>
   </div>
 </div>
 {% endblock %}
