@@ -10,6 +10,7 @@ from email.utils import parseaddr
 from grp import getgrnam
 from todosrht.access import get_tracker, get_ticket
 from todosrht.types import TicketAccess, TicketResolution, Tracker, Ticket, User
+from todosrht.types import Label, TicketLabel, Event, EventType
 from todosrht.tickets import submit_ticket, add_comment
 from todosrht.webhooks import UserWebhook, TrackerWebhook, TicketWebhook
 from srht.validation import Validation
@@ -130,6 +131,39 @@ class MailHandler:
                 resolution = TicketResolution[cmd[1].lower()]
             elif cmd[0] == "!reopen":
                 reopen = True
+            elif cmd[0] == "!label" or cmd[0] == "!unlabel":
+                labels = Label.query.filter(
+                        Label.name.in_(cmd[1:]),
+                        Label.tracker_id == ticket.tracker_id).all()
+                if len(labels) != len(cmd) - 1:
+                    return ("550 The label you requested does not exist on " +
+                        "this tracker.")
+                for label in labels:
+                    ticket_label = (TicketLabel.query
+                            .filter(TicketLabel.label_id == label.id)
+                            .filter(TicketLabel.ticket_id == ticket.id)).first()
+                    event = Event()
+                    event.user_id = sender.id
+                    event.ticket_id = ticket.id
+                    event.label_id = label.id
+                    if not ticket_label and cmd[0] == "!label":
+                        ticket_label = TicketLabel()
+                        ticket_label.ticket_id = ticket.id
+                        ticket_label.label_id = label.id
+                        ticket_label.user_id = sender.id
+                        db.session.add(ticket_label)
+                        event.event_type = EventType.label_added
+                    elif ticket_label and cmd[0] == "!unlabel":
+                        db.session.delete(ticket_label)
+                        event.event_type = EventType.label_removed
+                    db.session.add(event)
+                    db.session.commit()
+                    TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                            event.to_dict(),
+                            TicketWebhook.Subscription.ticket_id == ticket.id)
+                    TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                            event.to_dict(),
+                            TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
             # TODO: Remaining commands
 
         if not required_access in access:
@@ -137,18 +171,19 @@ class MailHandler:
                 f"permissions (have {access}, want {required_access})")
             return "550 You do not have permission to post on this tracker."
 
-        if not body or 3 > len(body) > 16384:
+        if body and 3 > len(body) > 16384:
             print("Rejected, invalid comment length")
             return "550 Comment must be between 3 and 16384 characters."
 
-        event = add_comment(sender, ticket, text=body,
-                resolution=resolution, resolve=resolve, reopen=reopen)
-        TicketWebhook.deliver(TicketWebhook.Events.event_create,
-                event.to_dict(),
-                TicketWebhook.Subscription.ticket_id == ticket.id)
-        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
-                event.to_dict(),
-                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
+        if body:
+            event = add_comment(sender, ticket, text=body,
+                    resolution=resolution, resolve=resolve, reopen=reopen)
+            TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                    event.to_dict(),
+                    TicketWebhook.Subscription.ticket_id == ticket.id)
+            TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                    event.to_dict(),
+                    TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
         print(f"Added comment to {ticket.ref()}")
         return "250 Message accepted for delivery"
 
