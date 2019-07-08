@@ -138,6 +138,10 @@ class MailHandler:
                 if len(labels) != len(cmd) - 1:
                     return ("550 The label you requested does not exist on " +
                         "this tracker.")
+                if not TicketAccess.triage in access:
+                    print(f"Rejected, {sender.canonical_name} has insufficient " +
+                        f"permissions (have {access}, want triage)")
+                    return "550 You do not have permission to triage on this tracker."
                 for label in labels:
                     ticket_label = (TicketLabel.query
                             .filter(TicketLabel.label_id == label.id)
