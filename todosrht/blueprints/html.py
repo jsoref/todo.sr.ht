@@ -1,10 +1,10 @@
-from flask import Blueprint, render_template, request, abort, session
+from flask import Blueprint, render_template, request, abort
 from flask_login import current_user
 from todosrht.access import get_tracker, get_access
 from todosrht.types import Tracker, Ticket, Event, EventNotification, EventType
 from todosrht.types import User
 from srht.config import cfg
-from srht.flask import paginate_query
+from srht.flask import paginate_query, session
 from sqlalchemy import and_, or_
 
 html = Blueprint('html', __name__)
