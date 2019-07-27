@@ -85,9 +85,9 @@
   <div class="row">
     <div class="col-md-6">
       {% if ticket.description %}
-      <span id="description-field">
+      <div id="description-field">
         {{ ticket|render_ticket_description }}
-      </span>
+      </div>
       {% endif %}
       <dl class="row" style="margin-top: 1rem">
         <dt class="col-md-3">Status</dt>
