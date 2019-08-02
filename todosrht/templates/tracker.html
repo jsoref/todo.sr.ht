@@ -161,17 +161,22 @@
             {{ ticket.submitter }}
           </a>
         </div>
-        {% if ticket.id in seen_ticket_ids %}
         <div class="comments">
-          {{icon("comments-o")}}
-          {{ comment_counts.get(ticket.id, 0) }}
+          <span class="icon">
+            {% if ticket.id in seen_ticket_ids %}
+            {{icon("comments-o")}}
+            {% else %}
+            {{icon("comments")}}
+            {% endif %}
+          </span>
+          <span class="count">
+            {{ comment_counts.get(ticket.id, 0) }}
+          </span>
+          <span class="label">
+            {{ "comment" if comment_counts.get(ticket.id, 0) == 1
+                else "comments" }}
+          </span>
         </div>
-        {% else %}
-        <div class="comments">
-          {{icon("comments")}}
-          {{ comment_counts.get(ticket.id, 0) }}
-        </div>
-        {% endif %}
         {% endfor %}
       </div>
       {% else %}

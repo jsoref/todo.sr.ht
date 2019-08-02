@@ -118,10 +118,10 @@ select.form-control {
 
     .comments {
       text-align: left !important;
-    }
 
-    .comments:after {
-      content: "comments";
+      & > .label {
+        display: inline;
+      }
     }
   }
 
@@ -137,6 +137,9 @@ select.form-control {
 
     &.comments {
       text-align: center;
+      & > .label {
+        display: none;
+      }
     }
 
     @for $i from 1 through 5 {
