@@ -163,7 +163,7 @@
         </div>
         <div class="comments">
           <span class="icon">
-            {% if ticket.id in seen_ticket_ids %}
+            {% if ticket.id in seen_ticket_ids || comment_counts.get(ticket.id, 0) == 0 %}
             {{icon("comments-o")}}
             {% else %}
             {{icon("comments")}}
