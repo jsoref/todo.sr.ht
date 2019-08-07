@@ -162,17 +162,15 @@
           </a>
         </div>
         <div class="comments">
-          <span class="icon">
+          <span class="icon_count">
             {% if ticket.id in seen_ticket_ids or comment_counts.get(ticket.id, 0) == 0 %}
             {{icon("comments-o")}}
             {% else %}
             {{icon("comments")}}
             {% endif %}
-          </span>
-          <span class="count">
             {{ comment_counts.get(ticket.id, 0) }}
           </span>
-          <span class="label">
+          <span class="commentlabel">
             {{ "comment" if comment_counts.get(ticket.id, 0) == 1
                 else "comments" }}
           </span>

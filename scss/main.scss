@@ -119,8 +119,8 @@ select.form-control {
     .comments {
       text-align: left !important;
 
-      & > .label {
-        display: inline;
+      & > .commentlabel {
+        display: inline !important;
       }
     }
   }
@@ -137,7 +137,7 @@ select.form-control {
 
     &.comments {
       text-align: center;
-      & > .label {
+      & > .commentlabel {
         display: none;
       }
     }
