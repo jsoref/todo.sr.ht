@@ -109,8 +109,15 @@
           id="username"
           name="username"
           placeholder="~{{ current_user.username }}"
+          autocomplete="off"
+          list="user-list"
           value="{{username or ""}}"
         />
+        <datalist id="user-list">
+          {% for u in recent_users %}
+            <option value="~{{ u }}" />
+          {% endfor %}
+        </datalist>
         {{ valid.summary("username") }}
       </div>
 
@@ -181,4 +188,19 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script type="text/javascript">
+  {% include "autocomplete.js" %}
+
+  (function() {
+    const input = document.getElementById("username");
+    const list = document.getElementById("user-list");
+    if (input && list) {
+      autocomplete = new UserAutoComplete(input, list);
+      autocomplete.register();
+    }
+  })();
+</script>
 {% endblock %}

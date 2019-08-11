@@ -5,10 +5,11 @@ from todosrht.access import get_tracker
 from todosrht.search import apply_search
 from todosrht.tickets import get_last_seen_times, get_comment_counts
 from todosrht.tickets import submit_ticket
-from todosrht.types import TicketSubscription, User
+from todosrht.trackers import get_recent_users
 from todosrht.types import Event, UserAccess
-from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.types import Label, TicketLabel
+from todosrht.types import TicketSubscription, User
+from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.urls import tracker_url, ticket_url
 from todosrht.webhooks import TrackerWebhook, UserWebhook
 from srht.config import cfg
@@ -209,9 +210,10 @@ def settings_details_POST(owner, name):
 
 
 def render_tracker_access(tracker, **kwargs):
+    recent_users = get_recent_users(tracker)
     return render_template("tracker-access.html",
         view="access", tracker=tracker, access_type_list=TicketAccess,
-        access_help_map=access_help_map, **kwargs)
+        access_help_map=access_help_map, recent_users=recent_users, **kwargs)
 
 
 @tracker.route("/<owner>/<name>/settings/access")
