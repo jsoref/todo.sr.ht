@@ -1,8 +1,9 @@
 from flask import Blueprint, render_template, request, abort
 from flask_login import current_user
 from todosrht.access import get_tracker, get_access
+from todosrht.tickets import get_participant_for_user
 from todosrht.types import Tracker, Ticket, Event, EventNotification, EventType
-from todosrht.types import User
+from todosrht.types import User, Participant
 from srht.config import cfg
 from srht.flask import paginate_query, session
 from sqlalchemy import and_, or_
@@ -14,11 +15,12 @@ def filter_authorized_events(events):
         .join(Ticket, Ticket.id == Event.ticket_id)
         .join(Tracker, Tracker.id == Ticket.tracker_id))
     if current_user:
+        participant = get_participant_for_user(current_user)
         events = (events.filter(
             or_(
                 and_(
                     Ticket.submitter_perms != None,
-                    Ticket.submitter_id == current_user.id,
+                    Ticket.submitter_id == participant.id,
                     Ticket.submitter_perms > 0),
                 and_(
                     Ticket.user_perms != None,
@@ -28,7 +30,7 @@ def filter_authorized_events(events):
                     Ticket.anonymous_perms > 0),
                 and_(
                     Ticket.submitter_perms == None,
-                    Ticket.submitter_id == current_user.id,
+                    Ticket.submitter_id == participant.id,
                     Tracker.default_submitter_perms > 0),
                 and_(
                     Ticket.user_perms == None,
@@ -95,7 +97,8 @@ def user_GET(username):
 
     # TODO: Join on stuff the user has explicitly been granted access to
     events = (Event.query
-            .filter(Event.user_id == user.id)
+            .join(Participant, Event.participant_id == Participant.id)
+            .filter(Participant.user_id == user.id)
             .order_by(Event.created.desc()))
     if not current_user or current_user.id != user.id:
         events = filter_authorized_events(events)

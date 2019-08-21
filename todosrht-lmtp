@@ -11,7 +11,7 @@ from grp import getgrnam
 from todosrht.access import get_tracker, get_ticket
 from todosrht.types import TicketAccess, TicketResolution, Tracker, Ticket, User
 from todosrht.types import Label, TicketLabel, Event, EventType
-from todosrht.tickets import submit_ticket, add_comment
+from todosrht.tickets import add_comment, get_participant_for_user, submit_ticket
 from todosrht.webhooks import UserWebhook, TrackerWebhook, TicketWebhook
 from srht.validation import Validation
 import asyncio
@@ -105,7 +105,8 @@ class MailHandler:
             print("Rejecting email due to validation errors")
             return "550 " + ", ".join([e["reason"] for e in valid.errors])
 
-        ticket = submit_ticket(tracker, sender, title, desc)
+        participant = get_participant_for_user(sender)
+        ticket = submit_ticket(tracker, participant, title, desc)
         UserWebhook.deliver(UserWebhook.Events.ticket_create,
                 ticket.to_dict(),
                 UserWebhook.Subscription.user_id == sender.id)
@@ -122,6 +123,7 @@ class MailHandler:
         resolution = None
         resolve = reopen = False
         cmds = ["!resolve", "!reopen", "!assign", "!label", "!unlabel"]
+        participant = get_participant_for_user(sender)
         if any(last_line.startswith(cmd) for cmd in cmds):
             cmd = shlex.split(last_line)
             body = body[:-len(last_line)-1].rstrip()
@@ -139,7 +141,7 @@ class MailHandler:
                     return ("550 The label you requested does not exist on " +
                         "this tracker.")
                 if not TicketAccess.triage in access:
-                    print(f"Rejected, {sender.canonical_name} has insufficient " +
+                    print(f"Rejected, {participant.name} has insufficient " +
                         f"permissions (have {access}, want triage)")
                     return "550 You do not have permission to triage on this tracker."
                 for label in labels:
@@ -147,10 +149,11 @@ class MailHandler:
                             .filter(TicketLabel.label_id == label.id)
                             .filter(TicketLabel.ticket_id == ticket.id)).first()
                     event = Event()
-                    event.user_id = sender.id
+                    event.participant_id = participant.id
                     event.ticket_id = ticket.id
                     event.label_id = label.id
                     if not ticket_label and cmd[0] == "!label":
+                        # TODO: only supported for user participants
                         ticket_label = TicketLabel()
                         ticket_label.ticket_id = ticket.id
                         ticket_label.label_id = label.id
@@ -171,7 +174,7 @@ class MailHandler:
             # TODO: Remaining commands
 
         if not required_access in access:
-            print(f"Rejected, {sender.canonical_name} has insufficient " +
+            print(f"Rejected, {participant.name} has insufficient " +
                 f"permissions (have {access}, want {required_access})")
             return "550 You do not have permission to post on this tracker."
 
@@ -180,7 +183,7 @@ class MailHandler:
             return "550 Comment must be between 3 and 16384 characters."
 
         if body:
-            event = add_comment(sender, ticket, text=body,
+            event = add_comment(participant, ticket, text=body,
                     resolution=resolution, resolve=resolve, reopen=reopen)
             TicketWebhook.deliver(TicketWebhook.Events.event_create,
                     event.to_dict(),

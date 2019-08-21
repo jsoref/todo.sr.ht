@@ -2,7 +2,7 @@ import factory
 from datetime import datetime, timedelta
 from factory.fuzzy import FuzzyText
 from srht.database import db
-from todosrht.types import Tracker, User, Ticket
+from todosrht.types import Tracker, User, Ticket, Participant, ParticipantType
 
 future_datetime = datetime.now() + timedelta(days=10)
 
@@ -20,6 +20,15 @@ class UserFactory(factory.alchemy.SQLAlchemyModelFactory):
         sqlalchemy_session = db.session
 
 
+class ParticipantFactory(factory.alchemy.SQLAlchemyModelFactory):
+    participant_type = ParticipantType.user
+    user = factory.SubFactory(UserFactory)
+
+    class Meta:
+        model = Participant
+        sqlalchemy_session = db.session
+
+
 class TrackerFactory(factory.alchemy.SQLAlchemyModelFactory):
     owner = factory.SubFactory(UserFactory)
     name = factory.Sequence(lambda n: f"tracker{n}")
@@ -32,7 +41,7 @@ class TrackerFactory(factory.alchemy.SQLAlchemyModelFactory):
 class TicketFactory(factory.alchemy.SQLAlchemyModelFactory):
     tracker = factory.SubFactory(TrackerFactory)
     scoped_id = factory.Sequence(lambda n: n)
-    submitter = factory.SubFactory(UserFactory)
+    submitter = factory.SubFactory(ParticipantFactory)
     title = "A wild ticket appeared"
 
     class Meta:

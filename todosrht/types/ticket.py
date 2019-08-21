@@ -28,8 +28,8 @@ class Ticket(Base):
             remote_side=[id])
 
     submitter_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id"), nullable=False)
-    submitter = sa.orm.relationship("User",
+            sa.ForeignKey("participant.id"), nullable=False)
+    submitter = sa.orm.relationship("Participant",
             backref=sa.orm.backref("submitted", cascade="all, delete-orphan"))
 
     title = sa.Column(sa.Unicode(2048), nullable=False)

@@ -10,6 +10,7 @@ def _get_permissions(tracker, ticket, name):
         return getattr(ticket, f"{name}_perms")
     return getattr(tracker, f"default_{name}_perms")
 
+# TODO: get_access for any participant
 def get_access(tracker, ticket, user=None):
     user = user or current_user
 
@@ -27,7 +28,7 @@ def get_access(tracker, ticket, user=None):
         return user_access.permissions
 
     # Submitter
-    if ticket and user.id == ticket.submitter_id:
+    if ticket and user.id == ticket.submitter.user_id:
         return _get_permissions(tracker, ticket, "submitter")
 
     # Any logged in user

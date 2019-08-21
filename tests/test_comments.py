@@ -9,20 +9,21 @@ from todosrht.types import TicketResolution, TicketStatus
 from todosrht.types import TicketSubscription, EventType
 
 from .factories import UserFactory, TrackerFactory, TicketFactory
+from .factories import ParticipantFactory
 
 def test_ticket_comment(mailbox):
-    user = UserFactory()
+    submitter = ParticipantFactory()
     tracker = TrackerFactory()
     ticket = TicketFactory(tracker=tracker)
 
-    subscribed_to_ticket = UserFactory()
-    subscribed_to_tracker = UserFactory()
-    subscribed_to_both = UserFactory()
+    subscribed_to_ticket = ParticipantFactory()
+    subscribed_to_tracker = ParticipantFactory()
+    subscribed_to_both = ParticipantFactory()
 
-    sub1 = TicketSubscription(user=subscribed_to_ticket, ticket=ticket)
-    sub2 = TicketSubscription(user=subscribed_to_tracker, tracker=tracker)
-    sub3 = TicketSubscription(user=subscribed_to_both, ticket=ticket)
-    sub4 = TicketSubscription(user=subscribed_to_both, tracker=tracker)
+    sub1 = TicketSubscription(participant=subscribed_to_ticket, ticket=ticket)
+    sub2 = TicketSubscription(participant=subscribed_to_tracker, tracker=tracker)
+    sub3 = TicketSubscription(participant=subscribed_to_both, ticket=ticket)
+    sub4 = TicketSubscription(participant=subscribed_to_both, tracker=tracker)
 
     db.session.add(sub1)
     db.session.add(sub2)
@@ -35,22 +36,22 @@ def test_ticket_comment(mailbox):
         emails = mailbox[-3:]
 
         assert {e.to for e in emails} == {
-            subscribed_to_ticket.email,
-            subscribed_to_tracker.email,
-            subscribed_to_both.email,
+            subscribed_to_ticket.user.email,
+            subscribed_to_tracker.user.email,
+            subscribed_to_both.user.email,
         }
 
         for e in emails:
-            assert e.headers['From'].startswith(user.canonical_name)
+            assert e.headers['From'].startswith(submitter.name)
             if starts_with:
                 assert e.body.startswith(starts_with)
 
     def assert_event_notifications_created(event):
         assert {en.user.email for en in event.notifications} == {
-            subscribed_to_ticket.email,
-            subscribed_to_tracker.email,
-            subscribed_to_both.email,
-            event.user.email,
+            subscribed_to_ticket.user.email,
+            subscribed_to_tracker.user.email,
+            subscribed_to_both.user.email,
+            event.participant.user.email,
         }
 
     assert len(mailbox) == 0
@@ -58,12 +59,13 @@ def test_ticket_comment(mailbox):
     assert ticket.resolution == TicketResolution.unresolved
 
     # Comment without status change
-    event = add_comment(user, ticket, text="how do you do, i")
+    event = add_comment(submitter, ticket, text="how do you do, i")
 
     # Submitter gets automatically subscribed
-    assert TicketSubscription.query.filter_by(ticket=ticket, user=user).first()
+    assert TicketSubscription.query.filter_by(
+            ticket=ticket, participant=submitter).first()
 
-    assert event.comment.submitter == user
+    assert event.comment.submitter == submitter
     assert event.comment.ticket == ticket
     assert event.comment.text == "how do you do, i"
 
@@ -80,10 +82,10 @@ def test_ticket_comment(mailbox):
     assert_event_notifications_created(event)
 
     # Comment and resolve issue
-    event = add_comment(user, ticket, text="see you've met my",
+    event = add_comment(submitter, ticket, text="see you've met my",
             resolve=True, resolution=TicketResolution.fixed)
 
-    assert event.comment.submitter == user
+    assert event.comment.submitter == submitter
     assert event.comment.ticket == ticket
     assert event.comment.text == "see you've met my"
 
@@ -104,9 +106,10 @@ def test_ticket_comment(mailbox):
     assert_event_notifications_created(event)
 
     # Comment and reopen issue
-    event = add_comment(user, ticket, text="faithful handyman", reopen=True)
+    event = add_comment(submitter, ticket,
+            text="faithful handyman", reopen=True)
 
-    assert event.comment.submitter == user
+    assert event.comment.submitter == submitter
     assert event.comment.ticket == ticket
     assert event.comment.text == "faithful handyman"
 
@@ -122,7 +125,7 @@ def test_ticket_comment(mailbox):
     assert_event_notifications_created(event)
 
     # Resolve without commenting
-    event = add_comment(user, ticket,
+    event = add_comment(submitter, ticket,
             resolve=True, resolution=TicketResolution.wont_fix)
 
     assert ticket.status == TicketStatus.resolved
@@ -138,7 +141,7 @@ def test_ticket_comment(mailbox):
     assert_event_notifications_created(event)
 
     # Reopen without commenting
-    event = add_comment(user, ticket, reopen=True)
+    event = add_comment(submitter, ticket, reopen=True)
 
     assert ticket.status == TicketStatus.reported
     assert ticket.resolution == TicketResolution.wont_fix
@@ -153,13 +156,13 @@ def test_ticket_comment(mailbox):
 
 
 def test_failed_comments():
-    user = UserFactory()
+    participant = ParticipantFactory()
     tracker = TrackerFactory()
     ticket = TicketFactory(tracker=tracker)
     db.session.flush()
 
     with pytest.raises(AssertionError):
-        add_comment(user, ticket)
+        add_comment(participant, ticket)
 
 
 def test_user_mention_pattern():
@@ -189,25 +192,25 @@ def test_find_mentioned_users():
 
     assert find_mentioned_users(comment) == set()
 
-    u1 = UserFactory(username="mention1")
+    p1 = ParticipantFactory(user=UserFactory(username="mention1"))
     db.session.commit()
-    assert find_mentioned_users(comment) == {u1}
+    assert find_mentioned_users(comment) == {p1}
 
-    u2 = UserFactory(username="mention2")
+    p2 = ParticipantFactory(user=UserFactory(username="mention2"))
     db.session.commit()
-    assert find_mentioned_users(comment) == {u1, u2}
+    assert find_mentioned_users(comment) == {p1, p2}
 
-    u3 = UserFactory(username="mention3")
+    p3 = ParticipantFactory(user=UserFactory(username="mention3"))
     db.session.commit()
-    assert find_mentioned_users(comment) == {u1, u2, u3}
+    assert find_mentioned_users(comment) == {p1, p2, p3}
 
 
 def test_notifications_and_events(mailbox):
-    u1 = UserFactory()
-    u2 = UserFactory()
-    u3 = UserFactory()  # not mentioned
+    p1 = ParticipantFactory()
+    p2 = ParticipantFactory()
+    p3 = ParticipantFactory()  # not mentioned
 
-    commenter = UserFactory()
+    commenter = ParticipantFactory()
     ticket = TicketFactory()
 
     t1 = TicketFactory(tracker=ticket.tracker)
@@ -217,16 +220,16 @@ def test_notifications_and_events(mailbox):
     db.session.flush()
 
     text = (
-        f"mentioning users {u1.canonical_name}, ~doesnotexist, "
-        f"and {u2.canonical_name} "
+        f"mentioning users {p1.identifier}, ~doesnotexist, "
+        f"and {p2.identifier} "
         f"also mentioning tickets #{t1.scoped_id}, and #{t2.scoped_id} and #999999"
     )
     event = add_comment(commenter, ticket, text)
 
     assert len(mailbox) == 2
 
-    email1 = next(e for e in mailbox if e.to == u1.email)
-    email2 = next(e for e in mailbox if e.to == u2.email)
+    email1 = next(e for e in mailbox if e.to == p1.user.email)
+    email2 = next(e for e in mailbox if e.to == p2.user.email)
 
     expected_title = f"{ticket.ref()}: {ticket.title}"
     expected_body = f"You were mentioned in {ticket.ref()} by {commenter}."
@@ -240,25 +243,25 @@ def test_notifications_and_events(mailbox):
     # Check correct events are generated
     comment_events = {e for e in ticket.events
         if e.event_type == EventType.comment}
-    u1_events = {e for e in u1.events
+    p1_events = {e for e in p1.events
         if e.event_type == EventType.user_mentioned}
-    u2_events = {e for e in u2.events
+    p2_events = {e for e in p2.events
         if e.event_type == EventType.user_mentioned}
 
     assert len(comment_events) == 1
-    assert len(u1_events) == 1
-    assert len(u2_events) == 1
+    assert len(p1_events) == 1
+    assert len(p2_events) == 1
 
-    u1_mention = u1_events.pop()
-    u2_mention = u2_events.pop()
+    p1_mention = p1_events.pop()
+    p2_mention = p2_events.pop()
 
-    assert u1_mention.comment == event.comment
-    assert u1_mention.from_ticket == ticket
-    assert u1_mention.by_user == commenter
+    assert p1_mention.comment == event.comment
+    assert p1_mention.from_ticket == ticket
+    assert p1_mention.by_participant == commenter
 
-    assert u2_mention.comment == event.comment
-    assert u2_mention.from_ticket == ticket
-    assert u2_mention.by_user == commenter
+    assert p2_mention.comment == event.comment
+    assert p2_mention.from_ticket == ticket
+    assert p2_mention.by_participant == commenter
 
     assert len(t1.events) == 1
     assert len(t2.events) == 1
@@ -269,11 +272,11 @@ def test_notifications_and_events(mailbox):
 
     assert t1_mention.comment == event.comment
     assert t1_mention.from_ticket == ticket
-    assert t1_mention.by_user == commenter
+    assert t1_mention.by_participant == commenter
 
     assert t2_mention.comment == event.comment
     assert t2_mention.from_ticket == ticket
-    assert t2_mention.by_user == commenter
+    assert t2_mention.by_participant == commenter
 
 def test_ticket_mention_pattern():
     def match(text):

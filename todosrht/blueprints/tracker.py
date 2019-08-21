@@ -4,11 +4,11 @@ from todosrht import color
 from todosrht.access import get_tracker
 from todosrht.search import apply_search
 from todosrht.tickets import get_last_seen_times, get_comment_counts
-from todosrht.tickets import submit_ticket
+from todosrht.tickets import get_participant_for_user, submit_ticket
 from todosrht.trackers import get_recent_users
 from todosrht.types import Event, UserAccess
 from todosrht.types import Label, TicketLabel
-from todosrht.types import TicketSubscription, User
+from todosrht.types import TicketSubscription, User, Participant
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.urls import tracker_url, ticket_url
 from todosrht.webhooks import TrackerWebhook, UserWebhook
@@ -43,9 +43,10 @@ def create_POST():
             tracker.to_dict(),
             UserWebhook.Subscription.user_id == tracker.owner_id)
 
+    participant = get_participant_for_user(current_user)
     sub = TicketSubscription()
     sub.tracker_id = tracker.id
-    sub.user_id = current_user.id
+    sub.participant_id = participant.id
     db.session.add(sub)
     db.session.commit()
 
@@ -63,9 +64,10 @@ def return_tracker(tracker, access, **kwargs):
     is_subscribed = False
     if current_user:
         sub = (TicketSubscription.query
+            .join(Participant)
             .filter(TicketSubscription.tracker_id == tracker.id)
             .filter(TicketSubscription.ticket_id == None)
-            .filter(TicketSubscription.user_id == current_user.id)
+            .filter(Participant.user_id == current_user.id)
         ).one_or_none()
         is_subscribed = bool(sub)
 
@@ -122,9 +124,10 @@ def enable_notifications(owner, name):
     if sub:
         return redirect(tracker_url(tracker))
 
+    participant = get_participant_for_user(current_user)
     sub = TicketSubscription()
     sub.tracker_id = tracker.id
-    sub.user_id = current_user.id
+    sub.participant_id = participant.id
     db.session.add(sub)
     db.session.commit()
     return redirect(tracker_url(tracker))
@@ -370,7 +373,8 @@ def tracker_submit_POST(owner, name):
         return return_tracker(tracker, access, **valid.kwargs), 400
 
     # TODO: Handle unique constraint failure (contention) and retry?
-    ticket = submit_ticket(tracker, current_user, title, desc)
+    participant = get_participant_for_user(current_user)
+    ticket = submit_ticket(tracker, participant, title, desc)
 
     UserWebhook.deliver(UserWebhook.Events.ticket_create,
             ticket.to_dict(),

@@ -10,8 +10,8 @@ class TicketComment(Base):
     updated = sa.Column(sa.DateTime, nullable=False)
 
     submitter_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id"), nullable=False)
-    submitter = sa.orm.relationship("User")
+            sa.ForeignKey("participant.id"), nullable=False)
+    submitter = sa.orm.relationship("Participant")
 
     ticket_id = sa.Column(sa.Integer,
             sa.ForeignKey("ticket.id", ondelete="CASCADE"),

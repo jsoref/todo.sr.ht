@@ -101,7 +101,7 @@
         </dd>
         <dt class="col-md-3">Submitter</dt>
         <dd class="col-md-9">
-          <a id="submitter-field" href="{{ ticket.submitter|user_url }}">
+          <a id="submitter-field" href="{{ ticket.submitter|participant_url }}">
             {{ ticket.submitter }}
           </a>
         </dd>
@@ -241,8 +241,8 @@
             EventType.unassigned_user,
             EventType.ticket_mentioned,
           ] %}
-            <a href="{{ event.user|user_url }}">
-              {{ event.user }}
+            <a href="{{ event.participant|participant_url }}">
+              {{ event.participant }}
             </a>
           {% endif %}
           {% if EventType.status_change in event.event_type %}
@@ -269,26 +269,26 @@
             removed {{ event.label|label_badge(cls="small") }}
           {% endif %}
           {% if EventType.assigned_user in event.event_type %}
-            <a href="{{event.by_user|user_url}}">
-              {{event.by_user}}
+            <a href="{{event.by_participant|participant_url}}">
+              {{event.by_participant}}
             </a>
             assigned
-            <a href="{{event.user|user_url}}">
-              {{event.user}}
+            <a href="{{event.participant|participant_url}}">
+              {{event.participant}}
             </a>
           {% endif %}
           {% if EventType.unassigned_user in event.event_type %}
-            <a href="{{event.by_user|user_url}}">
-              {{event.by_user}}
+            <a href="{{event.by_participant|participant_url}}">
+              {{event.by_participant}}
             </a>
             unassigned
-            <a href="{{event.user|user_url}}">
-              {{event.user}}
+            <a href="{{event.participant|participant_url}}">
+              {{event.participant}}
             </a>
           {% endif %}
           {% if EventType.ticket_mentioned in event.event_type %}
-            <a href="{{ event.by_user|user_url }}">
-              {{ event.by_user }}
+            <a href="{{ event.by_user|participant_url }}">
+              {{ event.by_participant }}
             </a>
             {% set relation = event.from_ticket %}
             {% if relation.status == TicketStatus.resolved and

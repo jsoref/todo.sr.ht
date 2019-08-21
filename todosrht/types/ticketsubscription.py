@@ -1,8 +1,6 @@
 import sqlalchemy as sa
 import sqlalchemy_utils as sau
 from srht.database import Base
-from srht.flagtype import FlagType
-from enum import Enum
 
 class TicketSubscription(Base):
     """One of user, email, or webhook will be valid. The rest will be null."""
@@ -25,11 +23,11 @@ class TicketSubscription(Base):
                 cascade="all, delete-orphan"))
     """Used for subscriptions to specific tickets"""
 
-    user_id = sa.Column(sa.Integer,
-            sa.ForeignKey("user.id"))
-    user = sa.orm.relationship("User",
+    participant_id = sa.Column(sa.Integer,
+            sa.ForeignKey("participant.id"))
+    participant = sa.orm.relationship("Participant",
             backref=sa.orm.backref("subscriptions"))
 
-    email = sa.Column(sa.Unicode(512))
-
-    webhook = sa.Column(sa.Unicode(1024))
+    def __repr__(self):
+        return (f"<TicketSubscription {self.id} {self.participant}; " +
+            f"tk: {self.ticket_id}; tr: {self.tracker_id}>")

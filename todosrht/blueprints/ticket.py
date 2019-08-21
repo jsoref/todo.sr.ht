@@ -8,10 +8,11 @@ from todosrht.access import get_tracker, get_ticket
 from todosrht.filters import invalidate_markup_cache
 from todosrht.search import find_usernames
 from todosrht.tickets import add_comment, mark_seen, assign, unassign
+from todosrht.tickets import get_participant_for_user
 from todosrht.trackers import get_recent_users
 from todosrht.types import Event, EventType, Label, TicketLabel
 from todosrht.types import TicketAccess, TicketResolution
-from todosrht.types import TicketSubscription, User
+from todosrht.types import TicketSubscription, User, Participant
 from todosrht.urls import ticket_url
 from todosrht.webhooks import TrackerWebhook, TicketWebhook
 
@@ -24,10 +25,18 @@ def get_ticket_context(ticket, tracker, access):
     ticket_sub = None
 
     if current_user:
-        tracker_sub = TicketSubscription.query.filter_by(
-            ticket=None, tracker=tracker, user=current_user).one_or_none()
-        ticket_sub = TicketSubscription.query.filter_by(
-            ticket=ticket, tracker=None, user=current_user).one_or_none()
+        tracker_sub = (TicketSubscription.query
+                .join(Participant)
+                .filter(TicketSubscription.ticket_id == None)
+                .filter(TicketSubscription.tracker_id == tracker.id)
+                .filter(Participant.user_id == current_user.id)
+            ).one_or_none()
+        ticket_sub = (TicketSubscription.query
+                .join(Participant)
+                .filter(TicketSubscription.ticket_id == ticket.id)
+                .filter(TicketSubscription.tracker_id == None)
+                .filter(Participant.user_id == current_user.id)
+            ).one_or_none()
 
     return {
         "tracker": tracker,
@@ -76,9 +85,10 @@ def enable_notifications(owner, name, ticket_id):
     if sub:
         return redirect(ticket_url(ticket))
 
+    participant = get_participant_for_user(current_user)
     sub = TicketSubscription()
     sub.ticket_id = ticket.id
-    sub.user_id = current_user.id
+    sub.participant_id = participant.id
     db.session.add(sub)
     db.session.commit()
     return redirect(ticket_url(ticket))
@@ -142,7 +152,8 @@ def ticket_comment_POST(owner, name, ticket_id):
         ctx = get_ticket_context(ticket, tracker, access)
         return render_template("ticket.html", **ctx, **valid.kwargs)
 
-    event = add_comment(current_user, ticket,
+    participant = get_participant_for_user(current_user)
+    event = add_comment(participant, ticket,
         text=text, resolve=resolve, resolution=resolution, reopen=reopen)
 
     TicketWebhook.deliver(TicketWebhook.Events.event_create,
@@ -241,9 +252,10 @@ def ticket_add_label(owner, name, ticket_id):
         ticket_label.label_id = label.id
         ticket_label.user_id = current_user.id
 
+        participant = get_participant_for_user(current_user)
         event = Event()
         event.event_type = EventType.label_added
-        event.user_id = current_user.id
+        event.participant_id = participant.id
         event.ticket_id = ticket.id
         event.label_id = label.id
 
@@ -281,9 +293,10 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
             .filter(TicketLabel.ticket_id == ticket.id)).first()
 
     if ticket_label:
+        participant = get_participant_for_user(current_user)
         event = Event()
         event.event_type = EventType.label_removed
-        event.user_id = current_user.id
+        event.participant_id = participant.id
         event.ticket_id = ticket.id
         event.label_id = label.id
 

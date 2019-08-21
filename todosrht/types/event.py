@@ -31,9 +31,9 @@ class Event(Base):
     new_status = sa.Column(FlagType(TicketStatus), default=0)
     new_resolution = sa.Column(FlagType(TicketResolution), default=0)
 
-    user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
-    user = sa.orm.relationship("User",
-            backref=sa.orm.backref("events"), foreign_keys=[user_id])
+    participant_id = sa.Column(sa.Integer, sa.ForeignKey("participant.id"))
+    participant = sa.orm.relationship("Participant",
+            backref=sa.orm.backref("events"), foreign_keys=[participant_id])
 
     ticket_id = sa.Column(sa.Integer,
             sa.ForeignKey("ticket.id", ondelete="CASCADE"))
@@ -50,8 +50,9 @@ class Event(Base):
     label = sa.orm.relationship("Label",
             backref=sa.orm.backref("events", cascade="all, delete-orphan"))
 
-    by_user_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"))
-    by_user = sa.orm.relationship("User", foreign_keys=[by_user_id])
+    by_participant_id = sa.Column(sa.Integer, sa.ForeignKey("participant.id"))
+    by_participant = sa.orm.relationship(
+            "Participant", foreign_keys=[by_participant_id])
 
     from_ticket_id = sa.Column(sa.Integer,
             sa.ForeignKey("ticket.id", ondelete="CASCADE"))
@@ -71,15 +72,15 @@ class Event(Base):
             "new_status": self.new_status.name if self.new_status else None,
             "new_resolution": self.new_resolution.name
                 if self.new_resolution else None,
-            "user": self.user.to_dict(short=True)
-                if self.user else None,
+            "user": self.participant.to_dict(short=True)
+                if self.participant else None,
             "ticket": self.ticket.to_dict(short=True)
                 if self.ticket else None,
             "comment": self.comment.to_dict(short=True)
                 if self.comment else None,
             "label": self.label.name if self.label else None,
-            "by_user": self.by_user.to_dict(short=True)
-                if self.by_user else None,
+            "by_user": self.by_participant.to_dict(short=True)
+                if self.by_participant else None,
             "from_ticket": self.from_ticket.to_dict(short=True)
                 if self.from_ticket else None,
         }

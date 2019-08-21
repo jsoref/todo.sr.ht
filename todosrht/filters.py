@@ -27,10 +27,11 @@ def render_markup(tracker, text):
     users = find_mentioned_users(text)
     tickets = find_mentioned_tickets(tracker, text)
 
-    users_map = {str(u): u for u in users}
+    users_map = {u.identifier: u for u in users}
     tickets_map = {t.ref(): t for t in tickets}
 
     def urlize_user(match):
+        # TODO: Handle mentions for non-user participants
         username = match.group(0)
         if username in users_map:
             url = urls.user_url(users_map[username])

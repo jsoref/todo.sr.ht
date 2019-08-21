@@ -4,7 +4,7 @@ from srht.database import db
 from srht.oauth import oauth, current_token
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
-from todosrht.tickets import submit_ticket, add_comment
+from todosrht.tickets import add_comment, get_participant_for_user, submit_ticket
 from todosrht.blueprints.api import get_user
 from todosrht.types import Ticket, TicketAccess, TicketStatus, TicketResolution
 from todosrht.types import Event, EventType, Label, TicketLabel
@@ -53,7 +53,8 @@ def tracker_tickets_POST(username, tracker_name):
     if not valid.ok:
         return valid.response
 
-    ticket = submit_ticket(tracker, current_token.user, title, desc)
+    participant = get_participant_for_user(current_token.user)
+    ticket = submit_ticket(tracker, participant.id, title, desc)
     TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
             ticket.to_dict(),
             TrackerWebhook.Subscription.tracker_id == tracker.id)
@@ -110,6 +111,7 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         abort(404)
     ticket, access = get_ticket(tracker, ticket_id, user=current_token.user)
 
+    participant = get_participant_for_user(current_token.user)
     required_access = TicketAccess.none
     valid = Validation(request)
     comment = resolution = None
@@ -152,7 +154,7 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
                     .filter(TicketLabel.label_id == label.id)).delete()
             event = Event()
             event.event_type = EventType.label_removed
-            event.user_id = current_token.user_id
+            event.participant_id = participant.id
             event.ticket_id = ticket.id
             event.label_id = label.id
             db.session.add(event)
@@ -176,7 +178,7 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
             db.session.add(tl)
             event = Event()
             event.event_type = EventType.label_added
-            event.user_id = current_token.user_id
+            event.participant_id = participant.id
             event.ticket_id = ticket.id
             event.label_id = label.id
             db.session.add(event)
@@ -199,7 +201,7 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
 
     if comment or resolve or resolution or reopen:
         event = add_comment(
-            user, ticket, comment, resolve, resolution, reopen)
+            participant, ticket, comment, resolve, resolution, reopen)
         db.session.add(event)
         db.session.flush()
         events.append(events)

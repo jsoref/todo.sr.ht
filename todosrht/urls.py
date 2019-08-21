@@ -1,5 +1,6 @@
 from flask import has_app_context, url_for
 from jinja2.utils import unicode_urlencode
+from todosrht.types import ParticipantType
 
 def tracker_url(tracker):
     return url_for("tracker.tracker_GET",
@@ -67,6 +68,17 @@ def label_remove_url(label, ticket):
             name=ticket.tracker.name,
             ticket_id=ticket.scoped_id,
             label_id=label.id)
+
+def participant_url(participant):
+    if participant.participant_type == ParticipantType.user:
+        return url_for("html.user_GET", username=participant.user.username)
+    elif participant.participant_type == ParticipantType.email:
+        if participant.email_name:
+            return f"mailto:{participant.email_name} <{participant.email}>"
+        else:
+            return f"mailto:{participant.email}"
+    elif participant.participant_type == ParticipantType.external:
+        return participant.external_url
 
 def user_url(user):
     return url_for("html.user_GET", username=user.username)

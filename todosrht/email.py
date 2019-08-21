@@ -5,6 +5,7 @@ import textwrap
 from flask_login import current_user
 from srht.config import cfg, cfgi
 from srht.email import send_email, lookup_key
+from todosrht.types import ParticipantType
 
 origin = cfg("todo.sr.ht", "origin")
 
@@ -15,13 +16,15 @@ def format_lines(text, quote=False):
 
 def notify(sub, template, subject, headers, **kwargs):
     encrypt_key = None
-    if sub.email:
-        to = sub.email
-    elif sub.user:
-        to = sub.user.email
-        encrypt_key = lookup_key(sub.user.username, sub.user.oauth_token)
+    to = sub.participant
+    if to.participant_type == ParticipantType.email:
+        to = to.email
+    elif to.participant_type == ParticipantType.user:
+        user = to.user
+        to = user.email
+        encrypt_key = lookup_key(user.username, user.oauth_token)
     else:
-        return # TODO
+        return
     with open(os.path.join(os.path.dirname(__file__), "emails", template)) as f:
         body = html.unescape(
             pystache.render(f.read(), {
