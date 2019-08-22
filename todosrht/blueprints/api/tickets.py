@@ -1,3 +1,4 @@
+from datetime import datetime, timezone
 from flask import Blueprint, abort, request
 from srht.api import paginated_response
 from srht.database import db
@@ -56,6 +57,7 @@ def tracker_tickets_POST(username, tracker_name):
 
     external_id = None
     external_url = None
+    created = None
     if user.id == tracker.owner_id:
         external_id = valid.optional("external_id")
         external_url = valid.optional("external_url")
@@ -65,6 +67,14 @@ def tracker_tickets_POST(username, tracker_name):
                 "Expected `host:username`", field="external_id")
         valid.expect(not external_url or valid_url(external_url),
                 "Expected a valid URL", field="external_url")
+
+        created = valid.optional("created")
+        if created:
+            try:
+                created = datetime.strptime(created, "%Y-%m-%dT%H:%M:%S.%f%z")
+                created = created.astimezone(timezone.utc).replace(tzinfo=None)
+            except ValueError:
+                valid.error("Expected valid RFC 8022 datetime", field="created")
         if not valid.ok:
             return valid.response
 
@@ -74,6 +84,12 @@ def tracker_tickets_POST(username, tracker_name):
         participant = get_participant_for_user(current_token.user)
 
     ticket = submit_ticket(tracker, participant, title, desc)
+    if created:
+        ticket._no_autoupdate = True
+        ticket.created = created
+        ticket.updated = created
+        db.session.commit()
+
     TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
             ticket.to_dict(),
             TrackerWebhook.Subscription.tracker_id == tracker.id)

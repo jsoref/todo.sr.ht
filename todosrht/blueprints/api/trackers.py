@@ -114,7 +114,7 @@ def user_tracker_by_name_DELETE(username, tracker_name):
 @trackers.route("/api/user/<username>/trackers/<tracker_name>/labels")
 @trackers.route("/api/trackers/<tracker_name>/labels", defaults={"username": None})
 @oauth("trackers:read")
-def trakcer_labels_GET(username, tracker_name):
+def tracker_labels_GET(username, tracker_name):
     user = get_user(username)
     tracker, access = get_tracker(user, tracker_name, user=current_token.user)
     if not tracker:
