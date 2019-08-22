@@ -83,16 +83,16 @@ def enable_notifications(owner, name, ticket_id):
     if not ticket:
         abort(404)
 
+    participant = get_participant_for_user(current_user)
     sub = (TicketSubscription.query
         .filter(TicketSubscription.tracker_id == None)
         .filter(TicketSubscription.ticket_id == ticket.id)
-        .filter(TicketSubscription.user_id == current_user.id)
+        .filter(TicketSubscription.participant_id == participant.id)
     ).one_or_none()
 
     if sub:
         return redirect(ticket_url(ticket))
 
-    participant = get_participant_for_user(current_user)
     sub = TicketSubscription()
     sub.ticket_id = ticket.id
     sub.participant_id = participant.id
@@ -110,10 +110,11 @@ def disable_notifications(owner, name, ticket_id):
     if not ticket:
         abort(404)
 
+    participant = get_participant_for_user(current_user)
     sub = (TicketSubscription.query
         .filter(TicketSubscription.tracker_id == None)
         .filter(TicketSubscription.ticket_id == ticket.id)
-        .filter(TicketSubscription.user_id == current_user.id)
+        .filter(TicketSubscription.participant_id == participant.id)
     ).one_or_none()
 
     if not sub:
