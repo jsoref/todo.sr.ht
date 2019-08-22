@@ -287,7 +287,7 @@
             </a>
           {% endif %}
           {% if EventType.ticket_mentioned in event.event_type %}
-            <a href="{{ event.by_user|participant_url }}">
+            <a href="{{ event.by_participant|participant_url }}">
               {{ event.by_participant }}
             </a>
             {% set relation = event.from_ticket %}
