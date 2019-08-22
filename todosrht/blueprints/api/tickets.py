@@ -146,9 +146,37 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         abort(404)
     ticket, access = get_ticket(tracker, ticket_id, user=current_token.user)
 
-    participant = get_participant_for_user(current_token.user)
-    required_access = TicketAccess.none
     valid = Validation(request)
+
+    external_id = None
+    external_url = None
+    created = None
+    if user.id == tracker.owner_id:
+        external_id = valid.optional("external_id")
+        external_url = valid.optional("external_url")
+        valid.expect(bool(external_id) == bool(external_url),
+                "If specifying either external ID or URL, must specify both.")
+        valid.expect(not external_id or ":" in external_id,
+                "Expected `host:username`", field="external_id")
+        valid.expect(not external_url or valid_url(external_url),
+                "Expected a valid URL", field="external_url")
+
+        created = valid.optional("created")
+        if created:
+            try:
+                created = datetime.strptime(created, "%Y-%m-%dT%H:%M:%S.%f%z")
+                created = created.astimezone(timezone.utc).replace(tzinfo=None)
+            except ValueError:
+                valid.error("Expected valid RFC 8022 datetime", field="created")
+        if not valid.ok:
+            return valid.response
+
+    if external_id:
+        participant = get_participant_for_external(external_id, external_url)
+    else:
+        participant = get_participant_for_user(current_token.user)
+
+    required_access = TicketAccess.none
     comment = resolution = None
     resolve = reopen = False
     labels = None
@@ -237,9 +265,15 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
     if comment or resolve or resolution or reopen:
         event = add_comment(participant, ticket,
                 comment, resolve, resolution, reopen)
+        if created:
+            event.created = created
+            event.updated = created
+            if event.comment:
+                event.comment.created = created
+                event.comment.updated = created
         db.session.add(event)
         db.session.flush()
-        events.append(events)
+        events.append(event)
         TicketWebhook.deliver(TicketWebhook.Events.event_create,
                 event.to_dict(),
                 TicketWebhook.Subscription.ticket_id == ticket.id)
