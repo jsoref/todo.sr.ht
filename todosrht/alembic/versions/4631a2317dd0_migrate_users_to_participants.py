@@ -161,9 +161,9 @@ def downgrade():
     op.drop_column("ticket_subscription", "participant_id")
 
     op.add_column("ticket_subscription",
-            sa.Column("email", sa.Column(sa.Unicode(512)))
+            sa.Column("email", sa.Column(sa.Unicode(512))))
     op.add_column("ticket_subscription",
-            sa.Column("webhook", sa.Column(sa.Unicode(1024)))
+            sa.Column("webhook", sa.Column(sa.Unicode(1024))))
 
     op.drop_table("participant")
 
