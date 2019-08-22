@@ -52,7 +52,7 @@ class Tracker(Base):
 
     default_anonymous_perms = sa.Column(FlagType(TicketAccess),
             nullable=False,
-            default=TicketAccess.browse)
+            default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
     """Permissions granted to anonymous (non-logged in) users"""
 
     @staticmethod

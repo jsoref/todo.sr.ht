@@ -158,7 +158,7 @@
         <div class="updated">{{ ticket.updated | date }}</div>
         <div class="submitter">
           <a href="{{ ticket.submitter|participant_url }}">
-            {{ ticket.submitter }}
+            {{ ticket.submitter.name }}
           </a>
         </div>
         <div class="comments">

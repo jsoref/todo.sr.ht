@@ -64,6 +64,21 @@ def get_participant_for_user(user):
         db.session.flush()
     return participant
 
+def get_participant_for_email(email, email_name=None):
+    user = User.query.filter(User.email == email).one_or_none()
+    if user:
+        return get_participant_for_user(user)
+    participant = Participant.query.filter(
+            Participant.email == email).one_or_none()
+    if not participant:
+        participant = Participant()
+        participant.email = email
+        participant.email_name = email_name
+        participant.participant_type = ParticipantType.email
+        db.session.add(participant)
+        db.session.flush()
+    return participant
+
 def find_mentioned_users(text):
     # TODO: Find mentioned email addresses as well
     usernames = re.findall(USER_MENTION_PATTERN, text)
