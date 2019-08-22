@@ -2,9 +2,10 @@ from flask import Blueprint, abort, request
 from srht.api import paginated_response
 from srht.database import db
 from srht.oauth import oauth, current_token
-from srht.validation import Validation
+from srht.validation import Validation, valid_url
 from todosrht.access import get_tracker, get_ticket
-from todosrht.tickets import add_comment, get_participant_for_user, submit_ticket
+from todosrht.tickets import add_comment, submit_ticket
+from todosrht.tickets import get_participant_for_user, get_participant_for_external
 from todosrht.blueprints.api import get_user
 from todosrht.types import Ticket, TicketAccess, TicketStatus, TicketResolution
 from todosrht.types import Event, EventType, Label, TicketLabel
@@ -53,8 +54,26 @@ def tracker_tickets_POST(username, tracker_name):
     if not valid.ok:
         return valid.response
 
-    participant = get_participant_for_user(current_token.user)
-    ticket = submit_ticket(tracker, participant.id, title, desc)
+    external_id = None
+    external_url = None
+    if user.id == tracker.owner_id:
+        external_id = valid.optional("external_id")
+        external_url = valid.optional("external_url")
+        valid.expect(bool(external_id) == bool(external_url),
+                "If specifying either external ID or URL, must specify both.")
+        valid.expect(not external_id or ":" in external_id,
+                "Expected `host:username`", field="external_id")
+        valid.expect(not external_url or valid_url(external_url),
+                "Expected a valid URL", field="external_url")
+        if not valid.ok:
+            return valid.response
+
+    if external_id:
+        participant = get_participant_for_external(external_id, external_url)
+    else:
+        participant = get_participant_for_user(current_token.user)
+
+    ticket = submit_ticket(tracker, participant, title, desc)
     TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
             ticket.to_dict(),
             TrackerWebhook.Subscription.tracker_id == tracker.id)
@@ -200,8 +219,8 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         abort(401)
 
     if comment or resolve or resolution or reopen:
-        event = add_comment(
-            participant, ticket, comment, resolve, resolution, reopen)
+        event = add_comment(participant, ticket,
+                comment, resolve, resolution, reopen)
         db.session.add(event)
         db.session.flush()
         events.append(events)

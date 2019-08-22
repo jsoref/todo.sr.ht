@@ -79,6 +79,18 @@ def get_participant_for_email(email, email_name=None):
         db.session.flush()
     return participant
 
+def get_participant_for_external(external_id, external_url):
+    participant = Participant.query.filter(
+            Participant.external_id == external_id).one_or_none()
+    if not participant:
+        participant = Participant()
+        participant.external_id = external_id
+        participant.external_url = external_url
+        participant.participant_type = ParticipantType.external
+        db.session.add(participant)
+        db.session.flush()
+    return participant
+
 def find_mentioned_users(text):
     # TODO: Find mentioned email addresses as well
     usernames = re.findall(USER_MENTION_PATTERN, text)
