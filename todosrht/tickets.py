@@ -364,7 +364,7 @@ def assign(ticket, assignee, assigner):
     event.event_type = EventType.assigned_user
     event.participant_id = assignee_participant.id
     event.ticket_id = ticket.id
-    event.by_user_id = assigner_participant.id
+    event.by_participant_id = assigner_participant.id
     db.session.add(event)
 
     return ticket_assignee
@@ -386,7 +386,7 @@ def unassign(ticket, assignee, assigner):
     event.event_type = EventType.unassigned_user
     event.participant_id = assignee_participant.id
     event.ticket_id = ticket.id
-    event.by_user_id = assigner_participant.id
+    event.by_participant_id = assigner_participant.id
     db.session.add(event)
 
 def get_last_seen_times(user, tickets):
