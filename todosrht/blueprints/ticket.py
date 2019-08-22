@@ -1,6 +1,8 @@
 import re
+from urllib.parse import quote
 from flask import Blueprint, render_template, request, abort, redirect
 from flask_login import current_user
+from srht.config import cfg
 from srht.database import db
 from srht.flask import loginrequired
 from srht.validation import Validation
@@ -38,6 +40,9 @@ def get_ticket_context(ticket, tracker, access):
                 .filter(Participant.user_id == current_user.id)
             ).one_or_none()
 
+    posting_domain = cfg("todo.sr.ht::mail", "posting-domain")
+    reply_subject = quote("Re: " + ticket.title)
+
     return {
         "tracker": tracker,
         "ticket": ticket,
@@ -48,6 +53,8 @@ def get_ticket_context(ticket, tracker, access):
         "tracker_sub": tracker_sub,
         "ticket_sub": ticket_sub,
         "recent_users": get_recent_users(tracker),
+        "reply_to": f"mailto:{tracker.owner.canonical_name}/{tracker.name}/" +
+            f"{ticket.scoped_id}@{posting_domain}?subject={reply_subject}"
     }
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>")

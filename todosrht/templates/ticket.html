@@ -394,9 +394,7 @@
         Log in {{icon('caret-right')}}
       </a>
       to comment, or
-      <a
-        href="mailto:{{tracker.owner.canonical_name}}/{{tracker.name}}/{{ticket.scoped_id}}@{{cfg("todo.sr.ht::mail", "posting-domain")}}"
-      >comment via email</a>.
+      <a href="{{reply_to}}">comment via email</a>.
       {% endif %}
       {% else %}
       {% if not ticket.comments %}
