@@ -85,7 +85,9 @@
         {{ ticket|render_ticket_description }}
       </div>
       {% endif %}
-      <dl class="row" style="margin-top: 1rem">
+    </div>
+    <div class="col-md-6">
+      <dl class="row">
         <dt class="col-md-3">Status</dt>
         <dd class="col-md-9">
           <strong id="status-field" class="text-success">
@@ -224,7 +226,9 @@
         {% endif %}
       </dl>
     </div>
-    <div class="col-md-6 event-list ticket-events">
+  </div>
+  <div class="row">
+    <div class="col-md-12 event-list ticket-events">
       {% for event in events %}
       {% if event.event_type not in [
           EventType.created,
