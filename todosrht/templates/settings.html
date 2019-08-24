@@ -1,40 +1,38 @@
-{% extends "layout-full.html" %}
+{% extends "layout.html" %}
 {% block body %} 
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12 header-tabbed">
+<div class="header-tabbed">
+  <div class="container">
+    {% macro link(path, title) %}
+    <a
+      class="nav-link {% if view == title %}active{% endif %}"
+      href="{{ path }}">{{ title }}</a>
+    {% endmacro %}
+    <ul class="nav nav-tabs">
       <h2>
         <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
           >/{{ tracker.name }}
       </h2>
-      {% macro link(path, title) %}
-      <a
-        class="nav-link {% if view == title %}active{% endif %}"
-        href="{{ path }}">{{ title }}</a>
-      {% endmacro %}
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link"
-           href="{{tracker|tracker_url}}"
-          >{{icon("caret-left")}} back</a>
-        </li>
-        <li class="nav-item">
-          {{link(url_for(".settings_details_GET",
-            owner=tracker.owner.canonical_name,
-            name=tracker.name), "details")}}
-        </li>
-        <li class="nav-item">
-          {{link(url_for(".settings_access_GET",
-            owner=tracker.owner.canonical_name,
-            name=tracker.name), "access")}}
-        </li>
-        <li class="nav-item">
-          {{link(url_for(".settings_delete_GET",
-            owner=tracker.owner.canonical_name,
-            name=tracker.name), "delete")}}
-        </li>
-      </ul>
-    </div>
+      <li class="nav-item">
+        <a class="nav-link"
+         href="{{tracker|tracker_url}}"
+        >{{icon("caret-left")}} back</a>
+      </li>
+      <li class="nav-item">
+        {{link(url_for(".settings_details_GET",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name), "details")}}
+      </li>
+      <li class="nav-item">
+        {{link(url_for(".settings_access_GET",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name), "access")}}
+      </li>
+      <li class="nav-item">
+        {{link(url_for(".settings_delete_GET",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name), "delete")}}
+      </li>
+    </ul>
   </div>
 </div>
 <div class="container">

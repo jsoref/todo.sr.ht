@@ -1,4 +1,4 @@
-{% extends "layout-full.html" %}
+{% extends "layout.html" %}
 {% block title %}
 <title>
   labels
@@ -9,28 +9,28 @@
 </title>
 {% endblock %}
 {% block body %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12 header-tabbed">
-      <h2>
-        <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
-          >/{{ tracker.name }}
-      </h2>
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link" href="{{ tracker|tracker_url }}">
-            {{icon('caret-left')}} back
-          </a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link active"
-            href="{{ tracker|tracker_labels_url }}">labels</a>
-        </li>
-      </ul>
-    </div>
+<div class="header-tabbed">
+  <div class="container">
+    <h2>
+      <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
+        >/{{ tracker.name }}
+    </h2>
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link" href="{{ tracker|tracker_url }}">
+          {{icon('caret-left')}} back
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link active"
+          href="{{ tracker|tracker_labels_url }}">labels</a>
+      </li>
+    </ul>
   </div>
+</div>
+<div class="container">
   <div class="row">
-    <div class="col-xl-5 col-lg-6 col-md-8">
+    <div class="col-md-8">
       {% if tracker.description %}
       {{ tracker.description | md }}
       {% endif %}
@@ -69,48 +69,47 @@
       {% else %}
         <p>No labels defined.</p>
       {% endif %}
-
-      <hr />
-
-      {% if is_owner %}
-      <h3 style="margin-top: 1rem">Add label</h3>
-
-      <form method="POST">
-        {{csrf_token()}}
-        <div class="form-row">
-          <div class="col-auto">
-            <div class="form-group" style="width: 4rem">
-              <label for="color">Color</label>
-              <input
-                 type="color"
-                 class="form-control {{ valid.cls("color") }}"
-                 id="color"
-                 name="color"
-                 style="height: 2.2rem"
-                 value="{{ color or "#ffffff" }}" />
-              {{valid.summary("color")}}
-            </div>
-          </div>
-          <div class="col">
-            <div class="form-group">
-              <label for="name">Name</label>
-              <input
-                 type="text"
-                 class="form-control {{ valid.cls("name") }}"
-                 maxlength="2048"
-                 id="name"
-                 name="name"
-                 value="{{ name or "" }}" />
-              {{valid.summary("name")}}
-            </div>
-          </div>
-        </div>
-        <button type="submit" class="btn btn-primary">
-          Add {{icon("caret-right")}}
-        </button>
-      </form>
-      {% endif %}
     </div>
   </div>
 </div>
+{% if is_owner %}
+<div class="container">
+  <h3 style="margin-top: 1rem">Add label</h3>
+
+  <form method="POST">
+    {{csrf_token()}}
+    <div class="form-row">
+      <div class="col-auto">
+        <div class="form-group" style="width: 4rem">
+          <label for="color">Color</label>
+          <input
+             type="color"
+             class="form-control {{ valid.cls("color") }}"
+             id="color"
+             name="color"
+             style="height: 2.2rem"
+             value="{{ color or "#ffffff" }}" />
+          {{valid.summary("color")}}
+        </div>
+      </div>
+      <div class="col">
+        <div class="form-group">
+          <label for="name">Name</label>
+          <input
+             type="text"
+             class="form-control {{ valid.cls("name") }}"
+             maxlength="2048"
+             id="name"
+             name="name"
+             value="{{ name or "" }}" />
+          {{valid.summary("name")}}
+        </div>
+      </div>
+    </div>
+    <button type="submit" class="btn btn-primary">
+      Add {{icon("caret-right")}}
+    </button>
+  </form>
+</div>
+{% endif %}
 {% endblock %}
