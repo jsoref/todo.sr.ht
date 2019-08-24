@@ -196,6 +196,12 @@ select.form-control {
   }
 }
 
+.ticket-title {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+}
+
 .ticket-events {
   h4 {
     font-size: 1rem;

@@ -8,21 +8,17 @@
 {% endblock %}
 {% block body %}
 <div class="container">
-  <div class="row">
-    <div class="col-md-12">
-      <h2 style="margin: 0;">
-        <div>
-          <a href="{{ tracker.owner|user_url }}"
-            >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
-            >{{ tracker.name }}</a>#{{ ticket.scoped_id }}<span
-              class="d-none d-md-inline">:</span>
-        </div>
-        <div id="title-field">
-          {{ticket.title}}
-        </div>
-      </h2>
+  <h2 class="ticket-title">
+    <div>
+      <a href="{{ tracker.owner|user_url }}"
+        >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
+        >{{ tracker.name }}</a>#{{ ticket.scoped_id }}<span
+          class="d-none d-md-inline">:</span>
     </div>
-  </div>
+    <div id="title-field">
+      {{ticket.title}}
+    </div>
+  </h2>
 </div>
 <div class="header-tabbed">
   <div class="container">
