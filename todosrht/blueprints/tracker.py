@@ -115,7 +115,7 @@ def enable_notifications(owner, name):
     if not tracker:
         abort(404)
 
-    participant = get_participant_by_user(current_user)
+    participant = get_participant_for_user(current_user)
     sub = (TicketSubscription.query
         .filter(TicketSubscription.tracker_id == tracker.id)
         .filter(TicketSubscription.ticket_id == None)
@@ -140,7 +140,7 @@ def disable_notifications(owner, name):
     if not tracker:
         abort(404)
 
-    participant = get_participant_by_user(current_user)
+    participant = get_participant_for_user(current_user)
     sub = (TicketSubscription.query
         .filter(TicketSubscription.tracker_id == tracker.id)
         .filter(TicketSubscription.ticket_id == None)
