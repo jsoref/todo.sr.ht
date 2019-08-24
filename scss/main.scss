@@ -222,3 +222,10 @@ select.form-control {
 #description-field img {
   max-width: 100%;
 }
+
+.dashboard {
+  .event img {
+    max-width: 100%;
+    max-height: 250px;
+  }
+}
