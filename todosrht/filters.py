@@ -34,7 +34,7 @@ def render_markup(tracker, text):
         # TODO: Handle mentions for non-user participants
         username = match.group(0)
         if username in users_map:
-            url = urls.user_url(users_map[username])
+            url = urls.participant_url(users_map[username])
             return f'<a href="{url}">{escape(username)}</a>'
 
         return username
