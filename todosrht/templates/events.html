@@ -33,7 +33,7 @@
       </a>
       to #{{event.ticket.scoped_id}}
     {% elif EventType.unassigned_user in event.event_type %}
-      <a href="{{event.by_user|participant_url}}">
+      <a href="{{event.by_participant|participant_url}}">
         {{event.by_participant}}
       </a>
       unassigned
