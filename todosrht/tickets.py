@@ -170,6 +170,7 @@ def _send_comment_notification(subscription, ticket,
     subject = "Re: {}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "{} <{}>".format(participant.name, notify_from),
+        "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }
@@ -231,6 +232,7 @@ def _send_mention_notification(sub, submitter, text, ticket, comment=None):
     subject = "{}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "{} <{}>".format(submitter.name, notify_from),
+        "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }
@@ -350,6 +352,7 @@ def notify_assignee(subscription, ticket, assigner, assignee):
     subject = "{}: {}".format(ticket.ref(), ticket.title)
     headers = {
         "From": "~{} <{}>".format(assigner.username, notify_from),
+        "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }
@@ -434,6 +437,7 @@ def _send_new_ticket_notification(subscription, ticket):
     subject = f"{ticket.ref()}: {ticket.title}"
     headers = {
         "From": "{} <{}>".format(ticket.submitter.name, notify_from),
+        "Message-ID": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
     }

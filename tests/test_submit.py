@@ -52,6 +52,9 @@ def test_submit_ticket(client, mailbox, submitter_subscribed):
     assert description in email.body
     assert ticket_url(ticket) in email.body
     assert email.headers['From'].startswith(submitter.name)
+    assert email.headers['Message-ID'] == (
+        f'<~{tracker.owner.username}/{tracker.name}/1@example.org>'
+    )
 
     # Check event notification is created for the subscriber
     assert len(subscriber.user.notifications) == 1
@@ -149,3 +152,7 @@ def test_mentions_in_ticket_description(mailbox):
     expected = f"You were mentioned in {ticket.ref()} by {submitter.name}."
     assert p1_email.body.startswith(expected)
     assert p2_email.body.startswith(expected)
+
+    assert p2_email.headers["In-Reply-To"] == (
+        f'<~{tracker.owner.username}/{tracker.name}/{ticket.scoped_id}@example.org>'
+    )

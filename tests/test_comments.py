@@ -45,6 +45,9 @@ def test_ticket_comment(mailbox):
             assert e.headers['From'].startswith(submitter.name)
             if starts_with:
                 assert e.body.startswith(starts_with)
+            assert e.headers["In-Reply-To"] == (
+                f'<~{tracker.owner.username}/{tracker.name}/{ticket.scoped_id}@example.org>'
+            )
 
     def assert_event_notifications_created(event):
         assert {en.user.email for en in event.notifications} == {

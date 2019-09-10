@@ -25,6 +25,9 @@ def test_assignment(mailbox):
     assert mailbox[0].subject == "~foo/bar#1: Hilfe!"
     assert mailbox[0].body.startswith(
         "You were assigned to ~foo/bar#1 by ~assigner")
+    assert mailbox[0].headers["In-Reply-To"] == (
+        f'<~{tracker.owner.username}/{tracker.name}/{ticket.scoped_id}@example.org>'
+    )
 
     # Assignment is idempotent
     assign(ticket, assignee1, assigner)
@@ -40,6 +43,9 @@ def test_assignment(mailbox):
     assert mailbox[1].subject == "~foo/bar#1: Hilfe!"
     assert mailbox[1].body.startswith(
         "You were assigned to ~foo/bar#1 by ~assigner")
+    assert mailbox[1].headers["In-Reply-To"] == (
+        f'<~{tracker.owner.username}/{tracker.name}/{ticket.scoped_id}@example.org>'
+    )
 
     unassign(ticket, assignee1, assigner)
     db.session.commit()
