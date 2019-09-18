@@ -307,7 +307,9 @@
             {% endif %}
           {% endif %}
           <span class="pull-right">
-            <small>{{ event.created | date }}</small>
+            <small>
+              <a href="#event-{{event.id}}">{{ event.created | date }}</a>
+            </small>
           </span>
         </h4>
         {% if EventType.comment in event.event_type %}
