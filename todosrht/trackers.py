@@ -14,4 +14,4 @@ def get_recent_users(tracker, limit=20):
         .order_by(Event.created.desc())
         .limit(20))
 
-    return {e[1] for e in recent_user_events}
+    return {e[2] for e in recent_user_events}
