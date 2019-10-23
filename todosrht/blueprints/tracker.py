@@ -106,7 +106,14 @@ def tracker_GET(owner, name):
     tracker, access = get_tracker(owner, name)
     if not tracker:
         abort(404)
-    return return_tracker(tracker, access)
+
+    # Populate title and description if given as URL parameters
+    kwargs = {
+        "title": request.args.get("title"),
+        "description": request.args.get("description"),
+    }
+
+    return return_tracker(tracker, access, **kwargs)
 
 @tracker.route("/<owner>/<name>/enable_notifications", methods=["POST"])
 @loginrequired
