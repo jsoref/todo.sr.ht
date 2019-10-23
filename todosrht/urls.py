@@ -46,6 +46,12 @@ def ticket_unassign_url(ticket):
         name=ticket.tracker.name,
         ticket_id=ticket.scoped_id)
 
+def label_edit_url(label):
+    return url_for("tracker.label_edit_GET",
+        owner=label.tracker.owner.canonical_name,
+        name=label.tracker.name,
+        label_name=label.name)
+
 def label_search_url(label, terms=""):
     """Return the URL to the tracker page listing all tickets which have the
     label applied."""

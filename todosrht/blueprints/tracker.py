@@ -1,6 +1,7 @@
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask_login import current_user
-from todosrht import color
+from todosrht.color import color_from_hex, color_to_hex, get_text_color
+from todosrht.color import valid_hex_color_code
 from todosrht.access import get_tracker
 from todosrht.search import apply_search
 from todosrht.tickets import get_last_seen_times, get_comment_counts
@@ -411,6 +412,30 @@ def tracker_labels_GET(owner, name):
     return render_template("tracker-labels.html",
         tracker=tracker, access=access, is_owner=is_owner)
 
+
+def validate_label(request):
+    valid = Validation(request)
+    name = valid.require("name")
+    color = valid.require("color")
+    if not valid.ok:
+        return None, valid
+
+    valid.expect(2 < len(name) < 50,
+            "Must be between 2 and 50 characters", field="name")
+    valid.expect(valid_hex_color_code(color),
+            "Invalid hex color code", field="color")
+    if not valid.ok:
+        return None, valid
+
+    # Determine a foreground color to use
+    color_rgb = color_from_hex(color)
+    text_color_rgb = get_text_color(color_rgb)
+    text_color = color_to_hex(text_color_rgb)
+
+    label = dict(name=name, color=color, text_color=text_color)
+    return label, valid
+
+
 @tracker.route("/<owner>/<name>/labels", methods=["POST"])
 @loginrequired
 def tracker_labels_POST(owner, name):
@@ -421,26 +446,14 @@ def tracker_labels_POST(owner, name):
     if not is_owner:
         abort(403)
 
-    valid = Validation(request)
-    label_name = valid.require("name")
-    label_color = valid.require("color")
+    data, valid = validate_label(request)
     if not valid.ok:
         return render_template("tracker-labels.html",
             tracker=tracker, access=access, is_owner=is_owner,
             **valid.kwargs), 400
 
-    valid.expect(2 < len(label_name) < 50,
-            "Must be between 2 and 50 characters", field="name")
-    valid.expect(color.valid_hex_color_code(label_color),
-            "Invalid hex color code", field="color")
-    if not valid.ok:
-        return render_template("tracker-labels.html",
-            tracker=tracker, access=access, is_owner=is_owner,
-            **valid.kwargs), 400
-
-    existing_label = (Label.query
-            .filter(Label.tracker_id == tracker.id)
-            .filter(Label.name == label_name)).first()
+    existing_label = Label.query.filter_by(
+            tracker=tracker, name=data["name"]).one_or_none()
     valid.expect(not existing_label,
             "A label with this name already exists", field="name")
     if not valid.ok:
@@ -448,22 +461,63 @@ def tracker_labels_POST(owner, name):
             tracker=tracker, access=access, is_owner=is_owner,
             **valid.kwargs), 400
 
-    # Determine a foreground color to use
-    label_color_rgb = color.color_from_hex(label_color)
-    text_color_rgb = color.get_text_color(label_color_rgb)
-    text_color = color.color_to_hex(text_color_rgb)
-
-    label = Label()
-    label.tracker_id = tracker.id
-    label.name = label_name
-    label.color = label_color
-    label.text_color = text_color
+    label = Label(tracker=tracker, **data)
     db.session.add(label)
     db.session.commit()
 
     TrackerWebhook.deliver(TrackerWebhook.Events.label_create,
             label.to_dict(),
             TrackerWebhook.Subscription.tracker_id == tracker.id)
+    return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
+
+@tracker.route("/<owner>/<name>/labels/<label_name>/")
+@loginrequired
+def label_edit_GET(owner, name, label_name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    label = Label.query.filter_by(tracker=tracker, name=label_name).first()
+    if not label:
+        abort(404)
+
+    return render_template("tracker-label-edit.html",
+        tracker=tracker, access=access, label=label)
+
+@tracker.route("/<owner>/<name>/labels/<label_name>/", methods=["POST"])
+@loginrequired
+def label_edit_POST(owner, name, label_name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    label = Label.query.filter_by(
+        tracker=tracker, name=label_name).one_or_none()
+    if not label:
+        abort(404)
+
+    data, valid = validate_label(request)
+    if not valid.ok:
+        return render_template("tracker-label-edit.html",
+            tracker=tracker, access=access, label=label, **valid.kwargs), 400
+
+    existing_label = Label.query.filter_by(
+            tracker=tracker, name=data["name"]).one_or_none()
+    valid.expect(not existing_label or existing_label == label,
+            "A label with this name already exists", field="name")
+    if not valid.ok:
+        return render_template("tracker-label-edit.html",
+            tracker=tracker, access=access, **valid.kwargs), 400
+
+    label.name = data["name"]
+    label.color = data["color"]
+    label.text_color = data["text_color"]
+    db.session.commit()
+
     return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
 
 @tracker.route("/<owner>/<name>/labels/<int:label_id>/delete", methods=["POST"])
