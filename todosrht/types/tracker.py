@@ -6,7 +6,7 @@ from srht.flagtype import FlagType
 from srht.validation import Validation
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
-name_re = re.compile(r"^([A-Za-z._-][A-Za-z._-]*?)+$")
+name_re = re.compile(r"^([a-zA-Z][a-zA-Z0-9._-]*?)+$")
 
 class Tracker(Base):
     __tablename__ = 'tracker'
