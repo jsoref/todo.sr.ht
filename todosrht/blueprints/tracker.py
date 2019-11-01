@@ -470,7 +470,7 @@ def tracker_labels_POST(owner, name):
             TrackerWebhook.Subscription.tracker_id == tracker.id)
     return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
 
-@tracker.route("/<owner>/<name>/labels/<label_name>/")
+@tracker.route("/<owner>/<name>/labels/<path:label_name>")
 @loginrequired
 def label_edit_GET(owner, name, label_name):
     tracker, access = get_tracker(owner, name)
@@ -486,7 +486,7 @@ def label_edit_GET(owner, name, label_name):
     return render_template("tracker-label-edit.html",
         tracker=tracker, access=access, label=label)
 
-@tracker.route("/<owner>/<name>/labels/<label_name>/", methods=["POST"])
+@tracker.route("/<owner>/<name>/labels/<path:label_name>", methods=["POST"])
 @loginrequired
 def label_edit_POST(owner, name, label_name):
     tracker, access = get_tracker(owner, name)
