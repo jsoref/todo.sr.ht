@@ -6,7 +6,7 @@ from srht.flagtype import FlagType
 from srht.validation import Validation
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
-name_re = re.compile(r"^([a-z][a-z0-9_.-]*?)+$")
+name_re = re.compile(r"^([A-Za-z._-][A-Za-z._-]*?)+$")
 
 class Tracker(Base):
     __tablename__ = 'tracker'
@@ -63,13 +63,11 @@ class Tracker(Base):
         if not valid.ok:
             return None, valid
 
-        valid.expect(2 <= len(name) < 256,
-                "Must be between 2 and 255 characters",
+        valid.expect(1 <= len(name) < 256,
+                "Must be between 1 and 255 characters",
                 field="name")
-        valid.expect(not valid.ok or name[0] in string.ascii_lowercase,
-                "Must begin with a lowercase letter", field="name")
         valid.expect(not valid.ok or name_re.match(name),
-                "Only lowercase alphanumeric characters or -.",
+                "Only alphanumeric characters or ._-",
                 field="name")
         valid.expect(not desc or len(desc) < 4096,
                 "Must be less than 4096 characters",
