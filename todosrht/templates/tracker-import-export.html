@@ -15,6 +15,49 @@
         and its events in the same format as provided via the
         <a href="https://man.sr.ht/todo.sr.ht/api.md">todo.sr.ht API</a>.
       </p>
+      <details style="margin-bottom: 1rem">
+        <summary class="text-muted">
+          Some of this data is cryptographically signed.
+          Expand this for details.
+        </summary>
+        <blockquote>
+          <p>
+            We provide cryptographic signatures for some ticket info and
+            comment details in the exported data. This can be used if you
+            re-import this dump into todo.sr.ht or into another instance
+            elsewhere to prove that the data is an authentic representation of
+            what each user it's attributed to had said.
+          </p>
+          <p>
+            For each ticket, the signature uses the
+            <a
+              href="https://man.sr.ht/api-conventions.md#webhook-signatures"
+            >webhook signature process</a>
+            after preparing the following JSON data as UTF-8:
+          </p>
+<pre>{
+  "description": <strong>$description</strong>,
+  "ref": "{{tracker.owner.canonical_name}}/{{tracker.name}}#<strong>$id</strong>",
+  "submitter": "~<strong>$username</strong>",
+  "title": <strong>$title</strong>,
+  "upstream": "{{get_origin('todo.sr.ht', external=True)}}",
+}</pre>
+          <p>
+            Comments use the same process with the following JSON data as UTF-8:
+          </p>
+<pre>{
+  "comment": <strong>$comment</strong>,
+  "id": <strong>$id</strong>,
+  "ticket": "{{tracker.owner.canonical_name}}/{{tracker.name}}#<strong>$id</strong>",
+  "user": "~<strong>$username</strong>",
+  "upstream": "{{get_origin('todo.sr.ht', external=True)}}",
+}</pre>
+          <p>
+            Signatures are only used for tickets and comments from users with
+            accounts; external users or emailed submissions are not signed.
+          </p>
+        </blockquote>
+      </details>
       <button type="submit" class="btn btn-primary">
         Export tracker data
         {{icon('caret-right')}}

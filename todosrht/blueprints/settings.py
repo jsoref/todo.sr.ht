@@ -1,16 +1,20 @@
 import gzip
 import json
 import os
+from collections import OrderedDict
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from flask import send_file
 from flask_login import current_user
+from srht.config import get_origin
+from srht.crypto import sign_payload
 from srht.database import db
 from srht.flask import date_handler, loginrequired, session
 from srht.validation import Validation
 from tempfile import NamedTemporaryFile
 from todosrht.access import get_tracker
 from todosrht.trackers import get_recent_users
-from todosrht.types import Event, Ticket, TicketAccess, UserAccess, User
+from todosrht.types import Event, EventType, Ticket, TicketAccess
+from todosrht.types import ParticipantType, UserAccess, User
 from todosrht.urls import tracker_url
 from todosrht.webhooks import UserWebhook
 
@@ -235,8 +239,38 @@ def export_POST(owner, name):
     tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id).all()
     for ticket in tickets:
         td = ticket.to_dict()
+        td["upstream"] = get_origin("todo.sr.ht", external=True)
+        if ticket.submitter.participant_type == ParticipantType.user:
+            sigdata = OrderedDict({
+                "description": ticket.description,
+                "ref": ticket.ref(),
+                "submitter": ticket.submitter.user.canonical_name,
+                "title": ticket.title,
+                "upstream": get_origin("todo.sr.ht", external=True),
+            })
+            sigdata = json.dumps(sigdata)
+            signature = sign_payload(sigdata)
+            td.update(signature)
+
         events = Event.query.filter(Event.ticket_id == ticket.id).all()
-        td["events"] = [e.to_dict() for e in events]
+        if any(events):
+            td["events"] = list()
+        for event in events:
+            ev = event.to_dict()
+            ev["upstream"] = get_origin("todo.sr.ht", external=True)
+            if (EventType.comment in event.event_type
+                    and event.participant.participant_type == ParticipantType.user):
+                sigdata = OrderedDict({
+                    "comment": event.comment.text,
+                    "id": event.id,
+                    "ticket": event.ticket.ref(),
+                    "user": event.participant.user.canonical_name,
+                    "upstream": get_origin("todo.sr.ht", external=True),
+                })
+                sigdata = json.dumps(sigdata)
+                signature = sign_payload(sigdata)
+                ev.update(signature)
+            td["events"].append(ev)
         dump.append(td)
 
     dump = json.dumps(dump, default=date_handler)
