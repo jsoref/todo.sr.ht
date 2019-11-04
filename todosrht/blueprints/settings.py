@@ -1,14 +1,18 @@
+import gzip
+import json
+import os
 from flask import Blueprint, render_template, request, url_for, abort, redirect
+from flask import send_file
 from flask_login import current_user
+from srht.database import db
+from srht.flask import date_handler, loginrequired, session
+from srht.validation import Validation
+from tempfile import NamedTemporaryFile
 from todosrht.access import get_tracker
 from todosrht.trackers import get_recent_users
-from todosrht.types import UserAccess, User
-from todosrht.types import Ticket, TicketAccess
+from todosrht.types import Event, Ticket, TicketAccess, UserAccess, User
 from todosrht.urls import tracker_url
 from todosrht.webhooks import UserWebhook
-from srht.database import db
-from srht.flask import loginrequired, session
-from srht.validation import Validation
 
 settings = Blueprint("settings", __name__)
 
@@ -206,3 +210,39 @@ def delete_POST(owner, name):
             UserWebhook.Subscription.user_id == owner_id)
 
     return redirect(url_for("html.index"))
+
+@settings.route("/<owner>/<name>/settings/import-export")
+@loginrequired
+def import_export_GET(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+    return render_template("tracker-import-export.html",
+        view="import/export", tracker=tracker)
+
+@settings.route("/<owner>/<name>/settings/export", methods=["POST"])
+@loginrequired
+def export_POST(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    dump = list()
+    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id).all()
+    for ticket in tickets:
+        td = ticket.to_dict()
+        events = Event.query.filter(Event.ticket_id == ticket.id).all()
+        td["events"] = [e.to_dict() for e in events]
+        dump.append(td)
+
+    dump = json.dumps(dump, default=date_handler)
+    with NamedTemporaryFile() as ntf:
+        ntf.write(gzip.compress(dump.encode()))
+        f = open(ntf.name, "rb")
+
+    return send_file(f, as_attachment=True,
+            attachment_filename=f"{tracker.owner.username}-{tracker.name}.json.gz")

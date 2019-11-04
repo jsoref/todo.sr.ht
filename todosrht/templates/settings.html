@@ -28,6 +28,11 @@
           name=tracker.name), "access")}}
       </li>
       <li class="nav-item">
+        {{link(url_for("settings.import_export_GET",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name), "import/export")}}
+      </li>
+      <li class="nav-item">
         {{link(url_for("settings.delete_GET",
           owner=tracker.owner.canonical_name,
           name=tracker.name), "delete")}}
