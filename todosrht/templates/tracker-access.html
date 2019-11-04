@@ -96,7 +96,7 @@
     <form
       method="POST"
       class="form-horizontal"
-      action="{{ url_for(".settings_user_access_create_POST",
+      action="{{ url_for("settings.user_access_create_POST",
           owner=tracker.owner.canonical_name,
           name=tracker.name) }}"
     >
@@ -168,7 +168,7 @@
           </td>
           <td>
             <form
-              action="{{ url_for(".settings_user_access_delete_POST",
+              action="{{ url_for("settings.user_access_delete_POST",
                   owner=tracker.owner.canonical_name,
                   name=tracker.name,
                   user_id=user_access.user_id) }}"

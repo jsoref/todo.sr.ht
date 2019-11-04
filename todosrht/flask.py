@@ -18,11 +18,13 @@ class TodoApp(SrhtFlask):
         from todosrht.blueprints.html import html
         from todosrht.blueprints.tracker import tracker
         from todosrht.blueprints.ticket import ticket
+        from todosrht.blueprints.settings import settings
 
         register_api(self)
         self.register_blueprint(html)
         self.register_blueprint(tracker)
         self.register_blueprint(ticket)
+        self.register_blueprint(settings)
 
         self.add_template_filter(filters.label_badge)
         self.add_template_filter(filters.render_comment)
