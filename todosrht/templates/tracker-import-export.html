@@ -26,7 +26,7 @@
             comment details in the exported data. This can be used if you
             re-import this dump into todo.sr.ht or into another instance
             elsewhere to prove that the data is an authentic representation of
-            what each user it's attributed to had said.
+            what each user had said.
           </p>
           <p>
             For each ticket, the signature uses the
@@ -53,6 +53,7 @@
   "upstream": "{{get_origin('todo.sr.ht', external=True)}}",
 }</pre>
           <p>
+            In each case, the resulting JSON is minified before being signed.
             Signatures are only used for tickets and comments from users with
             accounts; external users or emailed submissions are not signed.
           </p>
