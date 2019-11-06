@@ -77,7 +77,7 @@ class Tracker(Base):
 
         tracker = (Tracker.query
                 .filter(Tracker.owner_id == user.id)
-                .filter(Tracker.name == name)
+                .filter(Tracker.name.ilike(name))
             ).first()
         valid.expect(not tracker,
                 "A tracker by this name already exists", field="name")
