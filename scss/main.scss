@@ -219,8 +219,12 @@ select.form-control {
   }
 }
 
-#description-field img {
-  max-width: 100%;
+#description-field {
+  overflow-x: scroll;
+
+  img {
+    max-width: 100%;
+  }
 }
 
 .dashboard {
