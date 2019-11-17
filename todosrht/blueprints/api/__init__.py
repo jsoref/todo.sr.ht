@@ -1,7 +1,8 @@
 import pkg_resources
-from todosrht.types import User
+from flask import abort
 from srht.flask import csrf_bypass
 from srht.oauth import current_token, oauth
+from todosrht.types import User
 from todosrht.webhooks import UserWebhook
 
 def get_user(username):
