@@ -90,7 +90,6 @@
              maxlength="2048"
              id="title"
              name="title"
-             autofocus
              value="{{ title or "" }}" />
           {{valid.summary("title")}}
         </div>
@@ -148,6 +147,7 @@
           type="text"
           placeholder="Search tickets...     status:closed     label:label     order:updated     submitter:me"
           class="form-control"
+          autofocus
           value="{{ search if search else "" }}" />
       </form>
       {% if len(tickets) %}
