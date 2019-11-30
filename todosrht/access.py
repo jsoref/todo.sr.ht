@@ -1,4 +1,4 @@
-from flask_login import current_user
+from srht.oauth import current_user
 from todosrht.types import User, Tracker, Ticket
 from todosrht.types import TicketAccess, UserAccess
 

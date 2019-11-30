@@ -3,12 +3,12 @@ import json
 import os
 from collections import OrderedDict
 from flask import Blueprint, render_template, request, url_for, abort, redirect
-from flask import send_file
-from flask_login import current_user
+from flask import current_app, send_file
 from srht.config import get_origin
 from srht.crypto import sign_payload
 from srht.database import db
-from srht.flask import date_handler, loginrequired, session
+from srht.oauth import current_user, loginrequired
+from srht.flask import date_handler, session
 from srht.validation import Validation
 from tempfile import NamedTemporaryFile
 from todosrht.access import get_tracker
@@ -141,7 +141,7 @@ def user_access_create_POST(owner, name):
         return render_tracker_access(tracker, **valid.kwargs), 400
 
     username = username.lstrip("~")
-    user = User.query.filter_by(username=username).one_or_none()
+    user = current_app.oauth_service.lookup_user(username)
     valid.expect(user, "User not found.", field="username")
     if not valid.ok:
         return render_tracker_access(tracker, **valid.kwargs), 400

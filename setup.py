@@ -53,7 +53,6 @@ setup(
   url = 'https://todo.sr.ht/~sircmpwn/todo.sr.ht',
   install_requires = [
     'alembic',
-    'flask-login',
     'pystache',
     'redis',
     'srht',

@@ -1,10 +1,9 @@
 import re
 from urllib.parse import quote
 from flask import Blueprint, render_template, request, abort, redirect
-from flask_login import current_user
 from srht.config import cfg
 from srht.database import db
-from srht.flask import loginrequired
+from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
 from todosrht.filters import invalidate_markup_cache

@@ -1,5 +1,4 @@
 from flask import Blueprint, render_template, request, url_for, abort, redirect
-from flask_login import current_user
 from todosrht.color import color_from_hex, color_to_hex, get_text_color
 from todosrht.color import valid_hex_color_code
 from todosrht.access import get_tracker
@@ -14,7 +13,8 @@ from todosrht.urls import tracker_url, ticket_url
 from todosrht.webhooks import TrackerWebhook, UserWebhook
 from srht.config import cfg
 from srht.database import db
-from srht.flask import paginate_query, loginrequired, session
+from srht.flask import paginate_query, session
+from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from sqlalchemy.orm import subqueryload
 

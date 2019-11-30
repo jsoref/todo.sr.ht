@@ -2,9 +2,9 @@ import html.parser
 import os
 import pystache
 import textwrap
-from flask_login import current_user
 from srht.config import cfg, cfgi
 from srht.email import send_email, lookup_key
+from srht.oauth import current_user
 from todosrht.types import ParticipantType
 
 origin = cfg("todo.sr.ht", "origin")
