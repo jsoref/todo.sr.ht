@@ -4,8 +4,8 @@ from functools import wraps
 from jinja2.utils import Markup, escape
 from srht.flask import icon, csrf_token
 from srht.markdown import markdown
+from srht.redis import redis
 from todosrht import urls
-from todosrht.redis import redis
 from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
 from todosrht.tickets import TICKET_MENTION_PATTERN, USER_MENTION_PATTERN
 
