@@ -90,7 +90,10 @@
              maxlength="2048"
              id="title"
              name="title"
-             value="{{ title or "" }}" />
+             value="{{ title or "" }}"
+             {% if another %}
+             autofocus
+             {% endif %} />
           {{valid.summary("title")}}
         </div>
         <div class="form-group">
@@ -147,7 +150,9 @@
           type="text"
           placeholder="Search tickets...     status:closed     label:label     order:updated     submitter:me"
           class="form-control"
+          {% if not another %}
           autofocus
+          {% endif %}
           value="{{ search if search else "" }}" />
       </form>
       {% if len(tickets) %}
