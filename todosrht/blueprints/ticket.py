@@ -6,7 +6,7 @@ from srht.database import db
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
-from todosrht.filters import invalidate_markup_cache
+from todosrht.filters import invalidate_markup_cache, render_markup
 from todosrht.search import find_usernames
 from todosrht.tickets import add_comment, mark_seen, assign, unassign
 from todosrht.tickets import get_participant_for_user
@@ -138,6 +138,7 @@ def ticket_comment_POST(owner, name, ticket_id):
     resolve = valid.optional("resolve")
     resolution = valid.optional("resolution")
     reopen = valid.optional("reopen")
+    preview = valid.optional("preview")
 
     valid.expect(not text or 3 <= len(text) <= 16384,
             "Comment must be between 3 and 16384 characters.", field="comment")
@@ -158,6 +159,14 @@ def ticket_comment_POST(owner, name, ticket_id):
     if not valid.ok:
         ctx = get_ticket_context(ticket, tracker, access)
         return render_template("ticket.html", **ctx, **valid.kwargs)
+
+    if preview == "true":
+        ctx = get_ticket_context(ticket, tracker, access)
+        ctx.update({
+            "comment": text,
+            "rendered_preview": render_markup(tracker, text),
+        })
+        return render_template("ticket.html", **ctx)
 
     participant = get_participant_for_user(current_user)
     event = add_comment(participant, ticket,

@@ -213,9 +213,19 @@ select.form-control {
     top: -0.1rem;
   }
 
-  .event > blockquote {
-    margin-top: 0.5rem;
-    border: none;
+  .event {
+    > blockquote {
+      margin-top: 0.5rem;
+      border: none;
+    }
+    &.preview {
+      border: 1px dashed black;
+      .preview-tag {
+        float: right;
+        font-size: 0.8rem;
+        font-style: italic;
+      }
+    }
   }
 }
 

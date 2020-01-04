@@ -321,6 +321,17 @@
       </div>
       {% endif %}
       {% endfor %}
+
+      {% if rendered_preview %}
+      <div class="event preview">
+        <span class="preview-tag">Comment preview</span>
+        <a href="{{ current_user|user_url }}">{{ current_user }}</a>
+        <blockquote>
+          {{ rendered_preview }}
+        </blockquote>
+      </div>
+      {% endif %}
+
       {% if TicketAccess.comment in access %}
       {% if current_user %}
       <form
@@ -370,6 +381,12 @@
           {% endif %}
           {% endfor %}
         </select>
+        <button
+          type="submit"
+          name="preview"
+          value="true"
+          class="btn btn-default pull-right"
+        >Preview {{icon("caret-right")}}</button>
         {% else %}
         <button
           type="submit"
