@@ -11,6 +11,8 @@ import sqlalchemy as sa
 
 worker = make_worker(broker=cfg("todo.sr.ht", "webhooks"))
 
+import todosrht.tracker_import
+
 class UserWebhook(CeleryWebhook):
     events = [
         Event("tracker:create", "trackers:read"),
@@ -28,8 +30,8 @@ class TrackerWebhook(CeleryWebhook):
     ]
 
     tracker_id = sa.Column(sa.Integer,
-            sa.ForeignKey('tracker.id'), nullable=False)
-    tracker = sa.orm.relationship('Tracker')
+            sa.ForeignKey('tracker.id', ondelete="CASCADE"), nullable=False)
+    tracker = sa.orm.relationship('Tracker', cascade="all, delete-orphan")
 
 class TicketWebhook(CeleryWebhook):
     events = [
@@ -38,5 +40,6 @@ class TicketWebhook(CeleryWebhook):
     ]
 
     ticket_id = sa.Column(sa.Integer,
-            sa.ForeignKey('ticket.id'), nullable=False)
-    ticket = sa.orm.relationship('Ticket')
+            sa.ForeignKey('ticket.id', ondelete="CASCADE"), nullable=False)
+    ticket = sa.orm.relationship('Ticket', cascade="all, delete-orphan")
+

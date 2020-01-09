@@ -144,6 +144,11 @@
       {% endif %}
     </div>
     <div class="col-md-8">
+      {% if tracker.import_in_progress %}
+      <div class="alert alert-primary">
+        An import operation is currently in progress.
+      </div>
+      {% endif %}
       <form style="margin-bottom: 0.5rem">
         <input
           name="search"

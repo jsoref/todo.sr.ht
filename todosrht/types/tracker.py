@@ -55,6 +55,9 @@ class Tracker(Base):
             default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
     """Permissions granted to anonymous (non-logged in) users"""
 
+    import_in_progress = sa.Column(sa.Boolean,
+            nullable=False, server_default='f')
+
     @staticmethod
     def create_from_request(request, user):
         valid = Validation(request)

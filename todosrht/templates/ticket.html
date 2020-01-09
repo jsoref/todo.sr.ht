@@ -95,9 +95,21 @@
         </dd>
         <dt class="col-md-3">Submitter</dt>
         <dd class="col-md-9">
-          <a id="submitter-field" href="{{ ticket.submitter|participant_url }}">
-            {{ ticket.submitter }}
-          </a>
+          <a
+            id="submitter-field"
+            href="{{ ticket.submitter|participant_url }}"
+          >{{ ticket.submitter }}</a>
+          {% if ticket.authenticity.name == "unauthenticated" %}
+          <span
+            class="text-danger"
+            title="This ticket was imported from an external source and its authenticity cannot be guaranteed."
+          >(unverified)</span>
+          {% elif ticket.authenticity.name == "tampered" %}
+          <span
+            class="text-danger"
+            title="This ticket has been edited by a third-party - its contents are not genuine."
+          >(edited)</span>
+          {% endif %}
         </dd>
         <dt class="col-md-3">Assigned to</dt>
         <dd id="assignee-field" class="col-md-9">
@@ -240,6 +252,19 @@
             <a href="{{ event.participant|participant_url }}">
               {{ event.participant }}
             </a>
+            {% if EventType.comment in event.event_type %}
+            {% if event.comment.authenticity.name == "unauthenticated" %}
+            <span
+              class="text-danger"
+              title="This ticket was imported from an external source and its authenticity cannot be guaranteed."
+            >(unverified)</span>
+            {% elif event.comment.authenticity.name == "tampered" %}
+            <span
+              class="text-danger"
+              title="This ticket has been edited by a third-party - its contents are not genuine."
+            >(edited)</span>
+            {% endif %}
+            {% endif %}
           {% endif %}
           {% if EventType.status_change in event.event_type %}
             <strong class="text-success">

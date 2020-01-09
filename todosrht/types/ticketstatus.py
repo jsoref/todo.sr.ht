@@ -1,4 +1,4 @@
-from enum import IntFlag
+from enum import IntFlag, Enum
 
 class TicketStatus(IntFlag):
     reported = 0
@@ -16,3 +16,8 @@ class TicketResolution(IntFlag):
     invalid = 16
     duplicate = 32
     not_our_bug = 64
+
+class TicketAuthenticity(Enum):
+    authentic = 0
+    unauthenticated = 1
+    tampered = 2

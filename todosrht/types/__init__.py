@@ -10,6 +10,7 @@ class OAuthToken(Base, ExternalOAuthTokenMixin):
 
 from todosrht.types.ticketaccess import TicketAccess
 from todosrht.types.ticketstatus import TicketStatus, TicketResolution
+from todosrht.types.ticketstatus import TicketAuthenticity
 
 from todosrht.types.event import Event, EventType, EventNotification
 from todosrht.types.label import Label, TicketLabel

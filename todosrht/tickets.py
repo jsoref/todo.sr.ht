@@ -445,7 +445,7 @@ def _send_new_ticket_notification(subscription, ticket):
     notify(subscription, "new_ticket", subject,
         headers=headers, ticket=ticket, ticket_url=ticket_url(ticket))
 
-def submit_ticket(tracker, submitter, title, description):
+def submit_ticket(tracker, submitter, title, description, importing=False):
     ticket = Ticket(
         submitter=submitter,
         tracker=tracker,
@@ -465,21 +465,22 @@ def submit_ticket(tracker, submitter, title, description):
     db.session.flush()
 
     # Subscribe submitter to the ticket if not already subscribed to the tracker
-    get_or_create_subscription(ticket, submitter)
+    if not importing:
+        get_or_create_subscription(ticket, submitter)
 
-    # Send notifications
-    for sub in tracker.subscriptions:
-        _create_event_notification(sub.participant, event)
-        if sub.participant != submitter:
-            _send_new_ticket_notification(sub, ticket)
+        # Send notifications
+        for sub in tracker.subscriptions:
+            _create_event_notification(sub.participant, event)
+            if sub.participant != submitter:
+                _send_new_ticket_notification(sub, ticket)
 
-    notified_users = [sub.participant for sub in tracker.subscriptions]
-    _handle_mentions(
-        ticket,
-        ticket.submitter,
-        ticket.description,
-        notified_users,
-    )
+        notified_users = [sub.participant for sub in tracker.subscriptions]
+        _handle_mentions(
+            ticket,
+            ticket.submitter,
+            ticket.description,
+            notified_users,
+        )
 
-    db.session.commit()
+        db.session.commit()
     return ticket

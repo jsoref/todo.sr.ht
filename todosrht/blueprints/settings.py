@@ -17,6 +17,7 @@ from todosrht.types import Event, EventType, Ticket, TicketAccess
 from todosrht.types import ParticipantType, UserAccess, User
 from todosrht.urls import tracker_url
 from todosrht.webhooks import UserWebhook
+from todosrht.tracker_import import tracker_import
 
 settings = Blueprint("settings", __name__)
 
@@ -273,7 +274,12 @@ def export_POST(owner, name):
             td["events"].append(ev)
         dump.append(td)
 
-    dump = json.dumps(dump, default=date_handler)
+    dump = json.dumps({
+        "owner": tracker.owner.to_dict(),
+        "name": tracker.name,
+        "labels": [l.to_dict() for l in tracker.labels],
+        "tickets": dump,
+    }, default=date_handler)
     with NamedTemporaryFile() as ntf:
         ntf.write(gzip.compress(dump.encode()))
         f = open(ntf.name, "rb")
@@ -281,3 +287,29 @@ def export_POST(owner, name):
     return send_file(f, as_attachment=True,
             attachment_filename=f"{tracker.owner.username}-{tracker.name}.json.gz",
             mimetype="application/gzip")
+
+@settings.route("/<owner>/<name>/settings/import", methods=["POST"])
+@loginrequired
+def import_POST(owner, name):
+    tracker, access = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    if current_user.id != tracker.owner_id:
+        abort(403)
+
+    dump = request.files.get("dump")
+    valid = Validation(request)
+    valid.expect(dump is not None,
+            "Tracker dump file is required", field="dump")
+    if not valid.ok:
+        return render_template("tracker-import-export.html",
+            view="import/export", tracker=tracker, **valid.kwargs)
+
+    dump = dump.stream.read()
+    dump = gzip.decompress(dump)
+    dump = json.loads(dump)
+    tracker_import.delay(dump, tracker.id)
+
+    tracker.import_in_progress = True
+    db.session.commit()
+    return redirect(tracker_url(tracker))
