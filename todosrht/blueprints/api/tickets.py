@@ -233,7 +233,10 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
             label = (Label.query
                     .filter(Label.tracker_id == tracker.id)
                     .filter(Label.name == name)).one_or_none()
-            valid.expect(label, f"Unknown label {name}", field="labels")
+            valid.expect(label is not None,
+                    f"Unknown label {name}", field="labels")
+            if not valid.ok:
+                return valid.response
             tl = TicketLabel()
             tl.ticket_id = ticket.id
             tl.label_id = label.id
