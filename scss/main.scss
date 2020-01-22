@@ -1,5 +1,9 @@
 @import "base";
 
+pre {
+  background: $gray-100;
+}
+
 .ellipsis {
   overflow-x: hidden;
   white-space: nowrap;
