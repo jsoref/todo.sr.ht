@@ -1,8 +1,8 @@
 from sqlalchemy import or_
-from srht.search import search
-from todosrht.types import Label, TicketLabel
-from todosrht.types import Ticket, TicketStatus, TicketComment
-from todosrht.types import User
+from srht import search
+from todosrht.types import Label, Ticket, TicketStatus, TicketComment
+from todosrht.types import Participant, User
+
 
 STATUS_ALIASES = {
     "open": [
@@ -14,69 +14,67 @@ STATUS_ALIASES = {
     "closed": [TicketStatus.resolved]
 }
 
-def filter_by_status(query, value):
+def status_filter(value):
+    if value == "any":
+        return True
+
     if value in STATUS_ALIASES:
-        return query.filter(Ticket.status.in_(STATUS_ALIASES[value]))
+        return Ticket.status.in_(STATUS_ALIASES[value])
 
-    if hasattr(TicketStatus, value):
-        return query.filter(Ticket.status == getattr(TicketStatus, value))
+    status = getattr(TicketStatus, value, None)
+    if status is None:
+        raise ValueError(f"Invalid status: '{value}'")
 
-    return query.filter(False)
+    return Ticket.status == status
 
-def _get_user(value, current_user):
-    if not value:
-        return None
-
+def submitter_filter(value, current_user):
     if value == "me":
-        return current_user
+        return Ticket.submitter == current_user
+    else:
+        return Ticket.submitter.has(
+            Participant.user.has(User.username.ilike(value.lstrip("~")))
+        )
 
-    return User.query.filter_by(username=value.lstrip("~")).first()
+def asignee_filter(value, current_user):
+    if value == "me":
+        return Ticket.assigned_users.contains(current_user)
+    else:
+        return Ticket.assigned_users.any(
+            User.username.ilike(value.lstrip("~"))
+        )
 
-def filter_by_submitter(query, value, current_user):
-    user = _get_user(value, current_user)
-    if user:
-        return query.filter_by(submitter=user)
+def label_filter(value):
+    return Ticket.labels.any(Label.name == value)
 
-    return query.filter(False)
+def no_filter(value):
+    if value == "assignee":
+        return Ticket.assigned_users == None
 
-def filter_by_assignee(query, value, current_user):
-    user = _get_user(value, current_user)
-    if user:
-        return query.filter(Ticket.assigned_users.contains(user))
+    if value == "label":
+        return Ticket.labels == None
 
-    return query.filter(False)
+    raise ValueError(f"Invalid search term: 'no:{value}'")
 
-def filter_by_label(query, value, tracker):
-    label = Label.query.filter(
-        Label.tracker_id == tracker.id,
-        Label.name == value).first()
+def default_filter(value):
+    return or_(
+        Ticket.description.ilike(f"%{value}%"),
+        Ticket.title.ilike(f"%{value}%"),
+        Ticket.comments.any(TicketComment.text.ilike(f"%{value}%"))
+    )
 
-    if label:
-        return query.filter(Ticket.labels.any(TicketLabel.label == label))
+def apply_search(query, search_string, current_user):
+    terms = list(search.parse_terms(search_string))
 
-    return query.filter(False)
+    # If search does not include a status filter, show open tickets
+    if not any([term.key == "status" for term in terms]):
+        terms.append(search.Term("status", "open", False))
 
-def filter_no(query, value, tracker):
-    filterNo = {
-        'assignee': Ticket.assigned_users == None,
-        'label': Ticket.labels == None,
-    }
-    return query.filter(filterNo.get(value, False))
-
-def apply_search(query, terms, tracker, current_user):
-    if not terms:
-        return query.filter(Ticket.status == TicketStatus.reported)
-
-    return search(query, terms, [
-        Ticket.description,
-        Ticket.title,
-        lambda v: Ticket.comments.any(TicketComment.text.ilike(f"%{v}%"))
-    ], {
-        "status": lambda q, v: filter_by_status(q, v),
-        "submitter": lambda q, v: filter_by_submitter(q, v, current_user),
-        "assigned": lambda q, v: filter_by_assignee(q, v, current_user),
-        "label": lambda q, v: filter_by_label(q, v, tracker),
-        "no": lambda q, v: filter_no(q, v, tracker),
+    return search.apply_terms(query, terms, default_filter, key_fns={
+        "status": status_filter,
+        "submitter": lambda v: submitter_filter(v, current_user),
+        "assigned": lambda v: asignee_filter(v, current_user),
+        "label": label_filter,
+        "no": no_filter,
     })
 
 def find_usernames(query, limit=20):

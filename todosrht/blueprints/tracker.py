@@ -79,7 +79,7 @@ def return_tracker(tracker, access, **kwargs):
 
     try:
         terms = request.args.get("search")
-        tickets = apply_search(tickets, terms, tracker, current_user)
+        tickets = apply_search(tickets, terms, current_user)
     except ValueError as e:
         kwargs["search_error"] = str(e)
 
