@@ -3,6 +3,7 @@ from datetime import datetime, timedelta
 from factory.fuzzy import FuzzyText
 from srht.database import db
 from todosrht.types import Tracker, User, Ticket, Participant, ParticipantType
+from todosrht.types import Label, TicketLabel, TicketAssignee, TicketComment
 
 future_datetime = datetime.now() + timedelta(days=10)
 
@@ -47,4 +48,43 @@ class TicketFactory(factory.alchemy.SQLAlchemyModelFactory):
 
     class Meta:
         model = Ticket
+        sqlalchemy_session = db.session
+
+
+class LabelFactory(factory.alchemy.SQLAlchemyModelFactory):
+    tracker = factory.SubFactory(TrackerFactory)
+    color = "#ffffff"
+    text_color = "#000000"
+
+    class Meta:
+        model = Label
+        sqlalchemy_session = db.session
+
+
+class TicketLabelFactory(factory.alchemy.SQLAlchemyModelFactory):
+    ticket = factory.SubFactory(TicketFactory)
+    label = factory.SubFactory(LabelFactory)
+    user = factory.SubFactory(UserFactory)
+
+    class Meta:
+        model = TicketLabel
+        sqlalchemy_session = db.session
+
+
+class TicketAssigneeFactory(factory.alchemy.SQLAlchemyModelFactory):
+    ticket = factory.SubFactory(TicketFactory)
+    assignee = factory.SubFactory(UserFactory)
+    assigner = factory.SubFactory(UserFactory)
+
+    class Meta:
+        model = TicketAssignee
+        sqlalchemy_session = db.session
+
+class TicketCommentFactory(factory.alchemy.SQLAlchemyModelFactory):
+    ticket = factory.SubFactory(TicketFactory)
+    submitter = factory.SubFactory(ParticipantFactory)
+    text = "This is a helpful comment."
+
+    class Meta:
+        model = TicketComment
         sqlalchemy_session = db.session
