@@ -32,6 +32,7 @@ class ParticipantFactory(factory.alchemy.SQLAlchemyModelFactory):
 class TrackerFactory(factory.alchemy.SQLAlchemyModelFactory):
     owner = factory.SubFactory(UserFactory)
     name = factory.Sequence(lambda n: f"tracker{n}")
+    import_in_progress = False
 
     class Meta:
         model = Tracker
