@@ -77,8 +77,12 @@ def return_tracker(tracker, access, **kwargs):
         .options(subqueryload(Ticket.submitter))
         .order_by(Ticket.updated.desc()))
 
-    terms = request.args.get("search")
-    tickets = apply_search(tickets, terms, tracker, current_user)
+    try:
+        terms = request.args.get("search")
+        tickets = apply_search(tickets, terms, tracker, current_user)
+    except ValueError as e:
+        kwargs["search_error"] = str(e)
+
     tickets, pagination = paginate_query(tickets, results_per_page=25)
 
     # Find which tickets were seen by the user since last update
