@@ -192,7 +192,7 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         status = valid.optional("status",
                 cls=TicketStatus, default=valid.status)
         if status != ticket.status:
-            if status != TicketStatus.open:
+            if status != TicketStatus.reported:
                 resolve = True
                 resolution = valid.require("resolution", cls=TicketResolution)
             else:
