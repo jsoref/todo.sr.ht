@@ -1,7 +1,8 @@
 from flask import Blueprint, render_template, request, abort
 from todosrht.access import get_tracker, get_access
 from todosrht.tickets import get_participant_for_user
-from todosrht.types import Tracker, Ticket, Event, EventNotification, EventType
+from todosrht.types import Tracker, Ticket, TicketAccess
+from todosrht.types import Event, EventNotification, EventType
 from todosrht.types import User, Participant
 from srht.config import cfg
 from srht.oauth import current_user
@@ -21,32 +22,32 @@ def filter_authorized_events(events):
                 and_(
                     Ticket.submitter_perms != None,
                     Ticket.submitter_id == participant.id,
-                    Ticket.submitter_perms > 0),
+                    Ticket.submitter_perms.op('&')(TicketAccess.browse) > 0),
                 and_(
                     Ticket.user_perms != None,
-                    Ticket.user_perms > 0),
+                    Ticket.user_perms.op('&')(TicketAccess.browse) > 0),
                 and_(
                     Ticket.anonymous_perms != None,
-                    Ticket.anonymous_perms > 0),
+                    Ticket.anonymous_perms.op('&')(TicketAccess.browse) > 0),
                 and_(
                     Ticket.submitter_perms == None,
                     Ticket.submitter_id == participant.id,
-                    Tracker.default_submitter_perms > 0),
+                    Tracker.default_submitter_perms.op('&')(TicketAccess.browse) > 0),
                 and_(
                     Ticket.user_perms == None,
-                    Tracker.default_user_perms > 0),
+                    Tracker.default_user_perms.op('&')(TicketAccess.browse) > 0),
                 and_(
                     Ticket.anonymous_perms == None,
-                    Tracker.default_anonymous_perms > 0))))
+                    Tracker.default_anonymous_perms.op('&')(TicketAccess.browse) > 0))))
     else:
         events = (events.filter(
             or_(
                 and_(
                     Ticket.anonymous_perms != None,
-                    Ticket.anonymous_perms > 0),
+                    Ticket.anonymous_perms.op('&')(TicketAccess.browse) > 0),
                 and_(
                     Ticket.anonymous_perms == None,
-                    Tracker.default_anonymous_perms > 0))))
+                    Tracker.default_anonymous_perms.op('&')(TicketAccess.browse) > 0))))
     return events
 
 @html.route("/")
@@ -85,9 +86,11 @@ def user_GET(username):
 
     trackers = Tracker.query.filter(Tracker.owner_id == user.id)
     if current_user and current_user != user:
-        trackers = trackers.filter(Tracker.default_user_perms > 0)
+        trackers = trackers.filter(Tracker.default_user_perms
+                .op('&')(TicketAccess.browse) > 0)
     elif not current_user:
-        trackers = trackers.filter(Tracker.default_anonymous_perms > 0)
+        trackers = trackers.filter(Tracker.default_anonymous_perms
+                .op('&')(TicketAccess.browse) > 0)
     limit_trackers = 10
     total_trackers = trackers.count()
     trackers = (trackers
@@ -120,9 +123,11 @@ def trackers_for_user(username):
 
     trackers = Tracker.query.filter(Tracker.owner_id == user.id)
     if current_user and current_user != user:
-        trackers = trackers.filter(Tracker.default_user_perms > 0)
+        trackers = trackers.filter(Tracker.default_user_perms
+                .op('&')(TicketAccess.browse) > 0)
     elif not current_user:
-        trackers = trackers.filter(Tracker.default_anonymous_perms > 0)
+        trackers = trackers.filter(Tracker.default_anonymous_perms
+                .op('&')(TicketAccess.browse) > 0)
 
     search = request.args.get("search")
     if search:
