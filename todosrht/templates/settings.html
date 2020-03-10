@@ -7,15 +7,16 @@
       class="nav-link {% if view == title %}active{% endif %}"
       href="{{ path }}">{{ title }}</a>
     {% endmacro %}
+    <h2>
+      <a
+        href="{{ tracker.owner|user_url }}"
+      >{{ tracker.owner }}</a>/{{ tracker.name }}
+    </h2>
     <ul class="nav nav-tabs">
-      <h2>
-        <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
-          >/{{ tracker.name }}
-      </h2>
       <li class="nav-item">
         <a class="nav-link"
          href="{{tracker|tracker_url}}"
-        >{{icon("caret-left")}} back</a>
+        >{{icon("caret-left")}}&nbsp;back</a>
       </li>
       <li class="nav-item">
         {{link(url_for("settings.details_GET",

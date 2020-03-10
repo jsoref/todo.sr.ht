@@ -28,48 +28,6 @@ select.form-control {
   }
 }
 
-.header-tabbed {
-  border-bottom: 3px solid #ddd;
-  margin-bottom: 1rem;
-  display: flex;
-  align-items: flex-end;
-  flex-wrap: wrap;
-
-  &.vertical {
-    align-items: inherit;
-    flex-direction: column;
-  }
-
-  h2 {
-    margin: 0;
-
-    @include media-breakpoint-down(xs) {
-      flex-grow: 1;
-      text-align: center;
-    }
-  }
-
-  .nav {
-    border: none;
-    margin: 0;
-    flex-grow: 1;
-    padding-top: 0.5rem;
-
-    @include media-breakpoint-down(xs) {
-      padding-top: 1rem;
-      justify-content: center;
-    }
-  }
-
-  form {
-    margin: 0;
-  }
-
-  button.nav-link {
-    background: inherit;
-  }
-}
-
 .ticket-list {
   border-right: 1px solid #ced4da;
   border-bottom: 1px solid #ced4da;

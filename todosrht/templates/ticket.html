@@ -13,7 +13,7 @@
       <a href="{{ tracker.owner|user_url }}"
         >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
         >{{ tracker.name }}</a>#{{ ticket.scoped_id }}<span
-          class="d-none d-md-inline">:&nbsp;</span>
+          class="d-none d-md-inline">:</span>&nbsp;
     </div>
     <div id="title-field">
       {{ticket.title}}
@@ -21,7 +21,18 @@
   </h2>
 </div>
 <div class="header-tabbed">
+  {% if not tracker_sub %}
+  <form method="POST" action="{{url_for("ticket." +
+      ("disable_notifications" if ticket_sub else "enable_notifications"),
+      owner=tracker.owner.canonical_name,
+      name=tracker.name,
+      ticket_id=ticket.scoped_id)}}"
+    class="container"
+  >
+    {{csrf_token()}}
+  {% else %}
   <div class="container">
+  {% endif %}
     <ul class="nav nav-tabs">
       <li class="nav-item">
         <a href="{{ ticket|ticket_url }}"
@@ -34,44 +45,33 @@
       </li>
       {% endif %}
       {% if current_user %}
-      <li class="flex-grow-1 d-none d-sm-block"></li>
-      <li class="nav-item d-none d-sm-block">
-        {% if not tracker_sub %}
-        <form method="POST" action="{{url_for("ticket." +
-            ("disable_notifications" if ticket_sub else "enable_notifications"),
-            owner=tracker.owner.canonical_name,
-            name=tracker.name,
-            ticket_id=ticket.scoped_id)}}">
-          {{csrf_token()}}
-        {% else %}
-        <div>
-        {% endif %}
-          <button
-            class="nav-link active"
-            {% if tracker_sub %}
-            title="you are subscribed to all activity on this tracker"
-            disabled
-            {% else %}
-            type="submit"
-            {% endif %}
-          >
-            {{icon("envelope-o")}}
-            {% if ticket_sub or tracker_sub %}
-            disable notifications
-            {% else %}
-            enable notifications
-            {% endif %}
-            {{icon("caret-right")}}
-          </button>
-        {% if not tracker_sub %}
-        </form>
-        {% else %}
-        </div>
-        {% endif %}
+      <li class="flex-grow-1 d-none d-md-block"></li>
+      <li class="nav-item">
+        <button
+          class="nav-link active"
+          {% if tracker_sub %}
+          title="you are subscribed to all activity on this tracker"
+          disabled
+          {% else %}
+          type="submit"
+          {% endif %}
+        >
+          {{icon("envelope-o")}}
+          {% if ticket_sub or tracker_sub %}
+          disable notifications
+          {% else %}
+          enable notifications
+          {% endif %}
+          {{icon("caret-right")}}
+        </button>
       </li>
       {% endif %}
     </ul>
+  {% if not tracker_sub %}
+  </form>
+  {% else %}
   </div>
+  {% endif %}
 </div>
 <div class="container">
   <div class="row">
@@ -236,7 +236,7 @@
     </div>
   </div>
   <div class="row">
-    <div class="col-md-10 event-list ticket-events">
+    <div class="col-md-12 event-list ticket-events">
       {% for event in events %}
       {% if event.event_type not in [
           EventType.created,
