@@ -7,66 +7,66 @@
 </title>
 {% endblock %}
 {% block body %}
-<div class="container-fluid">
-  <div class="row">
-    <div class="col-md-12 header-tabbed">
-      <h2>
-        <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
-          >/{{ tracker.name }}
-      </h2>
-      <ul class="nav nav-tabs">
-        <li class="nav-item">
-          <a class="nav-link {{ "active" if not search else "" }}"
-            href="{{ tracker|tracker_url }}">open tickets</a>
-        </li>
-        <li class="nav-item">
-          <a class="nav-link {{
-              "active" if search == "status:closed"
-                or search == "status:resolved" else ""
-            }}" href="?search=status:closed">closed tickets</a>
-        </li>
-        {% if search and search != "status:closed" and search != "status:resolved" %}
-        <li class="nav-item">
-          <a class="nav-link active" href="?search={{ search }}">
-            search results
-          </a>
-        </li>
-        {% endif %}
-        <li class="nav-item">
-          <a class="nav-link"
-            href="{{ tracker|tracker_labels_url }}">labels</a>
-        </li>
-        {% if current_user and current_user.id == tracker.owner_id %}
-        <li class="nav-item d-none d-sm-block">
-          <a class="nav-link" href="{{url_for("settings.details_GET",
+<div class="header-tabbed">
+  <div class="container-fluid">
+    <h2>
+      <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a
+        >/{{ tracker.name }}
+    </h2>
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link {{ "active" if not search else "" }}"
+          href="{{ tracker|tracker_url }}">open tickets</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link {{
+            "active" if search == "status:closed"
+              or search == "status:resolved" else ""
+          }}" href="?search=status:closed">closed tickets</a>
+      </li>
+      {% if search and search != "status:closed" and search != "status:resolved" %}
+      <li class="nav-item">
+        <a class="nav-link active" href="?search={{ search }}">
+          search results
+        </a>
+      </li>
+      {% endif %}
+      <li class="nav-item">
+        <a class="nav-link"
+          href="{{ tracker|tracker_labels_url }}">labels</a>
+      </li>
+      {% if current_user and current_user.id == tracker.owner_id %}
+      <li class="nav-item d-none d-sm-block">
+        <a class="nav-link" href="{{url_for("settings.details_GET",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name)}}"
+        >settings</a>
+      </li>
+      {% endif %}
+      {% if current_user %}
+      <li class="flex-grow-1 d-none d-sm-block"></li>
+      <li class="nav-item d-none d-sm-block">
+        <form method="POST" action="{{url_for("tracker." +
+            ("disable_notifications" if is_subscribed else "enable_notifications"),
             owner=tracker.owner.canonical_name,
-            name=tracker.name)}}"
-          >settings</a>
-        </li>
-        {% endif %}
-        {% if current_user %}
-        <li class="flex-grow-1 d-none d-sm-block"></li>
-        <li class="nav-item d-none d-sm-block">
-          <form method="POST" action="{{url_for("tracker." +
-              ("disable_notifications" if is_subscribed else "enable_notifications"),
-              owner=tracker.owner.canonical_name,
-              name=tracker.name)}}">
-            {{csrf_token()}}
-            <button class="nav-link active" type="submit">
-              {{icon("envelope-o")}}
-              {% if is_subscribed %}
-              Disable notifications
-              {% else %}
-              Enable notifications
-              {% endif %}
-              {{icon("caret-right")}}
-            </button>
-          </form>
-        </li>
-        {% endif %}
-      </ul>
-    </div>
+            name=tracker.name)}}">
+          {{csrf_token()}}
+          <button class="nav-link active" type="submit">
+            {{icon("envelope-o")}}
+            {% if is_subscribed %}
+            Disable notifications
+            {% else %}
+            Enable notifications
+            {% endif %}
+            {{icon("caret-right")}}
+          </button>
+        </form>
+      </li>
+      {% endif %}
+    </ul>
   </div>
+</div>
+<div class="container-fluid">
   <div class="row">
     <div class="col-lg-4 col-md-12">
       {% if tracker.description %}
