@@ -3,7 +3,7 @@ from datetime import timedelta
 from functools import wraps
 from jinja2.utils import Markup, escape
 from srht.flask import icon, csrf_token
-from srht.markdown import markdown
+from srht.markdown import markdown, SRHT_MARKDOWN_VERSION 
 from srht.redis import redis
 from todosrht import urls
 from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
@@ -13,7 +13,7 @@ def cache_rendered_markup(func):
     @wraps(func)
     def wrap(obj):
         class_name = obj.__class__.__name__
-        key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{obj.id}"
+        key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{obj.id}:v{SRHT_MARKDOWN_VERSION}"
         value = redis.get(key)
         if value:
             return Markup(value.decode())
