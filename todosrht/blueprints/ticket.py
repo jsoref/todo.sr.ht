@@ -6,7 +6,7 @@ from srht.database import db
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
-from todosrht.filters import invalidate_markup_cache, render_markup
+from todosrht.filters import render_markup
 from todosrht.search import find_usernames
 from todosrht.tickets import add_comment, mark_seen, assign, unassign
 from todosrht.tickets import get_participant_for_user
@@ -224,9 +224,6 @@ def ticket_edit_POST(owner, name, ticket_id):
     ticket.title = title
     ticket.description = desc
     db.session.commit()
-
-    invalidate_markup_cache(ticket)
-
     return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/add_label", methods=["POST"])

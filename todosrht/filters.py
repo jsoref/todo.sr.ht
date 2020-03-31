@@ -1,8 +1,10 @@
+import hashlib
+import json
 import re
 from datetime import timedelta
 from functools import wraps
 from jinja2.utils import Markup, escape
-from srht.flask import icon, csrf_token
+from srht.flask import icon, csrf_token, date_handler
 from srht.markdown import markdown, SRHT_MARKDOWN_VERSION 
 from srht.redis import redis
 from todosrht import urls
@@ -13,7 +15,9 @@ def cache_rendered_markup(func):
     @wraps(func)
     def wrap(obj):
         class_name = obj.__class__.__name__
-        key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{obj.id}:v{SRHT_MARKDOWN_VERSION}"
+        sha = hashlib.sha1()
+        sha.update(json.dumps(obj.to_dict(), default=date_handler).encode())
+        key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{sha.hexdigest()}:v{SRHT_MARKDOWN_VERSION}"
         value = redis.get(key)
         if value:
             return Markup(value.decode())
@@ -67,11 +71,6 @@ def render_comment(comment):
 @cache_rendered_markup
 def render_ticket_description(ticket):
     return render_markup(ticket.tracker, ticket.description)
-
-def invalidate_markup_cache(obj):
-    class_name = obj.__class__.__name__
-    key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{obj.id}"
-    redis.delete(key)
 
 def label_badge(label, cls="", remove_from_ticket=None, terms=None):
     """Return HTML markup rendering a label badge.
