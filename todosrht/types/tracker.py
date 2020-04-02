@@ -101,6 +101,7 @@ class Tracker(Base):
             return [p.name for p in TicketAccess
                     if p in w and p not in [TicketAccess.none, TicketAccess.all]]
         return {
+            "id": self.id,
             "owner": self.owner.to_dict(short=True),
             "created": self.created,
             "updated": self.updated,
