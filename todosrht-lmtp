@@ -122,7 +122,7 @@ class MailHandler:
 
         resolution = None
         resolve = reopen = False
-        cmds = ["!resolve", "!reopen"]
+        cmds = ["!resolve", "!resolved", "!reopen"]
         if sender.participant_type == ParticipantType.user:
             # TODO: This should be possible via ACLs later
             cmds += ["!assign", "!label", "!unlabel"]
@@ -130,7 +130,7 @@ class MailHandler:
             cmd = shlex.split(last_line)
             body = body[:-len(last_line)-1].rstrip()
             required_access = TicketAccess.triage
-            if cmd[0] == "!resolve" and len(cmd) == 2:
+            if cmd[0] in ["!resolve", "!resolved"] and len(cmd) == 2:
                 resolve = True
                 resolution = TicketResolution[cmd[1].lower()]
             elif cmd[0] == "!reopen":
