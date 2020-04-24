@@ -100,8 +100,8 @@ class Ticket(Base):
             "id": self.scoped_id,
             "ref": self.ref(),
             "tracker": self.tracker.to_dict(short=True),
+            "title": self.title,
             **({
-                "title": self.title,
                 "created": self.created,
                 "updated": self.updated,
                 "submitter": self.submitter.to_dict(short=True),
