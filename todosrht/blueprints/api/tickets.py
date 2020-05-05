@@ -45,7 +45,7 @@ def tracker_tickets_POST(username, tracker_name):
 
     valid = Validation(request)
     title = valid.require("title")
-    desc = valid.optional("description")
+    desc = valid.optional("description", default="")
     valid.expect(not title or 3 <= len(title) <= 2048,
             "Title must be between 3 and 2048 characters.",
             field="title")
