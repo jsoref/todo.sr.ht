@@ -102,9 +102,13 @@ def user_tracker_by_name_DELETE(username, tracker_name):
         abort(404)
     if tracker.owner_id != current_token.user_id:
         abort(401)
+    # SQLAlchemy shits itself on some of our weird constraints/relationships
+    # so fuck it, postgres knows what to do here
     tracker_id = tracker.id
     owner_id = tracker.owner_id
-    db.session.delete(tracker)
+    assert isinstance(tracker_id, int)
+    db.session.expunge_all()
+    db.engine.execute(f"DELETE FROM tracker WHERE id = {tracker_id};")
     db.session.commit()
     UserWebhook.deliver(UserWebhook.Events.tracker_delete,
             { "id": tracker_id },
