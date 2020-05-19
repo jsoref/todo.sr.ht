@@ -2,6 +2,7 @@ from flask import Blueprint, render_template, request, url_for, abort, redirect
 from todosrht.color import color_from_hex, color_to_hex, get_text_color
 from todosrht.color import valid_hex_color_code
 from todosrht.access import get_tracker
+from todosrht.filters import render_markup
 from todosrht.search import apply_search
 from todosrht.tickets import get_last_seen_times, get_comment_counts
 from todosrht.tickets import get_participant_for_user, submit_ticket
@@ -189,6 +190,11 @@ def tracker_submit_POST(owner, name):
     if not valid.ok:
         db.session.commit() # Unlock tracker row
         return return_tracker(tracker, access, **valid.kwargs), 400
+
+    if "preview" in request.form:
+        preview = render_markup(tracker, desc)
+        return return_tracker(tracker, access,
+                rendered_preview=preview, **valid.kwargs), 200
 
     # TODO: Handle unique constraint failure (contention) and retry?
     participant = get_participant_for_user(current_user)

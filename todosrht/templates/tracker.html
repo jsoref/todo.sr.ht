@@ -113,6 +113,9 @@
         >
           Submit {{icon("caret-right")}}
         </button>
+        <button type="submit" name="preview" class="btn btn-default">
+          Preview {{icon("caret-right")}}
+        </button>
         <label class="form-check-label" style="margin-left: 2rem">
           <input
             class="form-check-input"
@@ -124,6 +127,15 @@
             {% endif %}> Submit another?
         </label>
       </form>
+
+      {% if rendered_preview %}
+      <div class="ticket-preview">
+        <span class="preview-tag">Ticket preview</span>
+        <h2>{{ title }}</h2>
+        {{ rendered_preview }}
+      </div>
+      {% endif %}
+
       {% elif cfg("todo.sr.ht::mail", "posting-domain") %}
       <a
         class="btn btn-primary"
