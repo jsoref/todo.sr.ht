@@ -60,15 +60,27 @@
         >{{ description or ticket.description or "" }}</textarea>
         {{valid.summary("description")}}
       </div>
-      <div class="pull-right">
+
+      <div class="text-right">
         <a href="{{ ticket|ticket_url }}" class="btn btn-default">
           Cancel
         </a>
+        <button type="submit" name="preview" class="btn btn-default">
+          Preview {{icon("caret-right")}}
+        </button>
         <button
           type="submit"
           class="btn btn-primary"
         >Save changes {{icon("caret-right")}}</button>
       </div>
+
+      {% if rendered_preview %}
+      <div class="ticket-preview">
+        <span class="preview-tag">Ticket preview</span>
+        <h2>{{ title }}</h2>
+        {{ rendered_preview }}
+      </div>
+      {% endif %}
     </div>
   </div>
 </div>

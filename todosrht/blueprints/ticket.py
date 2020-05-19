@@ -221,6 +221,12 @@ def ticket_edit_POST(owner, name, ticket_id):
         return render_template("edit_ticket.html",
                 tracker=tracker, ticket=ticket, **valid.kwargs)
 
+    if "preview" in request.form:
+        preview = render_markup(tracker, desc)
+        return render_template("edit_ticket.html",
+                tracker=tracker, ticket=ticket, rendered_preview=preview,
+                **valid.kwargs)
+
     ticket.title = title
     ticket.description = desc
     db.session.commit()
