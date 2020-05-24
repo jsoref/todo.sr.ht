@@ -389,6 +389,12 @@
         >
           Comment {{icon("caret-right")}}
         </button>
+        <button
+          type="submit"
+          name="preview"
+          value="true"
+          class="btn btn-default pull-right"
+        >Preview {{icon("caret-right")}}</button>
         {% if TicketAccess.edit in access %}
         {% if ticket.status != TicketStatus.resolved %}
         <button
@@ -406,12 +412,6 @@
           {% endif %}
           {% endfor %}
         </select>
-        <button
-          type="submit"
-          name="preview"
-          value="true"
-          class="btn btn-default pull-right"
-        >Preview {{icon("caret-right")}}</button>
         {% else %}
         <button
           type="submit"
