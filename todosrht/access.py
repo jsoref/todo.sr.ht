@@ -39,26 +39,27 @@ def get_tracker(owner, name, with_for_update=False, user=None):
     if not owner:
         return None, None
 
-    if owner[0] == "~":
-        owner = owner[1:]
-        if not isinstance(owner, User):
-            owner = User.query.filter(User.username == owner).one_or_none()
-            if not owner:
-                return None, None
-        tracker = (Tracker.query
-            .filter(Tracker.owner_id == owner.id)
-            .filter(Tracker.name.ilike(name)))
-        if with_for_update:
-            tracker = tracker.with_for_update()
-        tracker = tracker.one_or_none()
-        if not tracker:
+    if not isinstance(owner, User):
+        if owner[0] == "~":
+            owner = owner[1:]
+            if not isinstance(owner, User):
+                owner = User.query.filter(User.username == owner).one_or_none()
+                if not owner:
+                    return None, None
+        else:
+            # TODO: org trackers
             return None, None
-        access = get_access(tracker, None, user=user)
-        if access:
-            return tracker, access
-    else:
-        # TODO: org trackers
+    tracker = (Tracker.query
+        .filter(Tracker.owner_id == owner.id)
+        .filter(Tracker.name.ilike(name)))
+    if with_for_update:
+        tracker = tracker.with_for_update()
+    tracker = tracker.one_or_none()
+    if not tracker:
         return None, None
+    access = get_access(tracker, None, user=user)
+    if access:
+        return tracker, access
 
 def get_ticket(tracker, ticket_id, user=None):
     ticket = (Ticket.query
