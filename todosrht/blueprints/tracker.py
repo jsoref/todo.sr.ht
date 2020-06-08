@@ -53,7 +53,7 @@ def create_POST():
 
     if "create-configure" in valid:
         return redirect(url_for("settings.details_GET",
-                owner=current_user.username,
+                owner=current_user.canonical_name,
                 name=tracker.name))
 
     return redirect(tracker_url(tracker))
