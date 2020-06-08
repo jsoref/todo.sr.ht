@@ -445,7 +445,7 @@ def _send_new_ticket_notification(subscription, ticket):
     notify(subscription, "new_ticket", subject,
         headers=headers, ticket=ticket, ticket_url=ticket_url(ticket))
 
-def submit_ticket(tracker, submitter, title, description, importing=False):
+def submit_ticket(tracker, submitter, title, description, importing=False, from_email=False):
     ticket = Ticket(
         submitter=submitter,
         tracker=tracker,
@@ -471,7 +471,8 @@ def submit_ticket(tracker, submitter, title, description, importing=False):
         # Send notifications
         for sub in tracker.subscriptions:
             _create_event_notification(sub.participant, event)
-            if sub.participant != submitter:
+            # Notify submitter for tickets created by email
+            if from_email or sub.participant != submitter:
                 _send_new_ticket_notification(sub, ticket)
 
         notified_users = [sub.participant for sub in tracker.subscriptions]

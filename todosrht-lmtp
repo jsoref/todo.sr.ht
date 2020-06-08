@@ -106,7 +106,7 @@ class MailHandler:
             print("Rejecting email due to validation errors")
             return "550 " + ", ".join([e["reason"] for e in valid.errors])
 
-        ticket = submit_ticket(tracker, sender, title, desc)
+        ticket = submit_ticket(tracker, sender, title, desc, from_email=True)
         UserWebhook.deliver(UserWebhook.Events.ticket_create,
                 ticket.to_dict(),
                 UserWebhook.Subscription.user_id == sender.id)
