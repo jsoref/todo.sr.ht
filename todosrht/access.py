@@ -60,6 +60,7 @@ def get_tracker(owner, name, with_for_update=False, user=None):
     access = get_access(tracker, None, user=user)
     if access:
         return tracker, access
+    return None, None
 
 def get_ticket(tracker, ticket_id, user=None):
     ticket = (Ticket.query
