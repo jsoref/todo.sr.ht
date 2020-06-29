@@ -6,7 +6,7 @@ from functools import wraps
 from jinja2.utils import Markup, escape
 from srht.flask import icon, csrf_token, date_handler
 from srht.markdown import markdown, SRHT_MARKDOWN_VERSION 
-from srht.redis import redis
+from srht.cache import get_cache, set_cache
 from todosrht import urls
 from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
 from todosrht.tickets import TICKET_MENTION_PATTERN, USER_MENTION_PATTERN
@@ -18,12 +18,12 @@ def cache_rendered_markup(func):
         sha = hashlib.sha1()
         sha.update(json.dumps(obj.to_dict(), default=date_handler).encode())
         key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{sha.hexdigest()}:v{SRHT_MARKDOWN_VERSION}"
-        value = redis.get(key)
+        value = get_cache(key)
         if value:
             return Markup(value.decode())
 
         value = func(obj)
-        redis.setex(key, timedelta(days=30), value)
+        set_cache(key, timedelta(days=30), value)
         return value
     return wrap
 
