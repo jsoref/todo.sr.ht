@@ -95,8 +95,8 @@ def tracker_tickets_POST(username, tracker_name):
             TrackerWebhook.Subscription.tracker_id == tracker.id)
     return ticket.to_dict(), 201
 
-@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>")
-@tickets.route("/api/trackers/<tracker_name>/tickets/<ticket_id>",
+@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<int:ticket_id>")
+@tickets.route("/api/trackers/<tracker_name>/tickets/<int:ticket_id>",
         defaults={"username": None})
 @oauth("tickets:read")
 def tracker_ticket_by_id_GET(username, tracker_name, ticket_id):
@@ -131,12 +131,12 @@ def _webhook_create(sub, valid, username, tracker_name, ticket_id):
     return sub
 
 TicketWebhook.api_routes(tickets,
-        "/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>",
+        "/api/user/<username>/trackers/<tracker_name>/tickets/<int:ticket_id>",
         filters=_webhook_filters, create=_webhook_create)
 
-@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>",
+@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<int:ticket_id>",
         methods=["PUT"])
-@tickets.route("/api/trackers/<tracker_name>/tickets/<ticket_id>",
+@tickets.route("/api/trackers/<tracker_name>/tickets/<int:ticket_id>",
         defaults={"username": None}, methods=["PUT"])
 @oauth("tickets:write")
 def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
@@ -291,8 +291,8 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         "events": [event.to_dict() for event in events],
     }
 
-@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<ticket_id>/events")
-@tickets.route("/api/trackers/<tracker_name>/tickets/<ticket_id>/events",
+@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<int:ticket_id>/events")
+@tickets.route("/api/trackers/<tracker_name>/tickets/<int:ticket_id>/events",
         defaults={"username": None})
 @oauth("tickets:read")
 def tracker_ticket_by_id_events_GET(username, tracker_name, ticket_id):
