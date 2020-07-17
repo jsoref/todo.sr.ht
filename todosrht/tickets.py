@@ -470,20 +470,22 @@ def submit_ticket(tracker, submitter, title, description,
     # Subscribe submitter to the ticket if not already subscribed to the tracker
     if not importing:
         get_or_create_subscription(ticket, submitter)
+        all_subscriptions = {sub.participant: sub
+                for sub
+                in ticket.subscriptions + tracker.subscriptions}
 
         # Send notifications
-        for sub in tracker.subscriptions:
+        for sub in all_subscriptions.values():
             _create_event_notification(sub.participant, event)
             # Notify submitter for tickets created by email
             if from_email or sub.participant != submitter:
                 _send_new_ticket_notification(sub, ticket, from_email_id)
 
-        notified_users = [sub.participant for sub in tracker.subscriptions]
         _handle_mentions(
             ticket,
             ticket.submitter,
             ticket.description,
-            notified_users,
+            all_subscriptions.keys(),
         )
 
         db.session.commit()
