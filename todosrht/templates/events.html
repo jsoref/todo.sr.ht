@@ -3,9 +3,9 @@
 {% if event.ticket %}
   <div class="event">
     <h4>
-      <a href="{{ event.ticket|ticket_url }}">
-        #{{event.ticket.scoped_id}}
-      </a> {{ event.ticket.title }}
+      <a
+        href="{{ event.ticket|ticket_url }}"
+      >#{{event.ticket.scoped_id}}</a> {{ event.ticket.title }}
       <small class="pull-right">{{ event.created | date }}</small>
     </h4>
     <p>
