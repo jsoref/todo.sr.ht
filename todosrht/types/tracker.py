@@ -91,6 +91,11 @@ class Tracker(Base):
 
         return tracker, valid
 
+    def ref(self):
+        return "{}/{}".format(
+            self.owner.canonical_name,
+            self.name)
+
     def __repr__(self):
         return '<Tracker {} {}>'.format(self.id, self.name)
 

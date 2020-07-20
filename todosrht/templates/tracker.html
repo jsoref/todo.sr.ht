@@ -147,7 +147,7 @@
       </a>
       to submit tickets, or
       <a
-        href="mailto:{{tracker.owner.canonical_name}}/{{tracker.name}}@{{cfg("todo.sr.ht::mail", "posting-domain")}}"
+        href="mailto:{{tracker.ref()}}@{{cfg("todo.sr.ht::mail", "posting-domain")}}"
       >submit via email</a>.
       {% endif %}
       {% else %}

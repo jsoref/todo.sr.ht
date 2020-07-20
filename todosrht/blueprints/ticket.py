@@ -52,8 +52,8 @@ def get_ticket_context(ticket, tracker, access):
         "tracker_sub": tracker_sub,
         "ticket_sub": ticket_sub,
         "recent_users": get_recent_users(tracker),
-        "reply_to": f"mailto:{tracker.owner.canonical_name}/{tracker.name}/" +
-            f"{ticket.scoped_id}@{posting_domain}?subject={reply_subject}"
+        "reply_to": f"mailto:{ticket.ref(email=True)}@{posting_domain}" +
+            f"?subject={reply_subject}"
     }
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>")

@@ -37,7 +37,7 @@
           </p>
 <pre>{
   "description": <strong>$description</strong>,
-  "ref": "{{tracker.owner.canonical_name}}/{{tracker.name}}#<strong>$id</strong>",
+  "ref": "{{tracker.ref()}}#<strong>$id</strong>",
   "submitter": "~<strong>$username</strong>",
   "title": <strong>$title</strong>,
   "upstream": "{{get_origin('todo.sr.ht', external=True)}}",
@@ -48,7 +48,7 @@
 <pre>{
   "comment": <strong>$comment</strong>,
   "id": <strong>$id</strong>,
-  "ticket": "{{tracker.owner.canonical_name}}/{{tracker.name}}#<strong>$id</strong>",
+  "ticket": "{{tracker.ref()}}#<strong>$id</strong>",
   "user": "~<strong>$username</strong>",
   "upstream": "{{get_origin('todo.sr.ht', external=True)}}",
 }</pre>
