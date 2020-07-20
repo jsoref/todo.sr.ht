@@ -168,11 +168,15 @@ def _create_event_notification(participant, event):
 def _send_comment_notification(subscription, ticket,
         participant, comment, resolution):
     subject = "Re: {}: {}".format(ticket.ref(), ticket.title)
+    subscription_ref = subscription.tracker.ref() if subscription.tracker \
+            else ticket.ref(email=True)
     headers = {
         "From": "{} <{}>".format(participant.name, notify_from),
         "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
+        "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
+            f"@{posting_domain}"
     }
 
     url = ticket_url(ticket, comment=comment)
@@ -230,11 +234,15 @@ def _send_comment_notifications(
 
 def _send_mention_notification(sub, submitter, text, ticket, comment=None):
     subject = "{}: {}".format(ticket.ref(), ticket.title)
+    subscription_ref = sub.tracker.ref() if sub.tracker \
+            else ticket.ref(email=True)
     headers = {
         "From": "{} <{}>".format(submitter.name, notify_from),
         "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
+        "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
+            f"@{posting_domain}"
     }
 
     context = {
@@ -350,11 +358,15 @@ def notify_assignee(subscription, ticket, assigner, assignee):
     Sends a notification email to the person who was assigned to the issue.
     """
     subject = "{}: {}".format(ticket.ref(), ticket.title)
+    subscription_ref = subscription.tracker.ref() if subscription.tracker \
+            else ticket.ref(email=True)
     headers = {
         "From": "~{} <{}>".format(assigner.username, notify_from),
         "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
+        "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
+            f"@{posting_domain}"
     }
 
     context = {
@@ -435,11 +447,15 @@ def get_comment_counts(tickets):
 
 def _send_new_ticket_notification(subscription, ticket, email_trigger_id):
     subject = f"{ticket.ref()}: {ticket.title}"
+    subscription_ref = subscription.tracker.ref() if subscription.tracker \
+            else ticket.ref(email=True)
     headers = {
         "From": "{} <{}>".format(ticket.submitter.name, notify_from),
         "Message-ID": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
         "Sender": smtp_user,
+        "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
+            f"@{posting_domain}"
     }
     if email_trigger_id:
         headers["In-Reply-To"] = email_trigger_id
