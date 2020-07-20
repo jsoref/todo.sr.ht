@@ -137,7 +137,6 @@ def enable_notifications(owner, name):
     if sub:
         return redirect(tracker_url(tracker))
 
-    participant = get_participant_for_user(current_user)
     sub = TicketSubscription()
     sub.tracker_id = tracker.id
     sub.participant_id = participant.id
