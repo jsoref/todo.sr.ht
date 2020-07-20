@@ -70,7 +70,7 @@ class Tracker(Base):
                 "Must be between 1 and 255 characters",
                 field="name")
         valid.expect(not valid.ok or name_re.match(name),
-                "Only alphanumeric characters or ._-",
+                "Only alphanumeric characters or <samp>._-</samp>",
                 field="name")
         valid.expect(not desc or len(desc) < 4096,
                 "Must be less than 4096 characters",
