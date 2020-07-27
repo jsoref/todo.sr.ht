@@ -20,10 +20,22 @@ from todosrht.webhooks import TrackerWebhook, TicketWebhook
 
 ticket = Blueprint("ticket", __name__)
 
+posting_domain = cfg("todo.sr.ht::mail", "posting-domain")
+ticket_subscribe_body = """\
+Sending this email will subscribe your email address to {ticket_ref},
+in so doing you will start receiving comments on this ticket.
+
+You don't need to subscribe to the ticket if you're already subscribed
+to the entire {tracker_ref} tracker.
+
+You can unsubscribe at any time by mailing <{ticket_email_ref}/unsubscribe@""" + \
+    posting_domain + ">.\n"
+
 def get_ticket_context(ticket, tracker, access):
     """Returns the context required to render ticket.html"""
     tracker_sub = None
     ticket_sub = None
+    ticket_subscribe = None
 
     if current_user:
         tracker_sub = (TicketSubscription.query
@@ -38,8 +50,14 @@ def get_ticket_context(ticket, tracker, access):
                 .filter(TicketSubscription.tracker_id == None)
                 .filter(Participant.user_id == current_user.id)
             ).one_or_none()
+    else:
+        subj = quote("Subscribing to " + ticket.ref())
+        ticket_subscribe = f"mailto:{ticket.ref(email=True)}/subscribe@" + \
+            f"{posting_domain}?subject={subj}&body=" + \
+            quote(ticket_subscribe_body.format(ticket_ref=ticket.ref(),
+                ticket_email_ref=ticket.ref(email=True),
+                tracker_ref=tracker.ref()))
 
-    posting_domain = cfg("todo.sr.ht::mail", "posting-domain")
     reply_subject = quote("Re: " + ticket.title)
 
     return {
@@ -51,6 +69,7 @@ def get_ticket_context(ticket, tracker, access):
         "access": access,
         "tracker_sub": tracker_sub,
         "ticket_sub": ticket_sub,
+        "ticket_subscribe": ticket_subscribe,
         "recent_users": get_recent_users(tracker),
         "reply_to": f"mailto:{ticket.ref(email=True)}@{posting_domain}" +
             f"?subject={reply_subject}"

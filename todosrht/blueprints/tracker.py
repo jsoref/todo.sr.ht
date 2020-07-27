@@ -1,3 +1,4 @@
+from urllib.parse import quote
 from flask import Blueprint, render_template, request, url_for, abort, redirect
 from todosrht.color import color_from_hex, color_to_hex, get_text_color
 from todosrht.color import valid_hex_color_code
@@ -24,6 +25,14 @@ tracker = Blueprint("tracker", __name__)
 smtp_user = cfg("mail", "smtp-user", default=None)
 smtp_from = cfg("mail", "smtp-from", default=None)
 notify_from = cfg("todo.sr.ht", "notify-from", default=smtp_from)
+posting_domain = cfg("todo.sr.ht::mail", "posting-domain")
+
+tracker_subscribe_body = """\
+Sending this email will subscribe your email address to {tracker_ref},
+in so doing you will start receiving new tickets and all comments for this tracker.
+
+You can unsubscribe at any time by mailing <{tracker_ref}/unsubscribe@""" + \
+    posting_domain + ">.\n"
 
 @tracker.route("/tracker/create")
 @loginrequired
@@ -63,6 +72,7 @@ def return_tracker(tracker, access, **kwargs):
     if another:
         del session["another"]
     is_subscribed = False
+    tracker_subscribe = None
     if current_user:
         sub = (TicketSubscription.query
             .join(Participant)
@@ -71,6 +81,11 @@ def return_tracker(tracker, access, **kwargs):
             .filter(Participant.user_id == current_user.id)
         ).one_or_none()
         is_subscribed = bool(sub)
+    else:
+        subj = quote("Subscribing to " + tracker.ref())
+        tracker_subscribe = f"mailto:{tracker.ref()}/subscribe@" + \
+            f"{posting_domain}?subject={subj}&body=" + \
+            quote(tracker_subscribe_body.format(tracker_ref=tracker.ref()))
 
     tickets = (Ticket.query
         .filter(Ticket.tracker_id == tracker.id)
@@ -104,7 +119,7 @@ def return_tracker(tracker, access, **kwargs):
             tracker=tracker, another=another, tickets=tickets,
             access=access, is_subscribed=is_subscribed, search=terms,
             comment_counts=comment_counts, seen_ticket_ids=seen_ticket_ids,
-            **pagination, **kwargs)
+            tracker_subscribe=tracker_subscribe, **pagination, **kwargs)
 
 @tracker.route("/<owner>/<name>")
 def tracker_GET(owner, name):
