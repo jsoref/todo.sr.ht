@@ -247,7 +247,7 @@ def validate_label(request):
     if not valid.ok:
         return None, valid
 
-    valid.expect(2 <= len(name) < 50,
+    valid.expect(2 <= len(name) <= 50,
             "Must be between 2 and 50 characters", field="name")
     valid.expect(valid_hex_color_code(color),
             "Invalid hex color code", field="color")
