@@ -28,7 +28,7 @@ def status_filter(value):
     return Ticket.status == status
 
 def submitter_filter(value, current_user):
-    if value == "me":
+    if value == "me" and current_user:
         return Ticket.submitter == current_user
     else:
         return Ticket.submitter.has(
@@ -36,7 +36,7 @@ def submitter_filter(value, current_user):
         )
 
 def asignee_filter(value, current_user):
-    if value == "me":
+    if value == "me" and current_user:
         return Ticket.assigned_users.contains(current_user)
     else:
         return Ticket.assigned_users.any(
