@@ -305,9 +305,12 @@ def import_POST(owner, name):
         return render_template("tracker-import-export.html",
             view="import/export", tracker=tracker, **valid.kwargs)
 
-    dump = dump.stream.read()
-    dump = gzip.decompress(dump)
-    dump = json.loads(dump)
+    try:
+        dump = dump.stream.read()
+        dump = gzip.decompress(dump)
+        dump = json.loads(dump)
+    except:
+        abort(400)
     tracker_import.delay(dump, tracker.id)
 
     tracker.import_in_progress = True
