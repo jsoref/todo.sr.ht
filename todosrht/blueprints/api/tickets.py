@@ -301,6 +301,8 @@ def tracker_ticket_by_id_events_GET(username, tracker_name, ticket_id):
     if not tracker:
         abort(404)
     ticket, access = get_ticket(tracker, ticket_id, user=current_token.user)
+    if not ticket:
+        abort(404)
     if not TicketAccess.browse in access:
         abort(401)
     events = Event.query.filter(Event.ticket_id == ticket.id)
