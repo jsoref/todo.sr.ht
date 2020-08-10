@@ -230,10 +230,9 @@ def tracker_submit_POST(owner, name):
         return redirect(ticket_url(ticket))
 
 @tracker.route("/<owner>/<name>/labels")
-@loginrequired
 def tracker_labels_GET(owner, name):
     tracker, access = get_tracker(owner, name)
-    is_owner = current_user.id == tracker.owner_id
+    is_owner = current_user and current_user.id == tracker.owner_id
     if not tracker:
         abort(404)
 
