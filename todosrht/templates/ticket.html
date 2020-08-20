@@ -207,7 +207,15 @@
               {{ label|label_badge }}
             {% endif %}
           {% else %}
-            No labels applied.
+            {% if TicketAccess.edit in access
+               and tracker.labels|count == 0 %}
+                No labels defined.
+                <a href="{{url_for("tracker.tracker_labels_GET",
+                            owner=tracker.owner.canonical_name, name=tracker.name)}}"
+                >Create one {{icon('caret-right')}}</a>
+            {% else %}
+                No labels applied.
+            {% endif %}
           {% endfor %}
         </dd>
 
