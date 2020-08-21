@@ -272,13 +272,14 @@ def _handle_mentions(ticket, submitter, text, notified_users, comment=None):
         ))
 
     for mentioned_ticket in mentioned_tickets:
-        db.session.add(Event(
-            event_type=EventType.ticket_mentioned,
-            ticket=mentioned_ticket,
-            from_ticket=ticket,
-            by_participant=submitter,
-            comment=comment,
-        ))
+        if mentioned_ticket != ticket:
+            db.session.add(Event(
+                event_type=EventType.ticket_mentioned,
+                ticket=mentioned_ticket,
+                from_ticket=ticket,
+                by_participant=submitter,
+                comment=comment,
+            ))
 
     # Notify users who are mentioned, but only if they haven't already received
     # a notification due to being subscribed to the event or tracker
