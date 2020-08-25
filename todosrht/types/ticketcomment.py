@@ -33,6 +33,12 @@ class TicketComment(Base):
     signature is present, or tampered if the signature does not validate.
     """
 
+    superceeded_by_id = sa.Column(sa.Integer,
+            sa.ForeignKey("ticket_comment.id", ondelete="SET NULL"))
+    superceeded_by = sa.orm.relationship("TicketComment",
+            backref=sa.orm.backref("superceedes"),
+            remote_side=[id])
+
     def to_dict(self, short=False):
         return {
             "id": self.id,

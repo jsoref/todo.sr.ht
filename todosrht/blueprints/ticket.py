@@ -1,5 +1,5 @@
 import re
-from urllib.parse import quote
+from datetime import datetime
 from flask import Blueprint, render_template, request, abort, redirect
 from srht.config import cfg
 from srht.database import db
@@ -12,10 +12,12 @@ from todosrht.tickets import add_comment, mark_seen, assign, unassign
 from todosrht.tickets import get_participant_for_user
 from todosrht.trackers import get_recent_users
 from todosrht.types import Event, EventType, Label, TicketLabel
-from todosrht.types import TicketAccess, TicketResolution
+from todosrht.types import TicketAccess, TicketResolution, ParticipantType
+from todosrht.types import TicketComment, TicketAuthenticity
 from todosrht.types import TicketSubscription, User, Participant
 from todosrht.urls import ticket_url
 from todosrht.webhooks import TrackerWebhook, TicketWebhook
+from urllib.parse import quote
 
 
 ticket = Blueprint("ticket", __name__)
@@ -67,6 +69,7 @@ def get_ticket_context(ticket, tracker, access):
             .filter(Event.ticket_id == ticket.id)
             .order_by(Event.created)),
         "access": access,
+        "TicketAccess": TicketAccess,
         "tracker_sub": tracker_sub,
         "ticket_sub": ticket_sub,
         "ticket_subscribe": ticket_subscribe,
@@ -198,6 +201,88 @@ def ticket_comment_POST(owner, name, ticket_id):
             event.to_dict(),
             TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
     return redirect(ticket_url(ticket, event.comment))
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/edit/<int:comment_id>")
+@loginrequired
+def ticket_comment_edit_GET(owner, name, ticket_id, comment_id):
+    tracker, traccess = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, tiaccess = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+
+    comment = (TicketComment.query
+            .filter(TicketComment.id == comment_id)
+            .filter(TicketComment.ticket_id == ticket.id)).one_or_none()
+    if not comment:
+        abort(404)
+    if (comment.submitter.user_id != current_user.id
+            and TicketAccess.triage not in traccess):
+        abort(401)
+
+    ctx = get_ticket_context(ticket, tracker, tiaccess)
+    return render_template("edit-comment.html",
+            comment=comment, **ctx)
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/edit/<int:comment_id>", methods=["POST"])
+@loginrequired
+def ticket_comment_edit_POST(owner, name, ticket_id, comment_id):
+    tracker, traccess = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, tiaccess = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+
+    comment = (TicketComment.query
+            .filter(TicketComment.id == comment_id)
+            .filter(TicketComment.ticket_id == ticket.id)).one_or_none()
+    if not comment:
+        abort(404)
+    if (comment.submitter.user_id != current_user.id
+            and TicketAccess.triage not in traccess):
+        abort(401)
+
+    valid = Validation(request)
+    text = valid.require("text", friendly_name="Comment text")
+    preview = valid.optional("preview")
+    valid.expect(not text or 3 <= len(text) <= 16384,
+            "Comment must be between 3 and 16384 characters.", field="text")
+    if not valid.ok:
+        ctx = get_ticket_context(ticket, tracker, tiaccess)
+        return render_template("edit-comment.html",
+                comment=comment, **ctx, **valid.kwargs)
+    if preview == "true":
+        ctx = get_ticket_context(ticket, tracker, tiaccess)
+        ctx.update({
+            "text": text,
+            "rendered_preview": render_markup(tracker, text),
+        })
+        return render_template("edit-comment.html", comment=comment, **ctx)
+
+    event = Event.query.filter(Event.comment_id == comment.id).one_or_none()
+    assert event is not None
+
+    new_comment = TicketComment()
+    new_comment._no_autoupdate = True
+    new_comment.submitter_id = comment.submitter_id
+    new_comment.created = comment.created
+    new_comment.updated = datetime.utcnow()
+    new_comment.ticket_id = ticket.id
+    if (comment.submitter.participant_type != ParticipantType.user
+            or comment.submitter.user_id != current_user.id):
+        new_comment.authenticity = TicketAuthenticity.tampered
+    else:
+        new_comment.authenticity = comment.authenticity
+    new_comment.text = text
+    db.session.add(new_comment)
+    db.session.flush()
+
+    comment.superceeded_by_id = new_comment.id
+    event.comment_id = new_comment.id
+    db.session.commit()
+    return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/edit")
 @loginrequired

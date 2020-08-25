@@ -270,12 +270,12 @@
             {% if event.comment.authenticity.name == "unauthenticated" %}
             <span
               class="text-danger"
-              title="This ticket was imported from an external source and its authenticity cannot be guaranteed."
+              title="This comment was imported from an external source and its authenticity cannot be guaranteed."
             >(unverified)</span>
             {% elif event.comment.authenticity.name == "tampered" %}
             <span
               class="text-danger"
-              title="This ticket has been edited by a third-party - its contents are not genuine."
+              title="This comment has been edited by a third-party."
             >(edited)</span>
             {% endif %}
             {% endif %}
@@ -348,6 +348,18 @@
           <span class="pull-right">
             <small>
               <a href="#event-{{event.id}}">{{ event.created | date }}</a>
+              {%- if EventType.comment in event.event_type and
+                  event.comment.superceedes -%}
+                <span title="This comment has been edited">*</span>
+              {% endif %}
+              {% if EventType.comment in event.event_type
+                and (TicketAccess.triage in access
+                  or event.comment.submitter.user == current_user) %}
+              · <a href="{{url_for("ticket.ticket_comment_edit_GET",
+                  owner=tracker.owner.canonical_name, name=tracker.name,
+                  ticket_id=ticket.scoped_id,
+                  comment_id=event.comment.id)}}">edit</a>
+              {% endif %}
             </small>
           </span>
         </h4>
