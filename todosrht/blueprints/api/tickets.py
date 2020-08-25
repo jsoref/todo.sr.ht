@@ -9,7 +9,8 @@ from todosrht.tickets import add_comment, submit_ticket
 from todosrht.tickets import get_participant_for_user, get_participant_for_external
 from todosrht.blueprints.api import get_user
 from todosrht.types import Ticket, TicketAccess, TicketStatus, TicketResolution
-from todosrht.types import Event, EventType, Label, TicketLabel
+from todosrht.types import Event, EventType, Label, TicketLabel, TicketComment
+from todosrht.types import TicketAuthenticity, ParticipantType
 from todosrht.webhooks import TrackerWebhook, TicketWebhook
 
 tickets = Blueprint("api.tickets", __name__)
@@ -290,6 +291,55 @@ def tracker_ticket_by_id_PUT(username, tracker_name, ticket_id):
         "ticket": ticket.to_dict(),
         "events": [event.to_dict() for event in events],
     }
+
+@tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<int:ticket_id>/comments/<int:comment_id>",
+        methods=["PUT"])
+@tickets.route("/api/trackers/<tracker_name>/tickets/<int:ticket_id>",
+        defaults={"username": None}, methods=["PUT"])
+@tickets.route("/api/trackers/<tracker_name>/tickets/<int:ticket_id>/comments/<int:comment_id>",
+        defaults={"username": None}, methods=["PUT"])
+@oauth("tickets:write")
+def tracker_comment_by_id_PUT(username, tracker_name, ticket_id, comment_id):
+    user = get_user(username)
+    tracker, traccess = get_tracker(user, tracker_name, user=current_token.user)
+    if not tracker:
+        abort(404)
+    ticket, tiaccess = get_ticket(tracker, ticket_id, user=current_token.user)
+
+    comment = (TicketComment.query
+            .filter(TicketComment.id == comment_id)
+            .filter(TicketComment.ticket_id == ticket.id)).one_or_none()
+    if not comment:
+        abort(404)
+    if (comment.submitter.user_id != current_token.user_id
+            and TicketAccess.triage not in traccess):
+        abort(401)
+
+    valid = Validation(request)
+    text = valid.require("text")
+
+    event = Event.query.filter(Event.comment_id == comment.id).one_or_none()
+    assert event is not None
+
+    new_comment = TicketComment()
+    new_comment._no_autoupdate = True
+    new_comment.submitter_id = comment.submitter_id
+    new_comment.created = comment.created
+    new_comment.updated = datetime.utcnow()
+    new_comment.ticket_id = ticket.id
+    if (comment.submitter.participant_type != ParticipantType.user
+            or comment.submitter.user_id != current_token.user_id):
+        new_comment.authenticity = TicketAuthenticity.tampered
+    else:
+        new_comment.authenticity = comment.authenticity
+    new_comment.text = text
+    db.session.add(new_comment)
+    db.session.flush()
+
+    comment.superceeded_by_id = new_comment.id
+    event.comment_id = new_comment.id
+    db.session.commit()
+    return new_comment.to_dict()
 
 @tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets/<int:ticket_id>/events")
 @tickets.route("/api/trackers/<tracker_name>/tickets/<int:ticket_id>/events",
