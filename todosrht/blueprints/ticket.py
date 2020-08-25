@@ -193,6 +193,8 @@ def ticket_comment_POST(owner, name, ticket_id):
     participant = get_participant_for_user(current_user)
     event = add_comment(participant, ticket,
         text=text, resolve=resolve, resolution=resolution, reopen=reopen)
+    if not event:
+        return redirect(ticket_url(ticket))
 
     TicketWebhook.deliver(TicketWebhook.Events.event_create,
             event.to_dict(),

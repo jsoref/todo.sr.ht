@@ -197,10 +197,14 @@ def _change_ticket_status(ticket, resolve, resolution, reopen):
     old_resolution = ticket.resolution
 
     if resolve:
+        if old_status == TicketStatus.resolved and old_resolution == resolution:
+            return None
         ticket.status = TicketStatus.resolved
         ticket.resolution = resolution
 
     if reopen:
+        if old_status == TicketStatus.reported:
+            return None
         ticket.status = TicketStatus.reported
 
     return StatusChange(old_status, ticket.status,
@@ -303,6 +307,8 @@ def add_comment(submitter, ticket,
 
     comment = _create_comment(ticket, submitter, text) if text else None
     status_change = _change_ticket_status(ticket, resolve, resolution, reopen)
+    if not comment and not status_change:
+        return None
     event = _create_comment_event(ticket, submitter, comment, status_change)
     notified_participants = _send_comment_notifications(
         submitter, ticket, event, comment, resolution)
