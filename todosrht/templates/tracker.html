@@ -36,7 +36,7 @@
           href="{{ tracker|tracker_labels_url }}">labels</a>
       </li>
       {% if current_user and current_user.id == tracker.owner_id %}
-      <li class="nav-item d-none d-sm-block">
+      <li class="nav-item">
         <a class="nav-link" href="{{url_for("settings.details_GET",
           owner=tracker.owner.canonical_name,
           name=tracker.name)}}"
