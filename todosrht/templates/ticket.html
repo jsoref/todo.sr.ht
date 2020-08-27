@@ -374,7 +374,7 @@
       {% endfor %}
 
       {% if rendered_preview %}
-      <div class="event preview">
+      <div class="event preview" id="comment-preview">
         <span class="preview-tag">Comment preview</span>
         <a href="{{ current_user|user_url }}">{{ current_user }}</a>
         <blockquote>
@@ -396,7 +396,7 @@
             name=tracker.name,
             ticket_id=ticket.scoped_id
           )
-      }}">
+      }}#comment-preview">
         {{csrf_token()}}
         <div class="form-group" style="margin-bottom: 0.25rem">
           <textarea
