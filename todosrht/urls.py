@@ -12,7 +12,7 @@ def tracker_labels_url(tracker):
         owner=tracker.owner.canonical_name,
         name=tracker.name)
 
-def ticket_url(ticket, comment=None):
+def ticket_url(ticket, event=None):
     if has_app_context():
         ticket_url = url_for("ticket.ticket_GET",
                 owner=ticket.tracker.owner.canonical_name,
@@ -23,8 +23,8 @@ def ticket_url(ticket, comment=None):
             f"/{ticket.tracker.name}" +
             f"/{ticket.scoped_id}")
 
-    if comment:
-        ticket_url += "#comment-" + str(comment.id)
+    if event:
+        ticket_url += "#event-" + str(event.id)
 
     return ticket_url
 

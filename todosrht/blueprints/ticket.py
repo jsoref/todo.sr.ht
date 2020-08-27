@@ -202,7 +202,7 @@ def ticket_comment_POST(owner, name, ticket_id):
     TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
             event.to_dict(),
             TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
-    return redirect(ticket_url(ticket, event.comment))
+    return redirect(ticket_url(ticket, event))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/edit/<int:comment_id>")
 @loginrequired
