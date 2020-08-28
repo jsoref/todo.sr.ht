@@ -166,7 +166,7 @@ def _create_event_notification(participant, event):
     return notification
 
 def _send_comment_notification(subscription, ticket,
-        participant, comment, resolution):
+        participant, event, comment, resolution):
     subject = "Re: {}: {}".format(ticket.ref(), ticket.title)
     subscription_ref = subscription.tracker.ref() if subscription.tracker \
             else ticket.ref(email=True)
@@ -179,7 +179,7 @@ def _send_comment_notification(subscription, ticket,
             f"@{posting_domain}"
     }
 
-    url = ticket_url(ticket, comment=comment)
+    url = ticket_url(ticket, event=event)
 
     notify(subscription, "ticket_comment", subject,
         headers=headers,
@@ -232,7 +232,7 @@ def _send_comment_notifications(
         _create_event_notification(subscriber, event)
         if subscriber != participant:
             _send_comment_notification(
-                subscription, ticket, participant, comment, resolution)
+                subscription, ticket, participant, event, comment, resolution)
 
     return subscriptions.keys()
 
