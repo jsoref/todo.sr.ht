@@ -29,7 +29,7 @@ tasks:
       cd sr.ht-apkbuilds
       ./pkgkit add-repo -s sr.ht ~/.abuild/alpine@sr.ht.rsa
       cd sr.ht/$project
-      sed -e "s?::https://git.sr.ht/.*/$project/.*archive.*??g" -i APKBUILD
+      sed -e 's?::https://git.sr.ht/.*pkgname/.*archive.*??g' -i APKBUILD
   - package: |
       cd sr.ht-apkbuilds
       ./pkgkit build -cuv "$pkgver" "$project"
