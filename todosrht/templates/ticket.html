@@ -210,9 +210,11 @@
             {% if TicketAccess.edit in access
                and tracker.labels|count == 0 %}
                 No labels defined.
+                {% if current_user and current_user.id == tracker.owner_id %}
                 <a href="{{url_for("tracker.tracker_labels_GET",
                             owner=tracker.owner.canonical_name, name=tracker.name)}}"
                 >Create one {{icon('caret-right')}}</a>
+                {% endif %}
             {% else %}
                 No labels applied.
             {% endif %}
