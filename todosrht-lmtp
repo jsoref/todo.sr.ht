@@ -235,15 +235,14 @@ class MailHandler:
             print("Rejected, invalid comment length")
             return "550 Comment must be between 3 and 16384 characters."
 
-        if body:
-            event = add_comment(sender, ticket, text=body,
-                    resolution=resolution, resolve=resolve, reopen=reopen)
-            TicketWebhook.deliver(TicketWebhook.Events.event_create,
-                    event.to_dict(),
-                    TicketWebhook.Subscription.ticket_id == ticket.id)
-            TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
-                    event.to_dict(),
-                    TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
+        event = add_comment(sender, ticket, text=body,
+                resolution=resolution, resolve=resolve, reopen=reopen)
+        TicketWebhook.deliver(TicketWebhook.Events.event_create,
+                event.to_dict(),
+                TicketWebhook.Subscription.ticket_id == ticket.id)
+        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
+                event.to_dict(),
+                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
         print(f"Added comment to {ticket.ref()}")
         return "250 Message accepted for delivery"
 
