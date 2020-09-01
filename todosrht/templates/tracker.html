@@ -158,7 +158,11 @@
       {% endif %}
       {% else %}
       <hr />
+      {% if current_user %}
+      <p>You are not permitted to submit tickets for this tracker.</p>
+      {% else %}
       <p>You need to <a href="{{ oauth_url }}">log in</a> to submit tickets.</p>
+      {% endif %}
       {% endif %}
     </div>
     <div class="col-md-12 col-lg-8">
