@@ -17,14 +17,23 @@
     </h2>
     <ul class="nav nav-tabs">
       <li class="nav-item">
-        <a class="nav-link" href="{{ tracker|tracker_url }}">
-          {{icon('caret-left')}} back
-        </a>
+        <a class="nav-link" href="{{ tracker|tracker_url }}">open tickets</a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="?search=status:closed">closed tickets</a>
       </li>
       <li class="nav-item">
         <a class="nav-link active"
           href="{{ tracker|tracker_labels_url }}">labels</a>
       </li>
+      {% if current_user and current_user.id == tracker.owner_id %}
+      <li class="nav-item">
+        <a class="nav-link" href="{{url_for("settings.details_GET",
+          owner=tracker.owner.canonical_name,
+          name=tracker.name)}}"
+        >settings</a>
+      </li>
+      {% endif %}
     </ul>
   </div>
 </div>
