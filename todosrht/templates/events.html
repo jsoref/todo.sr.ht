@@ -2,11 +2,12 @@
 {% for event in events %}
 {% if event.ticket %}
   <div class="event">
-    <h4>
+    <h4 class="event-header">
       <a
         href="{{ event.ticket|ticket_url }}"
-      >#{{event.ticket.scoped_id}}</a> {{ event.ticket.title }}
-      <small class="pull-right">{{ event.created | date }}</small>
+      >#{{event.ticket.scoped_id}}</a>
+      <span>{{ event.ticket.title }}</span>
+      <small>{{ event.created | date }}</small>
     </h4>
     <p>
     {% if EventType.created in event.event_type %}

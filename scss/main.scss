@@ -217,3 +217,25 @@ select.form-control {
     font-style: italic;
   }
 }
+
+.event-header {
+  display: flex;
+  flex-direction: row;
+  align-items: flex-end;
+
+  .event & {
+    margin-bottom: 0.25rem;
+  }
+
+  & > *:not(:last-child) {
+    margin-right: 0.25rem;
+  }
+
+  & > span {
+    min-width: 0;
+    overflow-x: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    flex-grow: 1;
+  }
+}
