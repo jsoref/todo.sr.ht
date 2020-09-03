@@ -263,7 +263,9 @@ def ticket_comment_edit_POST(owner, name, ticket_id, comment_id):
         })
         return render_template("edit-comment.html", comment=comment, **ctx)
 
-    event = Event.query.filter(Event.comment_id == comment.id).one_or_none()
+    event = (Event.query
+            .filter(Event.comment_id == comment.id)
+            .order_by(Event.id.desc())).first()
     assert event is not None
 
     new_comment = TicketComment()
