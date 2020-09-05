@@ -174,7 +174,7 @@ def _send_comment_notification(subscription, ticket,
         "From": "{} <{}>".format(participant.name, notify_from),
         "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
-        "Sender": f"<{smtp_user}>",
+        "Sender": f"<{smtp_user}@{posting_domain}>",
         "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
             f"@{posting_domain}"
     }
@@ -244,7 +244,7 @@ def _send_mention_notification(sub, submitter, text, ticket, comment=None):
         "From": "{} <{}>".format(submitter.name, notify_from),
         "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
-        "Sender": f"<{smtp_user}>",
+        "Sender": f"<{smtp_user}@{posting_domain}>",
         "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
             f"@{posting_domain}"
     }
@@ -371,7 +371,7 @@ def notify_assignee(subscription, ticket, assigner, assignee):
         "From": "~{} <{}>".format(assigner.username, notify_from),
         "In-Reply-To": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
-        "Sender": f"<{smtp_user}>",
+        "Sender": f"<{smtp_user}@{posting_domain}>",
         "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
             f"@{posting_domain}"
     }
@@ -460,7 +460,7 @@ def _send_new_ticket_notification(subscription, ticket, email_trigger_id):
         "From": "{} <{}>".format(ticket.submitter.name, notify_from),
         "Message-ID": f"<{ticket.ref(email=True)}@{posting_domain}>",
         "Reply-To": f"{ticket.ref()} <{ticket.ref(email=True)}@{posting_domain}>",
-        "Sender": f"<{smtp_user}>",
+        "Sender": f"<{smtp_user}@{posting_domain}>",
         "List-Unsubscribe": f"mailto:{subscription_ref}/unsubscribe" +
             f"@{posting_domain}"
     }
