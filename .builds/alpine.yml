@@ -43,3 +43,4 @@ tasks:
       ssh $master doas apk upgrade -U
       ssh -t $master doas service $project restart
       ssh -t $master doas service $project-lmtp restart
+      ssh -t $master doas service $project-webhooks restart
