@@ -10,10 +10,9 @@
 <div class="container">
   <h2 class="ticket-title">
     <div>
-      <a href="{{ tracker.owner|user_url }}"
-        >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
-        >{{ tracker.name }}</a>#{{ ticket.scoped_id }}<span
-          class="d-none d-md-inline">:</span>&nbsp;
+      <a href="{{ tracker.owner|user_url }}">{{ tracker.owner }}</a>/<wbr
+     ><a href="{{ tracker|tracker_url }}">{{ tracker.name }}</a><wbr
+     >#{{ ticket.scoped_id }}<span class="d-none d-md-inline">:</span>&nbsp;
     </div>
     <div id="title-field">
       {{ticket.title}}
