@@ -132,8 +132,7 @@ def trackers_for_user(username):
     search = request.args.get("search")
     if search:
         trackers = trackers.filter(or_(
-            Tracker.name.ilike("%" + search + "%"),
-            Tracker.description.ilike("%" + search + "%")))
+            Tracker.name.ilike("%" + search + "%")))
 
     trackers = trackers.order_by(Tracker.updated.desc())
     trackers, pagination = paginate_query(trackers)
