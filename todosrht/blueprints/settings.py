@@ -214,7 +214,7 @@ def delete_POST(owner, name):
             { "id": tracker_id },
             UserWebhook.Subscription.user_id == owner_id)
 
-    return redirect(url_for("html.index"))
+    return redirect(url_for("html.index_GET"))
 
 @settings.route("/<owner>/<name>/settings/import-export")
 @loginrequired

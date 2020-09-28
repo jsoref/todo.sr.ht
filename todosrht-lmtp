@@ -236,7 +236,7 @@ class MailHandler:
             return "550 Comment must be between 3 and 16384 characters."
 
         event = add_comment(sender, ticket, text=body,
-                resolution=resolution, resolve=resolve, reopen=reopen)
+                resolution=resolution, resolve=resolve, reopen=reopen, from_email=True)
         TicketWebhook.deliver(TicketWebhook.Events.event_create,
                 event.to_dict(),
                 TicketWebhook.Subscription.ticket_id == ticket.id)

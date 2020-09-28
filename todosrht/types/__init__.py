@@ -1,9 +1,10 @@
 from srht.database import Base
 from srht.oauth import ExternalUserMixin
 from srht.oauth import ExternalOAuthTokenMixin
+import sqlalchemy as sa
 
 class User(Base, ExternalUserMixin):
-    pass
+    notify_self = sa.Column(sa.Boolean, nullable=False, server_default="FALSE")
 
 class OAuthToken(Base, ExternalOAuthTokenMixin):
     pass

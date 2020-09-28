@@ -211,7 +211,7 @@ def _change_ticket_status(ticket, resolve, resolution, reopen):
             old_resolution, ticket.resolution)
 
 def _send_comment_notifications(
-        participant, ticket, event, comment, resolution):
+        participant, ticket, event, comment, resolution, from_email):
     """
     Notify users subscribed to the ticket or tracker.
     Returns a list of notified users.
@@ -230,7 +230,7 @@ def _send_comment_notifications(
 
     for subscriber, subscription in subscriptions.items():
         _create_event_notification(subscriber, event)
-        if subscriber != participant:
+        if (participant.notify_self and not from_email) or subscriber != participant:
             _send_comment_notification(
                 subscription, ticket, participant, event, comment, resolution)
 
@@ -295,7 +295,8 @@ def _handle_mentions(ticket, submitter, text, notified_users, comment=None):
 
 
 def add_comment(submitter, ticket,
-        text=None, resolve=False, resolution=None, reopen=False):
+        text=None, resolve=False, resolution=None, reopen=False,
+        from_email=False):
     """
     Comment on a ticket, optionally resolve or reopen the ticket.
     """
@@ -311,7 +312,7 @@ def add_comment(submitter, ticket,
         return None
     event = _create_comment_event(ticket, submitter, comment, status_change)
     notified_participants = _send_comment_notifications(
-        submitter, ticket, event, comment, resolution)
+        submitter, ticket, event, comment, resolution, from_email)
 
     if comment and comment.text:
         _handle_mentions(
@@ -406,7 +407,7 @@ def assign(ticket, assignee, assigner):
     assigner_participant = get_participant_for_user(assigner)
 
     subscription = get_or_create_subscription(ticket, assignee_participant)
-    if assigner != assignee:
+    if assigner.notify_self or assigner != assignee:
         notify_assignee(subscription, ticket, assigner, assignee)
 
     event = Event()
@@ -500,8 +501,8 @@ def submit_ticket(tracker, submitter, title, description,
         # Send notifications
         for sub in all_subscriptions.values():
             _create_event_notification(sub.participant, event)
-            # Notify submitter for tickets created by email
-            if from_email or sub.participant != submitter:
+            # Always notify submitter for tickets created by email
+            if from_email or submitter.notify_self or sub.participant != submitter:
                 _send_new_ticket_notification(sub, ticket, from_email_id)
 
         _handle_mentions(

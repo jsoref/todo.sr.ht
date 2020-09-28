@@ -52,6 +52,13 @@ class Participant(Base):
             return self.external_id
         assert False
 
+    @property
+    def notify_self(self):
+        if self.participant_type == ParticipantType.user:
+            return self.user.notify_self
+        else:
+            return False
+
     def __str__(self):
         return self.name
 

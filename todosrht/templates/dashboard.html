@@ -51,6 +51,28 @@
       >
         Create new tracker {{icon("caret-right")}}
       </a>
+      <details
+        style="margin: -0.5rem 0 0.5rem 0"
+        {% if prefs_updated %}
+        open
+        {% endif %}
+      >
+        <summary>User preferences</summary>
+        <form method="POST" class="prefs">
+          {{csrf_token()}}
+            <label class="form-check">
+              <input
+                type="checkbox"
+                name="notify-self"
+                id="notify-self"
+                {{ "checked" if current_user.notify_self }} />
+              Notify me of my own activity
+            </label>
+          <button class="btn btn-primary" type="submit">
+            Apply {{icon("caret-right")}}
+          </button>
+        </form>
+      </details>
       {% endif %}
       {% if len(trackers) > 0 %}
       <h3>{{ tracker_list_msg }}</h3>

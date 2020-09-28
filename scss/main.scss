@@ -239,3 +239,29 @@ select.form-control {
     flex-grow: 1;
   }
 }
+
+// TODO: move me into core.sr.ht
+details {
+  padding: 0 1rem;
+  margin: 0 -1rem 1rem;
+
+  summary {
+    background: $gray-300;
+    padding: 0 1rem;
+    margin: 0 -1rem;
+  }
+
+  &[open] {
+    padding: 0 1rem;
+    margin-left: calc(-1rem - 4px);
+    border-left: 4px solid $gray-300;
+  }
+}
+
+.prefs {
+  padding: 0.5rem 0;
+
+  .form-check {
+    padding-left: 0;
+  }
+}

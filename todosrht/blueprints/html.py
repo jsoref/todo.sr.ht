@@ -1,12 +1,14 @@
-from flask import Blueprint, render_template, request, abort
+from flask import Blueprint, render_template, request, abort, redirect, url_for
 from todosrht.access import get_tracker, get_access
 from todosrht.tickets import get_participant_for_user
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.types import Event, EventNotification, EventType
 from todosrht.types import User, Participant
 from srht.config import cfg
-from srht.oauth import current_user
+from srht.database import db
+from srht.oauth import current_user, loginrequired
 from srht.flask import paginate_query, session
+from srht.validation import Validation
 from sqlalchemy import and_, or_
 
 html = Blueprint('html', __name__)
@@ -51,7 +53,7 @@ def filter_authorized_events(events):
     return events
 
 @html.route("/")
-def index():
+def index_GET():
     if not current_user:
         return render_template("index.html")
     trackers = (Tracker.query
@@ -68,15 +70,25 @@ def index():
             .order_by(Event.created.desc()))
     events = events.limit(10).all()
 
-    notice = session.get("notice")
-    if notice:
-        del session["notice"]
+    notice = session.pop("notice", None)
+    prefs_updated = session.pop("prefs_updated", None)
 
     return render_template("dashboard.html",
         trackers=trackers, notice=notice,
         tracker_list_msg="Your Trackers",
         more_trackers=total_trackers > limit_trackers,
-        events=events, EventType=EventType)
+        events=events, EventType=EventType,
+        prefs_updated=prefs_updated)
+
+@html.route("/", methods=["POST"])
+@loginrequired
+def index_POST():
+    valid = Validation(request)
+    notify_self = valid.require("notify-self")
+    current_user.notify_self = notify_self == "on"
+    db.session.commit()
+    session["prefs_updated"] = True
+    return redirect(url_for("html.index_GET"))
 
 @html.route("/~<username>")
 def user_GET(username):
