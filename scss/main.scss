@@ -240,10 +240,9 @@ select.form-control {
   }
 }
 
-// TODO: move me into core.sr.ht
-details {
+.prefs {
+  margin: -0.5rem 0 0.5rem 0;
   padding: 0 1rem;
-  margin: 0 -1rem 1rem;
 
   summary {
     background: $gray-300;
@@ -252,14 +251,12 @@ details {
   }
 
   &[open] {
-    padding: 0 1rem;
-    margin-left: calc(-1rem - 4px);
     border-left: 4px solid $gray-300;
-  }
-}
 
-.prefs {
-  padding: 0.5rem 0;
+    summary {
+      margin: 0 -1rem 0 calc(-1rem - 4px);
+    }
+  }
 
   .form-check {
     padding-left: 0;

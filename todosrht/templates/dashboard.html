@@ -52,13 +52,13 @@
         Create new tracker {{icon("caret-right")}}
       </a>
       <details
-        style="margin: -0.5rem 0 0.5rem 0"
+        class="prefs"
         {% if prefs_updated %}
         open
         {% endif %}
       >
         <summary>User preferences</summary>
-        <form method="POST" class="prefs">
+        <form method="POST">
           {{csrf_token()}}
             <label class="form-check">
               <input
