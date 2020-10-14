@@ -139,7 +139,7 @@ def _tracker_import(dump, tracker):
                 ticket.authenticity = TicketAuthenticity.authentic
             else:
                 ticket.authenticity = TicketAuthenticity.tampered
-        for edata in tdata["events"]:
+        for edata in tdata.get("events", []):
             for field in [
                 "created", "event_type", "old_status", "new_status",
                 "old_resolution", "new_resolution", "user", "ticket",
