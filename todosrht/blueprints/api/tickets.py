@@ -318,7 +318,9 @@ def tracker_comment_by_id_PUT(username, tracker_name, ticket_id, comment_id):
     valid = Validation(request)
     text = valid.require("text")
 
-    event = Event.query.filter(Event.comment_id == comment.id).one_or_none()
+    event = (Event.query
+            .filter(Event.comment_id == comment.id)
+            .order_by(Event.id.desc())).first()
     assert event is not None
 
     new_comment = TicketComment()
