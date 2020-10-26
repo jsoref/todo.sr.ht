@@ -5,7 +5,8 @@ from srht.oauth import oauth, current_token
 from srht.validation import Validation
 from todosrht.access import get_tracker
 from todosrht.blueprints.api import get_user
-from todosrht.types import Label, Tracker, TicketAccess
+from todosrht.tickets import get_participant_for_user
+from todosrht.types import Label, Tracker, TicketAccess, TicketSubscription
 from todosrht.webhooks import UserWebhook, TrackerWebhook
 
 trackers = Blueprint("api.trackers", __name__)
@@ -24,7 +25,8 @@ def user_trackers_GET(username):
 @trackers.route("/api/trackers", methods=["POST"])
 @oauth("trackers:write")
 def user_trackers_POST():
-    tracker, valid = Tracker.create_from_request(request, current_token.user)
+    user = current_token.user
+    tracker, valid = Tracker.create_from_request(request, user)
     if not valid.ok:
         return valid.response
     db.session.add(tracker)
@@ -32,6 +34,15 @@ def user_trackers_POST():
     UserWebhook.deliver(UserWebhook.Events.tracker_create,
             tracker.to_dict(),
             UserWebhook.Subscription.user_id == tracker.owner_id)
+
+    # Auto-subscribe the owner
+    sub = TicketSubscription()
+    participant = get_participant_for_user(user)
+    sub.tracker_id = tracker.id
+    sub.participant_id = participant.id
+    db.session.add(sub)
+    db.session.commit()
+
     return tracker.to_dict(), 201
 
 @trackers.route("/api/user/<username>/trackers/<tracker_name>")
