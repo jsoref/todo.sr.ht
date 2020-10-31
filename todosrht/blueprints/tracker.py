@@ -232,10 +232,10 @@ def tracker_submit_POST(owner, name):
 @tracker.route("/<owner>/<name>/labels")
 def tracker_labels_GET(owner, name):
     tracker, access = get_tracker(owner, name)
-    is_owner = current_user and current_user.id == tracker.owner_id
     if not tracker:
         abort(404)
 
+    is_owner = current_user and current_user.id == tracker.owner_id
     return render_template("tracker-labels.html",
         tracker=tracker, access=access, is_owner=is_owner)
 
