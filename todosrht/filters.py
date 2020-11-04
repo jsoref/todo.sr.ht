@@ -106,7 +106,7 @@ def label_badge(label, cls="", remove_from_ticket=None, terms=None):
 
     return Markup(
         f"""<span style="{style}" class="{html_class}" href="{search_url}">
-            <a href="{search_url}">{name}</a>
+            <a rel="nofollow" href="{search_url}">{name}</a>
             {remove_form}
         </span>"""
     )
