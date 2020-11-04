@@ -55,10 +55,14 @@ def label_edit_url(label):
 def label_search_url(label, terms=""):
     """Return the URL to the tracker page listing all tickets which have the
     label applied."""
-    return "{}?search=label:&quot;{}&quot;{}".format(
+    label_term = f"label:\"{label.name}\""
+    if not terms:
+        terms = label_term
+    elif label_term not in terms:
+        terms += " " + label_term
+    return "{}?search={}".format(
         tracker_url(label.tracker),
-        unicode_urlencode(label.name),
-        f" {unicode_urlencode(terms)}" if terms else "")
+        unicode_urlencode(terms))
 
 def label_add_url(ticket):
     """Return the URL to add a label to a ticket."""
