@@ -7,7 +7,8 @@ import (
 	"context"
 	"fmt"
 
-	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/generated"
+	model1 "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
 
@@ -23,7 +24,7 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Trackers(ctx context.Context, cursor *string) (*model.TrackerCursor, error) {
+func (r *queryResolver) Trackers(ctx context.Context, cursor *model1.Cursor) (*model.TrackerCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -39,15 +40,15 @@ func (r *queryResolver) TrackerByOwner(ctx context.Context, owner string, repo s
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Events(ctx context.Context, cursor *string) (*model.EventCursor, error) {
+func (r *queryResolver) Events(ctx context.Context, cursor *model1.Cursor) (*model.EventCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Subscriptions(ctx context.Context, cursor *string) (*model.SubscriptionCursor, error) {
+func (r *queryResolver) Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-// Query returns generated.QueryResolver implementation.
-func (r *Resolver) Query() generated.QueryResolver { return &queryResolver{r} }
+// Query returns api.QueryResolver implementation.
+func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
 type queryResolver struct{ *Resolver }

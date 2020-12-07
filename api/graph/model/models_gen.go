@@ -7,6 +7,8 @@ import (
 	"io"
 	"strconv"
 	"time"
+
+	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
 type ACL interface {
@@ -26,8 +28,8 @@ type Subscription interface {
 }
 
 type ACLCursor struct {
-	Results []ACL   `json:"results"`
-	Cursor  *string `json:"cursor"`
+	Results []ACL         `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type Assignment struct {
@@ -83,8 +85,8 @@ type Event struct {
 }
 
 type EventCursor struct {
-	Results []*Event `json:"results"`
-	Cursor  *string  `json:"cursor"`
+	Results []*Event      `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type ExternalUser struct {
@@ -108,8 +110,8 @@ type Label struct {
 }
 
 type LabelCursor struct {
-	Results []*Label `json:"results"`
-	Cursor  *string  `json:"cursor"`
+	Results []*Label      `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type LabelUpdate struct {
@@ -131,7 +133,7 @@ func (StatusChange) IsEventDetail() {}
 
 type SubscriptionCursor struct {
 	Results []Subscription `json:"results"`
-	Cursor  *string        `json:"cursor"`
+	Cursor  *model.Cursor  `json:"cursor"`
 }
 
 type Ticket struct {
@@ -151,8 +153,8 @@ type Ticket struct {
 }
 
 type TicketCursor struct {
-	Results []*Ticket `json:"results"`
-	Cursor  *string   `json:"cursor"`
+	Results []*Ticket     `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type TicketMention struct {
@@ -199,8 +201,8 @@ type TrackerACL struct {
 func (TrackerACL) IsACL() {}
 
 type TrackerCursor struct {
-	Results []*Tracker `json:"results"`
-	Cursor  *string    `json:"cursor"`
+	Results []*Tracker    `json:"results"`
+	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type TrackerSubscription struct {

@@ -1,29 +1,35 @@
 package main
 
 import (
-	"log"
-	"net/http"
-	"os"
+	"context"
+
+	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/server"
+	"github.com/99designs/gqlgen/graphql"
 
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph"
-	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/generated"
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/playground"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
 
-const defaultPort = "8080"
-
 func main() {
-	port := os.Getenv("PORT")
-	if port == "" {
-		port = defaultPort
+	appConfig := config.LoadConfig(":5103")
+
+	gqlConfig := api.Config{Resolvers: &graph.Resolver{}}
+	gqlConfig.Directives.Access = func(ctx context.Context, obj interface{},
+		next graphql.Resolver, scope model.AccessScope,
+		kind model.AccessKind) (interface{}, error) {
+		return server.Access(ctx, obj, next, scope.String(), kind.String())
+	}
+	schema := api.NewExecutableSchema(gqlConfig)
+
+	scopes := make([]string, len(model.AllAccessScope))
+	for i, s := range model.AllAccessScope {
+		scopes[i] = s.String()
 	}
 
-	srv := handler.NewDefaultServer(generated.NewExecutableSchema(generated.Config{Resolvers: &graph.Resolver{}}))
-
-	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
-	http.Handle("/query", srv)
-
-	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)
-	log.Fatal(http.ListenAndServe(":"+port, nil))
+	server.NewServer("todo.sr.ht", appConfig).
+		WithDefaultMiddleware().
+		WithSchema(schema, scopes).
+		Run()
 }
