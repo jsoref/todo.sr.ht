@@ -13,7 +13,12 @@ import (
 )
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
-	panic(fmt.Errorf("not implemented"))
+	return &model.Version{
+		Major:           0,
+		Minor:           0,
+		Patch:           0,
+		DeprecationDate: nil,
+	}, nil
 }
 
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
