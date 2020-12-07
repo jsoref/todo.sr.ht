@@ -1,0 +1,393 @@
+scalar Cursor
+scalar Time
+
+# Used to provide a human-friendly description of an access scope
+directive @scopehelp(details: String!) on ENUM_VALUE
+
+enum AccessScope {
+  PROFILE       @scopehelp(details: "profile information")
+  TRACKERS      @scopehelp(details: "trackers")
+  TICKETS       @scopehelp(details: "tickets")
+  ACLS          @scopehelp(details: "access control lists")
+  EVENTS        @scopehelp(details: "events")
+  SUBSCRIPTIONS @scopehelp(details: "tracker & ticket subscriptions")
+}
+
+enum AccessKind {
+  RO @scopehelp(details: "read")
+  RW @scopehelp(details: "read and write")
+}
+
+# Decorates fields for which access requires a particular OAuth 2.0 scope with
+# read or write access. For the meta.sr.ht API, you have access to all public
+# information without any special permissions - user profile information,
+# public keys, and so on.
+directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
+
+# https://semver.org
+type Version {
+  major: Int!
+  minor: Int!
+  patch: Int!
+
+  # If this API version is scheduled for deprecation, this is the date on which
+  # it will stop working; or null if this API version is not scheduled for
+  # deprecation.
+  deprecationDate: Time
+}
+
+interface Entity {
+  id: Int!
+  created: Time!
+  canonicalName: String!
+}
+
+type User implements Entity {
+  id: Int!
+  created: Time!
+  updated: Time!
+  canonicalName: String!
+  username: String!
+  email: String!
+  url: String
+  location: String
+  bio: String
+
+  trackers(cursor: Cursor): TrackerCursor! @access(scope: TRACKERS, kind: RO)
+}
+
+type EmailAddress implements Entity {
+  id: Int!
+  created: Time!
+  canonicalName: String!
+
+  # "jdoe@example.org" of "Jane Doe <jdoe@example.org>"
+  mailbox: String!
+  # "Jane Doe" of "Jane Doe <jdoe@example.org>"
+  name: String!
+}
+
+type ExternalUser implements Entity {
+  id: Int!
+  created: Time!
+  canonicalName: String!
+
+  # <service>:<service specific details...>
+  # e.g. github:ddevault
+  externalId: String!
+  # The canonical external URL for this user, e.g. https://github.com/ddevault
+  externalUrl: String
+}
+
+type Tracker {
+  id: Int!
+  created: Time!
+  updated: Time!
+  owner: Entity!
+  name: String!
+  description: String
+
+  tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
+  labels(cursor: Cursor): LabelCursor!
+
+  acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
+  defaultACLs: DefaultACLs @access(scope: ACLS, kind: RO)
+}
+
+enum TicketStatus {
+  REPORTED
+  CONFIRMED
+  IN_PROGRESS
+  PENDING
+  RESOLVED
+}
+
+enum TicketResolution {
+  UNRESOLVED
+  FIXED
+  IMPLEMENTED
+  WONT_FIX
+  BY_DESIGN
+  INVALID
+  DUPLICATE
+  NOT_OUR_BUG
+}
+
+enum Authenticity {
+  # The server vouches for this information as entered verbatim by the
+  # attributed entity.
+  AUTHENTIC
+  # The server does not vouch for this information as entered by the attributed
+  # entity, no authentication was provided.
+  UNAUTHENTIC
+  # The server has evidence that the information has likely been manipulated by
+  # a third-party.
+  TAMPERED
+}
+
+type Ticket {
+  id: Int!
+  created: Time!
+  updated: Time!
+  submitter: Entity! @access(scope: PROFILE, kind: RO)
+  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
+
+  # Canonical ticket reference string; may be used in comments to identify the
+  # ticket from anywhere.
+  ref: String!
+
+  title: String!
+  description: String!
+  status: TicketStatus!
+  resolution: TicketResolution!
+  authenticity: Authenticity!
+
+  labels: [Label]!
+  assignees: [Entity]! @access(scope: PROFILE, kind: RO)
+}
+
+interface ACL {
+  # Permission to view tickets
+  browse: Boolean!
+  # Permission to submit tickets
+  submit: Boolean!
+  # Permission to comment on tickets
+  comment: Boolean!
+  # Permission to edit tickets
+  edit: Boolean!
+  # Permission to resolve, re-open, transfer, or label tickets
+  triage: Boolean!
+}
+
+# These ACLs are configured for specific entities, and may be used to expand or
+# constrain the rights of a participant.
+type TrackerACL implements ACL {
+  id: Int!
+  created: Time!
+  tracker: Tracker!
+  entity: Entity! @access(scope: PROFILE, kind: RO)
+
+  browse: Boolean!
+  submit: Boolean!
+  comment: Boolean!
+  edit: Boolean!
+  triage: Boolean!
+}
+
+type DefaultACL implements ACL {
+  browse: Boolean!
+  submit: Boolean!
+  comment: Boolean!
+  edit: Boolean!
+  triage: Boolean!
+}
+
+# These ACLs are inherited by users who do not have a more specific ACL
+# configured.
+type DefaultACLs {
+  # Permissions granted to anyone who visits this tracker, logged in or
+  # otherwise.
+  anonymous: ACL!
+  # Permissions granted to the ticket submitter on the tickets they submit.
+  submitter: ACL!
+  # Permissions granted to any logged-in sourcehut user.
+  logged_in: ACL!
+}
+
+type Label {
+  id: Int!
+  created: Time!
+  name: String!
+  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
+
+  # In CSS hexadecimal format
+  backgroundColor: String!
+  textColor: String!
+
+  tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
+}
+
+enum EventType {
+  CREATED
+  COMMENT
+  STATUS_CHANGE
+  LABEL_ADDED
+  LABEL_REMOVED
+  ASSIGNED_USER
+  UNASSIGNED_USER
+  USER_MENTIONED
+  TICKET_MENTIONED
+}
+
+# Represents an event which affects a ticket. Multiple changes can occur in a
+# single event, and are enumerated in the "changes" field.
+type Event {
+  id: Int!
+  created: Time!
+  changes: [EventDetail]!
+
+  entity: Entity! @access(scope: PROFILE, kind: RO)
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
+}
+
+interface EventDetail {
+  eventType: EventType!
+}
+
+type Assignment implements EventDetail {
+  eventType: EventType!
+  assigner: Entity!
+  assignee: Entity!
+}
+
+type Comment implements EventDetail {
+  eventType: EventType!
+  text: String!
+  authenticity: Authenticity!
+
+  # If this comment has been edited, this field points to the new revision.
+  superceededBy: Comment
+}
+
+type LabelUpdate implements EventDetail {
+  eventType: EventType!
+  label: Label!
+}
+
+type StatusChange implements EventDetail {
+  eventType: EventType!
+  oldStatus: TicketStatus!
+  newStatus: TicketStatus!
+  oldResolution: TicketResolution!
+  newResolution: TicketResolution!
+}
+
+type UserMention implements EventDetail {
+  eventType: EventType!
+  mentioned: Entity!
+}
+
+type TicketMention implements EventDetail {
+  eventType: EventType!
+  mentioned: Ticket!
+}
+
+interface Subscription {
+  id: Int!
+  created: Time!
+  entity: Entity! @access(scope: PROFILE, kind: RO)
+}
+
+# A tracker subscription will notify a participant of all activity for a
+# tracker, including all new tickets and their events.
+type TrackerSubscription implements Subscription {
+  id: Int!
+  created: Time!
+  entity: Entity! @access(scope: PROFILE, kind: RO)
+  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
+}
+
+# A ticket subscription will notify a participant when activity occurs on a
+# ticket.
+type TicketSubscription implements Subscription {
+  id: Int!
+  created: Time!
+  entity: Entity! @access(scope: PROFILE, kind: RO)
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+}
+
+# A cursor for enumerating trackers
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type TrackerCursor {
+  results: [Tracker]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating tickets
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type TicketCursor {
+  results: [Ticket]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating labels
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type LabelCursor {
+  results: [Label]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating access control list entries
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type ACLCursor {
+  results: [ACL]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating events
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type EventCursor {
+  results: [Event]!
+  cursor: Cursor
+}
+
+# A cursor for enumerating subscriptions
+#
+# If there are additional results available, the cursor object may be passed
+# back into the same endpoint to retrieve another page. If the cursor is null,
+# there are no remaining results to return.
+type SubscriptionCursor {
+  results: [Subscription]!
+  cursor: Cursor
+}
+
+type Query {
+  # Returns API version information.
+  version: Version!
+
+  # Returns the authenticated user.
+  me: User! @access(scope: PROFILE, kind: RO)
+
+  # Returns a specific user.
+  user(username: String!): User @access(scope: PROFILE, kind: RO)
+
+  # Returns trackers that the authenticated user has access to.
+  #
+  # NOTE: in this version of the API, only trackers owned by the authenticated
+  # user are returned, but in the future the default behavior will be to return
+  # all trackers that the user either (1) has been given explicit access to via
+  # ACLs or (2) has implicit access to either by ownership or group membership.
+  trackers(cursor: Cursor): TrackerCursor @access(scope: TRACKERS, kind: RO)
+
+  tracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RO)
+
+  # Returns a specific tracker, owned by the authenticated user.
+  trackerByName(name: String!): Tracker @access(scope: TRACKERS, kind: RO)
+
+  # Returns a specific tracker, owned by the given canonical name (e.g.
+  # "~sircmpwn").
+  trackerByOwner(owner: String!, repo: String!): Tracker @access(scope: TRACKERS, kind: RO)
+
+  # List of events which the authenticated user is subscribed to or implicated
+  # in, ordered by the event date (recent events first).
+  events(cursor: Cursor): EventCursor @access(scope: EVENTS, kind: RO)
+
+  # List of subscriptions of the authenticated user.
+  subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
+}
