@@ -201,21 +201,6 @@ type TrackerSubscription struct {
 
 func (TrackerSubscription) IsSubscription() {}
 
-type User struct {
-	ID            int            `json:"id"`
-	Created       time.Time      `json:"created"`
-	Updated       time.Time      `json:"updated"`
-	CanonicalName string         `json:"canonicalName"`
-	Username      string         `json:"username"`
-	Email         string         `json:"email"`
-	URL           *string        `json:"url"`
-	Location      *string        `json:"location"`
-	Bio           *string        `json:"bio"`
-	Trackers      *TrackerCursor `json:"trackers"`
-}
-
-func (User) IsEntity() {}
-
 type UserMention struct {
 	EventType EventType `json:"eventType"`
 	Mentioned Entity    `json:"mentioned"`

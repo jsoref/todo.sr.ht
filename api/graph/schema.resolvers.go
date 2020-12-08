@@ -25,7 +25,17 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 }
 
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	user := auth.ForContext(ctx)
+	return &model.User{
+		ID:       user.UserID,
+		Created:  user.Created,
+		Updated:  user.Updated,
+		Username: user.Username,
+		Email:    user.Email,
+		URL:      user.URL,
+		Location: user.Location,
+		Bio:      user.Bio,
+	}, nil
 }
 
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
@@ -89,11 +99,19 @@ func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
 // Tracker returns api.TrackerResolver implementation.
 func (r *Resolver) Tracker() api.TrackerResolver { return &trackerResolver{r} }
 
+// User returns api.UserResolver implementation.
+func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
+
 type queryResolver struct{ *Resolver }
 type trackerResolver struct{ *Resolver }
+type userResolver struct{ *Resolver }
