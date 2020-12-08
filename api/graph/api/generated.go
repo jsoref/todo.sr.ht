@@ -39,6 +39,7 @@ type Config struct {
 
 type ResolverRoot interface {
 	Query() QueryResolver
+	Tracker() TrackerResolver
 }
 
 type DirectiveRoot struct {
@@ -260,6 +261,13 @@ type QueryResolver interface {
 	TrackerByOwner(ctx context.Context, owner string, repo string) (*model.Tracker, error)
 	Events(ctx context.Context, cursor *model1.Cursor) (*model.EventCursor, error)
 	Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error)
+}
+type TrackerResolver interface {
+	Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error)
+
+	Tickets(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.TicketCursor, error)
+	Labels(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.LabelCursor, error)
+	Acls(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.ACLCursor, error)
 }
 
 type executableSchema struct {
@@ -5547,14 +5555,14 @@ func (ec *executionContext) _Tracker_owner(ctx context.Context, field graphql.Co
 		Object:     "Tracker",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Owner, nil
+		return ec.resolvers.Tracker().Owner(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5649,8 +5657,8 @@ func (ec *executionContext) _Tracker_tickets(ctx context.Context, field graphql.
 		Object:     "Tracker",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -5664,7 +5672,7 @@ func (ec *executionContext) _Tracker_tickets(ctx context.Context, field graphql.
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Tickets, nil
+			return ec.resolvers.Tracker().Tickets(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -5719,8 +5727,8 @@ func (ec *executionContext) _Tracker_labels(ctx context.Context, field graphql.C
 		Object:     "Tracker",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -5733,7 +5741,7 @@ func (ec *executionContext) _Tracker_labels(ctx context.Context, field graphql.C
 	fc.Args = args
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Labels, nil
+		return ec.resolvers.Tracker().Labels(rctx, obj, args["cursor"].(*model1.Cursor))
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5761,8 +5769,8 @@ func (ec *executionContext) _Tracker_acls(ctx context.Context, field graphql.Col
 		Object:     "Tracker",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -5776,7 +5784,7 @@ func (ec *executionContext) _Tracker_acls(ctx context.Context, field graphql.Col
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Acls, nil
+			return ec.resolvers.Tracker().Acls(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "ACLS")
@@ -9185,45 +9193,81 @@ func (ec *executionContext) _Tracker(ctx context.Context, sel ast.SelectionSet, 
 		case "id":
 			out.Values[i] = ec._Tracker_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._Tracker_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "updated":
 			out.Values[i] = ec._Tracker_updated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "owner":
-			out.Values[i] = ec._Tracker_owner(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tracker_owner(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "name":
 			out.Values[i] = ec._Tracker_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._Tracker_description(ctx, field, obj)
 		case "tickets":
-			out.Values[i] = ec._Tracker_tickets(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tracker_tickets(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "labels":
-			out.Values[i] = ec._Tracker_labels(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tracker_labels(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "acls":
-			out.Values[i] = ec._Tracker_acls(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tracker_acls(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "defaultACLs":
 			out.Values[i] = ec._Tracker_defaultACLs(ctx, field, obj)
 		default:
@@ -9801,6 +9845,10 @@ func (ec *executionContext) marshalNACL2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗs
 	return ret
 }
 
+func (ec *executionContext) marshalNACLCursor2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v model.ACLCursor) graphql.Marshaler {
+	return ec._ACLCursor(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNACLCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v *model.ACLCursor) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -10049,6 +10097,10 @@ func (ec *executionContext) marshalNLabel2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodo�
 	return ec._Label(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalNLabelCursor2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabelCursor(ctx context.Context, sel ast.SelectionSet, v model.LabelCursor) graphql.Marshaler {
+	return ec._LabelCursor(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNLabelCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabelCursor(ctx context.Context, sel ast.SelectionSet, v *model.LabelCursor) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -10156,6 +10208,10 @@ func (ec *executionContext) marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodo�
 		return graphql.Null
 	}
 	return ec._Ticket(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNTicketCursor2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketCursor(ctx context.Context, sel ast.SelectionSet, v model.TicketCursor) graphql.Marshaler {
+	return ec._TicketCursor(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNTicketCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketCursor(ctx context.Context, sel ast.SelectionSet, v *model.TicketCursor) graphql.Marshaler {

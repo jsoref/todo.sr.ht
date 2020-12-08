@@ -173,19 +173,6 @@ type TicketSubscription struct {
 
 func (TicketSubscription) IsSubscription() {}
 
-type Tracker struct {
-	ID          int           `json:"id"`
-	Created     time.Time     `json:"created"`
-	Updated     time.Time     `json:"updated"`
-	Owner       Entity        `json:"owner"`
-	Name        string        `json:"name"`
-	Description *string       `json:"description"`
-	Tickets     *TicketCursor `json:"tickets"`
-	Labels      *LabelCursor  `json:"labels"`
-	Acls        *ACLCursor    `json:"acls"`
-	DefaultACLs *DefaultACLs  `json:"defaultACLs"`
-}
-
 type TrackerACL struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`

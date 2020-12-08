@@ -5,9 +5,12 @@ package graph
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 
-	model1 "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/database"
+	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
@@ -29,8 +32,25 @@ func (r *queryResolver) User(ctx context.Context, username string) (*model.User,
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Trackers(ctx context.Context, cursor *model1.Cursor) (*model.TrackerCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) Trackers(ctx context.Context, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var trackers []*model.Tracker
+	if err := database.WithTx(ctx, &sql.TxOptions{}, func(tx *sql.Tx) error {
+		tracker := (&model.Tracker{}).As(`tr`)
+		query := database.
+			Select(ctx, tracker).
+			From(`tracker tr`).
+			Where(`tr.owner_id = ?`, auth.ForContext(ctx).UserID)
+		trackers, cursor = tracker.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.TrackerCursor{trackers, cursor}, nil
 }
 
 func (r *queryResolver) Tracker(ctx context.Context, id int) (*model.Tracker, error) {
@@ -45,15 +65,35 @@ func (r *queryResolver) TrackerByOwner(ctx context.Context, owner string, repo s
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Events(ctx context.Context, cursor *model1.Cursor) (*model.EventCursor, error) {
+func (r *queryResolver) Events(ctx context.Context, cursor *coremodel.Cursor) (*model.EventCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *queryResolver) Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error) {
+func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.SubscriptionCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.LabelCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
+// Tracker returns api.TrackerResolver implementation.
+func (r *Resolver) Tracker() api.TrackerResolver { return &trackerResolver{r} }
+
 type queryResolver struct{ *Resolver }
+type trackerResolver struct{ *Resolver }
