@@ -1,6 +1,7 @@
 package loaders
 
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
+//go:generate ./gen TrackersByIDLoader int api/graph/model.Tracker
 
 import (
 	"context"
@@ -24,6 +25,7 @@ type contextKey struct {
 
 type Loaders struct {
 	UsersByName  UsersByNameLoader
+	TrackersByID TrackersByIDLoader
 }
 
 func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, []error) {
@@ -71,6 +73,51 @@ func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, 
 	}
 }
 
+func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, []error) {
+	return func(ids []int) ([]*model.Tracker, []error) {
+		trackers := make([]*model.Tracker, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.Tracker{}).As(`t`)).
+				From(`"tracker" t`).
+				Where(sq.Expr(`t.id = ANY(?)`, pq.Array(ids)))
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			trackersByID := map[int]*model.Tracker{}
+			for rows.Next() {
+				tracker := model.Tracker{}
+				if err := rows.Scan(database.Scan(ctx, &tracker)...); err != nil {
+					return err
+				}
+				trackersByID[tracker.ID] = &tracker
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				trackers[i] = trackersByID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return trackers, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -78,6 +125,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchUsersByName(r.Context()),
+			},
+			TrackersByID: TrackersByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchTrackersByID(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

@@ -65,7 +65,7 @@ func (r *queryResolver) Trackers(ctx context.Context, cursor *coremodel.Cursor) 
 }
 
 func (r *queryResolver) Tracker(ctx context.Context, id int) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TrackersByID.Load(id)
 }
 
 func (r *queryResolver) TrackerByName(ctx context.Context, name string) (*model.Tracker, error) {
