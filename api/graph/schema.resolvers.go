@@ -13,6 +13,7 @@ import (
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 )
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
@@ -39,7 +40,7 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 }
 
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
 func (r *queryResolver) Trackers(ctx context.Context, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {

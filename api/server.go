@@ -10,6 +10,7 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 )
 
 func main() {
@@ -30,6 +31,7 @@ func main() {
 
 	server.NewServer("todo.sr.ht", appConfig).
 		WithDefaultMiddleware().
+		WithMiddleware(loaders.Middleware).
 		WithSchema(schema, scopes).
 		Run()
 }
