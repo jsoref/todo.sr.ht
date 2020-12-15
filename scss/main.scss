@@ -1,9 +1,5 @@
 @import "base";
 
-pre {
-  background: $gray-100;
-}
-
 .ellipsis {
   overflow-x: hidden;
   white-space: nowrap;
@@ -39,6 +35,9 @@ select.form-control {
 
   .title > a {
     color: $gray-900;
+    @media(prefers-color-scheme: dark) {
+      color: $gray-300;
+    }
   }
 
   @include media-breakpoint-down(xs) {
@@ -246,12 +245,20 @@ select.form-control {
 
   summary {
     background: $gray-300;
+
+    @media(prefers-color-scheme: dark) {
+      background: $gray-800;
+    }
+
     padding: 0 1rem;
     margin: 0 -1rem;
   }
 
   &[open] {
     border-left: 4px solid $gray-300;
+    @media(prefers-color-scheme: dark) {
+      border-color: $gray-800;
+    }
 
     summary {
       margin: 0 -1rem 0 calc(-1rem - 4px);
