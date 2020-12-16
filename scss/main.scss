@@ -25,9 +25,15 @@ select.form-control {
 }
 
 .ticket-list {
-  border-right: 1px solid #ced4da;
-  border-bottom: 1px solid #ced4da;
+  $border: #ced4da;
+  $border-dark: $gray-600;
+  border-right: 1px solid $border;
+  border-bottom: 1px solid $border;
   margin-bottom: 1rem;
+
+  @media(prefers-color-scheme: dark) {
+    border-color: $border-dark;
+  }
 
   display: grid;
   // id title updated submitter comments
@@ -88,9 +94,12 @@ select.form-control {
 
   & > div {
     padding: 0.1rem 0.5rem;
-    border-left: 1px solid #ced4da;
-    border-top: 1px solid #ced4da;
     background: transparent;
+    border-left: 1px solid $border;
+    border-top: 1px solid $border;
+    @media(prefers-color-scheme: dark) {
+      border-color: $border-dark;
+    }
 
     &.id {
       text-align: right;
