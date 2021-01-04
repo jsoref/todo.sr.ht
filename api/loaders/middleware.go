@@ -88,11 +88,23 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 				err  error
 				rows *sql.Rows
 			)
-			// TODO: Join on ACLs
+			// TODO: Stash the ACL details in case they're useful later?
+			auser := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.Tracker{}).As(`t`)).
 				From(`"tracker" t`).
-				Where(sq.Expr(`t.id = ANY(?)`, pq.Array(ids)))
+				LeftJoin(`user_access ua ON ua.tracker_id = t.id`).
+				Where(sq.And{
+					sq.Expr(`t.id = ANY(?)`, pq.Array(ids)),
+					sq.Or{
+						sq.Expr(`t.owner_id = ?`, auser.UserID),
+						sq.Expr(`t.default_user_perms > 0`),
+						sq.And{
+							sq.Expr(`ua.user_id = ?`, auser.UserID),
+							sq.Expr(`ua.permissions > 0`),
+						},
+					},
+				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
 				return err
 			}
