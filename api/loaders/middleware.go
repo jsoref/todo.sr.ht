@@ -2,6 +2,8 @@ package loaders
 
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen TrackersByIDLoader int api/graph/model.Tracker
+//go:generate ./gen TrackersByNameLoader string api/graph/model.Tracker
+//go:generate ./gen TrackersByOwnerNameLoader [2]string api/graph/model.Tracker
 
 import (
 	"context"
@@ -13,6 +15,7 @@ import (
 	"github.com/lib/pq"
 	sq "github.com/Masterminds/squirrel"
 
+	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
@@ -24,8 +27,9 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByName  UsersByNameLoader
-	TrackersByID TrackersByIDLoader
+	UsersByName    UsersByNameLoader
+	TrackersByID   TrackersByIDLoader
+	TrackersByName TrackersByNameLoader
 }
 
 func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, []error) {
@@ -84,6 +88,7 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 				err  error
 				rows *sql.Rows
 			)
+			// TODO: Join on ACLs
 			query := database.
 				Select(ctx, (&model.Tracker{}).As(`t`)).
 				From(`"tracker" t`).
@@ -118,6 +123,55 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 	}
 }
 
+func fetchTrackersByName(ctx context.Context) func(names []string) ([]*model.Tracker, []error) {
+	return func(names []string) ([]*model.Tracker, []error) {
+		trackers := make([]*model.Tracker, len(names))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			auser := auth.ForContext(ctx)
+			query := database.
+				Select(ctx, (&model.Tracker{}).As(`t`)).
+				From(`"tracker" t`).
+				Where(sq.And{
+					sq.Expr(`t.name = ANY(?)`, pq.Array(names)),
+					sq.Expr(`t.owner_id = ?`, auser.UserID),
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			trackersByName := map[string]*model.Tracker{}
+			for rows.Next() {
+				tracker := model.Tracker{}
+				if err := rows.Scan(database.Scan(ctx, &tracker)...); err != nil {
+					return err
+				}
+				trackersByName[tracker.Name] = &tracker
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, name := range names {
+				trackers[i] = trackersByName[name]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return trackers, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -130,6 +184,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchTrackersByID(r.Context()),
+			},
+			TrackersByName: TrackersByNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchTrackersByName(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

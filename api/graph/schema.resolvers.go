@@ -69,7 +69,7 @@ func (r *queryResolver) Tracker(ctx context.Context, id int) (*model.Tracker, er
 }
 
 func (r *queryResolver) TrackerByName(ctx context.Context, name string) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TrackersByName.Load(name)
 }
 
 func (r *queryResolver) TrackerByOwner(ctx context.Context, owner string, repo string) (*model.Tracker, error) {
