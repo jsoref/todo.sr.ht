@@ -38,6 +38,9 @@ type Config struct {
 }
 
 type ResolverRoot interface {
+	Comment() CommentResolver
+	Created() CreatedResolver
+	Event() EventResolver
 	Query() QueryResolver
 	Tracker() TrackerResolver
 	User() UserResolver
@@ -57,14 +60,24 @@ type ComplexityRoot struct {
 	Assignment struct {
 		Assignee  func(childComplexity int) int
 		Assigner  func(childComplexity int) int
+		Entity    func(childComplexity int) int
 		EventType func(childComplexity int) int
+		Ticket    func(childComplexity int) int
 	}
 
 	Comment struct {
 		Authenticity  func(childComplexity int) int
+		Entity        func(childComplexity int) int
 		EventType     func(childComplexity int) int
 		SuperceededBy func(childComplexity int) int
 		Text          func(childComplexity int) int
+		Ticket        func(childComplexity int) int
+	}
+
+	Created struct {
+		Entity    func(childComplexity int) int
+		EventType func(childComplexity int) int
+		Ticket    func(childComplexity int) int
 	}
 
 	DefaultACL struct {
@@ -127,8 +140,10 @@ type ComplexityRoot struct {
 	}
 
 	LabelUpdate struct {
+		Entity    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Label     func(childComplexity int) int
+		Ticket    func(childComplexity int) int
 	}
 
 	Query struct {
@@ -144,11 +159,13 @@ type ComplexityRoot struct {
 	}
 
 	StatusChange struct {
+		Entity        func(childComplexity int) int
 		EventType     func(childComplexity int) int
 		NewResolution func(childComplexity int) int
 		NewStatus     func(childComplexity int) int
 		OldResolution func(childComplexity int) int
 		OldStatus     func(childComplexity int) int
+		Ticket        func(childComplexity int) int
 	}
 
 	SubscriptionCursor struct {
@@ -178,8 +195,10 @@ type ComplexityRoot struct {
 	}
 
 	TicketMention struct {
+		Entity    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Mentioned func(childComplexity int) int
+		Ticket    func(childComplexity int) int
 	}
 
 	TicketSubscription struct {
@@ -240,8 +259,10 @@ type ComplexityRoot struct {
 	}
 
 	UserMention struct {
+		Entity    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Mentioned func(childComplexity int) int
+		Ticket    func(childComplexity int) int
 	}
 
 	Version struct {
@@ -252,6 +273,22 @@ type ComplexityRoot struct {
 	}
 }
 
+type CommentResolver interface {
+	Ticket(ctx context.Context, obj *model.Comment) (*model.Ticket, error)
+	Entity(ctx context.Context, obj *model.Comment) (model.Entity, error)
+	Text(ctx context.Context, obj *model.Comment) (string, error)
+	Authenticity(ctx context.Context, obj *model.Comment) (model.Authenticity, error)
+	SuperceededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error)
+}
+type CreatedResolver interface {
+	Ticket(ctx context.Context, obj *model.Created) (*model.Ticket, error)
+	Entity(ctx context.Context, obj *model.Created) (model.Entity, error)
+}
+type EventResolver interface {
+	Entity(ctx context.Context, obj *model.Event) (model.Entity, error)
+	Ticket(ctx context.Context, obj *model.Event) (*model.Ticket, error)
+	Tracker(ctx context.Context, obj *model.Event) (*model.Tracker, error)
+}
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
 	Me(ctx context.Context) (*model.User, error)
@@ -317,6 +354,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Assignment.Assigner(childComplexity), true
 
+	case "Assignment.entity":
+		if e.complexity.Assignment.Entity == nil {
+			break
+		}
+
+		return e.complexity.Assignment.Entity(childComplexity), true
+
 	case "Assignment.eventType":
 		if e.complexity.Assignment.EventType == nil {
 			break
@@ -324,12 +368,26 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Assignment.EventType(childComplexity), true
 
+	case "Assignment.ticket":
+		if e.complexity.Assignment.Ticket == nil {
+			break
+		}
+
+		return e.complexity.Assignment.Ticket(childComplexity), true
+
 	case "Comment.authenticity":
 		if e.complexity.Comment.Authenticity == nil {
 			break
 		}
 
 		return e.complexity.Comment.Authenticity(childComplexity), true
+
+	case "Comment.entity":
+		if e.complexity.Comment.Entity == nil {
+			break
+		}
+
+		return e.complexity.Comment.Entity(childComplexity), true
 
 	case "Comment.eventType":
 		if e.complexity.Comment.EventType == nil {
@@ -351,6 +409,34 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Comment.Text(childComplexity), true
+
+	case "Comment.ticket":
+		if e.complexity.Comment.Ticket == nil {
+			break
+		}
+
+		return e.complexity.Comment.Ticket(childComplexity), true
+
+	case "Created.entity":
+		if e.complexity.Created.Entity == nil {
+			break
+		}
+
+		return e.complexity.Created.Entity(childComplexity), true
+
+	case "Created.eventType":
+		if e.complexity.Created.EventType == nil {
+			break
+		}
+
+		return e.complexity.Created.EventType(childComplexity), true
+
+	case "Created.ticket":
+		if e.complexity.Created.Ticket == nil {
+			break
+		}
+
+		return e.complexity.Created.Ticket(childComplexity), true
 
 	case "DefaultACL.browse":
 		if e.complexity.DefaultACL.Browse == nil {
@@ -602,6 +688,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.LabelCursor.Results(childComplexity), true
 
+	case "LabelUpdate.entity":
+		if e.complexity.LabelUpdate.Entity == nil {
+			break
+		}
+
+		return e.complexity.LabelUpdate.Entity(childComplexity), true
+
 	case "LabelUpdate.eventType":
 		if e.complexity.LabelUpdate.EventType == nil {
 			break
@@ -615,6 +708,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.LabelUpdate.Label(childComplexity), true
+
+	case "LabelUpdate.ticket":
+		if e.complexity.LabelUpdate.Ticket == nil {
+			break
+		}
+
+		return e.complexity.LabelUpdate.Ticket(childComplexity), true
 
 	case "Query.events":
 		if e.complexity.Query.Events == nil {
@@ -714,6 +814,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Version(childComplexity), true
 
+	case "StatusChange.entity":
+		if e.complexity.StatusChange.Entity == nil {
+			break
+		}
+
+		return e.complexity.StatusChange.Entity(childComplexity), true
+
 	case "StatusChange.eventType":
 		if e.complexity.StatusChange.EventType == nil {
 			break
@@ -748,6 +855,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.StatusChange.OldStatus(childComplexity), true
+
+	case "StatusChange.ticket":
+		if e.complexity.StatusChange.Ticket == nil {
+			break
+		}
+
+		return e.complexity.StatusChange.Ticket(childComplexity), true
 
 	case "SubscriptionCursor.cursor":
 		if e.complexity.SubscriptionCursor.Cursor == nil {
@@ -868,6 +982,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TicketCursor.Results(childComplexity), true
 
+	case "TicketMention.entity":
+		if e.complexity.TicketMention.Entity == nil {
+			break
+		}
+
+		return e.complexity.TicketMention.Entity(childComplexity), true
+
 	case "TicketMention.eventType":
 		if e.complexity.TicketMention.EventType == nil {
 			break
@@ -881,6 +1002,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TicketMention.Mentioned(childComplexity), true
+
+	case "TicketMention.ticket":
+		if e.complexity.TicketMention.Ticket == nil {
+			break
+		}
+
+		return e.complexity.TicketMention.Ticket(childComplexity), true
 
 	case "TicketSubscription.created":
 		if e.complexity.TicketSubscription.Created == nil {
@@ -1175,6 +1303,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Username(childComplexity), true
 
+	case "UserMention.entity":
+		if e.complexity.UserMention.Entity == nil {
+			break
+		}
+
+		return e.complexity.UserMention.Entity(childComplexity), true
+
 	case "UserMention.eventType":
 		if e.complexity.UserMention.EventType == nil {
 			break
@@ -1188,6 +1323,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.UserMention.Mentioned(childComplexity), true
+
+	case "UserMention.ticket":
+		if e.complexity.UserMention.Ticket == nil {
+			break
+		}
+
+		return e.complexity.UserMention.Ticket(childComplexity), true
 
 	case "Version.deprecationDate":
 		if e.complexity.Version.DeprecationDate == nil {
@@ -1388,7 +1530,7 @@ enum Authenticity {
   AUTHENTIC
   # The server does not vouch for this information as entered by the attributed
   # entity, no authentication was provided.
-  UNAUTHENTIC
+  UNAUTHENTICATED
   # The server has evidence that the information has likely been manipulated by
   # a third-party.
   TAMPERED
@@ -1502,16 +1644,30 @@ type Event {
 
 interface EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+}
+
+type Created implements EventDetail {
+  eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
 }
 
 type Assignment implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   assigner: Entity!
   assignee: Entity!
 }
 
 type Comment implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   text: String!
   authenticity: Authenticity!
 
@@ -1521,11 +1677,17 @@ type Comment implements EventDetail {
 
 type LabelUpdate implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   label: Label!
 }
 
 type StatusChange implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   oldStatus: TicketStatus!
   newStatus: TicketStatus!
   oldResolution: TicketResolution!
@@ -1534,11 +1696,17 @@ type StatusChange implements EventDetail {
 
 type UserMention implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   mentioned: Entity!
 }
 
 type TicketMention implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   mentioned: Ticket!
 }
 
@@ -2051,6 +2219,76 @@ func (ec *executionContext) _Assignment_eventType(ctx context.Context, field gra
 	return ec.marshalNEventType2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Assignment_ticket(ctx context.Context, field graphql.CollectedField, obj *model.Assignment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Assignment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ticket, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Assignment_entity(ctx context.Context, field graphql.CollectedField, obj *model.Assignment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Assignment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Entity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Assignment_assigner(ctx context.Context, field graphql.CollectedField, obj *model.Assignment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2156,6 +2394,76 @@ func (ec *executionContext) _Comment_eventType(ctx context.Context, field graphq
 	return ec.marshalNEventType2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Comment_ticket(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Comment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Comment().Ticket(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Comment_entity(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Comment",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Comment().Entity(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Comment_text(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2167,14 +2475,14 @@ func (ec *executionContext) _Comment_text(ctx context.Context, field graphql.Col
 		Object:     "Comment",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Text, nil
+		return ec.resolvers.Comment().Text(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2202,14 +2510,14 @@ func (ec *executionContext) _Comment_authenticity(ctx context.Context, field gra
 		Object:     "Comment",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Authenticity, nil
+		return ec.resolvers.Comment().Authenticity(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2237,14 +2545,14 @@ func (ec *executionContext) _Comment_superceededBy(ctx context.Context, field gr
 		Object:     "Comment",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.SuperceededBy, nil
+		return ec.resolvers.Comment().SuperceededBy(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2256,6 +2564,111 @@ func (ec *executionContext) _Comment_superceededBy(ctx context.Context, field gr
 	res := resTmp.(*model.Comment)
 	fc.Result = res
 	return ec.marshalOComment2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐComment(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Created_eventType(ctx context.Context, field graphql.CollectedField, obj *model.Created) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Created",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.EventType, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.EventType)
+	fc.Result = res
+	return ec.marshalNEventType2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Created_ticket(ctx context.Context, field graphql.CollectedField, obj *model.Created) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Created",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Created().Ticket(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Created_entity(ctx context.Context, field graphql.CollectedField, obj *model.Created) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Created",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Created().Entity(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _DefaultACL_browse(ctx context.Context, field graphql.CollectedField, obj *model.DefaultACL) (ret graphql.Marshaler) {
@@ -2794,14 +3207,14 @@ func (ec *executionContext) _Event_changes(ctx context.Context, field graphql.Co
 		Object:     "Event",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Changes, nil
+		return obj.Changes(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2829,15 +3242,15 @@ func (ec *executionContext) _Event_entity(ctx context.Context, field graphql.Col
 		Object:     "Event",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Entity, nil
+			return ec.resolvers.Event().Entity(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
@@ -2892,15 +3305,15 @@ func (ec *executionContext) _Event_ticket(ctx context.Context, field graphql.Col
 		Object:     "Event",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Ticket, nil
+			return ec.resolvers.Event().Ticket(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -2955,15 +3368,15 @@ func (ec *executionContext) _Event_tracker(ctx context.Context, field graphql.Co
 		Object:     "Event",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Tracker, nil
+			return ec.resolvers.Event().Tracker(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
@@ -3654,6 +4067,76 @@ func (ec *executionContext) _LabelUpdate_eventType(ctx context.Context, field gr
 	res := resTmp.(model.EventType)
 	fc.Result = res
 	return ec.marshalNEventType2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LabelUpdate_ticket(ctx context.Context, field graphql.CollectedField, obj *model.LabelUpdate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LabelUpdate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ticket, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _LabelUpdate_entity(ctx context.Context, field graphql.CollectedField, obj *model.LabelUpdate) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "LabelUpdate",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Entity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _LabelUpdate_label(ctx context.Context, field graphql.CollectedField, obj *model.LabelUpdate) (ret graphql.Marshaler) {
@@ -4362,6 +4845,76 @@ func (ec *executionContext) _StatusChange_eventType(ctx context.Context, field g
 	res := resTmp.(model.EventType)
 	fc.Result = res
 	return ec.marshalNEventType2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StatusChange_ticket(ctx context.Context, field graphql.CollectedField, obj *model.StatusChange) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StatusChange",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ticket, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _StatusChange_entity(ctx context.Context, field graphql.CollectedField, obj *model.StatusChange) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "StatusChange",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Entity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _StatusChange_oldStatus(ctx context.Context, field graphql.CollectedField, obj *model.StatusChange) (ret graphql.Marshaler) {
@@ -5210,6 +5763,76 @@ func (ec *executionContext) _TicketMention_eventType(ctx context.Context, field 
 	res := resTmp.(model.EventType)
 	fc.Result = res
 	return ec.marshalNEventType2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TicketMention_ticket(ctx context.Context, field graphql.CollectedField, obj *model.TicketMention) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TicketMention",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ticket, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _TicketMention_entity(ctx context.Context, field graphql.CollectedField, obj *model.TicketMention) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "TicketMention",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Entity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TicketMention_mentioned(ctx context.Context, field graphql.CollectedField, obj *model.TicketMention) (ret graphql.Marshaler) {
@@ -6909,6 +7532,76 @@ func (ec *executionContext) _UserMention_eventType(ctx context.Context, field gr
 	return ec.marshalNEventType2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventType(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _UserMention_ticket(ctx context.Context, field graphql.CollectedField, obj *model.UserMention) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserMention",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Ticket, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _UserMention_entity(ctx context.Context, field graphql.CollectedField, obj *model.UserMention) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "UserMention",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Entity, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Entity)
+	fc.Result = res
+	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _UserMention_mentioned(ctx context.Context, field graphql.CollectedField, obj *model.UserMention) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -8229,6 +8922,13 @@ func (ec *executionContext) _EventDetail(ctx context.Context, sel ast.SelectionS
 	switch obj := (obj).(type) {
 	case nil:
 		return graphql.Null
+	case model.Created:
+		return ec._Created(ctx, sel, &obj)
+	case *model.Created:
+		if obj == nil {
+			return graphql.Null
+		}
+		return ec._Created(ctx, sel, obj)
 	case model.Assignment:
 		return ec._Assignment(ctx, sel, &obj)
 	case *model.Assignment:
@@ -8348,6 +9048,16 @@ func (ec *executionContext) _Assignment(ctx context.Context, sel ast.SelectionSe
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "ticket":
+			out.Values[i] = ec._Assignment_ticket(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "entity":
+			out.Values[i] = ec._Assignment_entity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "assigner":
 			out.Values[i] = ec._Assignment_assigner(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8383,20 +9093,130 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 		case "eventType":
 			out.Values[i] = ec._Comment_eventType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
+		case "ticket":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Comment_ticket(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "entity":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Comment_entity(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "text":
-			out.Values[i] = ec._Comment_text(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Comment_text(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "authenticity":
-			out.Values[i] = ec._Comment_authenticity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Comment_authenticity(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "superceededBy":
-			out.Values[i] = ec._Comment_superceededBy(ctx, field, obj)
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Comment_superceededBy(ctx, field, obj)
+				return res
+			})
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch()
+	if invalids > 0 {
+		return graphql.Null
+	}
+	return out
+}
+
+var createdImplementors = []string{"Created", "EventDetail"}
+
+func (ec *executionContext) _Created(ctx context.Context, sel ast.SelectionSet, obj *model.Created) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, createdImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	var invalids uint32
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Created")
+		case "eventType":
+			out.Values[i] = ec._Created_eventType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
+		case "ticket":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Created_ticket(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
+		case "entity":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Created_entity(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8553,33 +9373,60 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Event_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._Event_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "changes":
 			out.Values[i] = ec._Event_changes(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "entity":
-			out.Values[i] = ec._Event_entity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Event_entity(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "ticket":
-			out.Values[i] = ec._Event_ticket(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Event_ticket(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "tracker":
-			out.Values[i] = ec._Event_tracker(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Event_tracker(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -8766,6 +9613,16 @@ func (ec *executionContext) _LabelUpdate(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "ticket":
+			out.Values[i] = ec._LabelUpdate_ticket(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "entity":
+			out.Values[i] = ec._LabelUpdate_entity(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		case "label":
 			out.Values[i] = ec._LabelUpdate_label(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -8930,6 +9787,16 @@ func (ec *executionContext) _StatusChange(ctx context.Context, sel ast.Selection
 			out.Values[i] = graphql.MarshalString("StatusChange")
 		case "eventType":
 			out.Values[i] = ec._StatusChange_eventType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "ticket":
+			out.Values[i] = ec._StatusChange_ticket(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "entity":
+			out.Values[i] = ec._StatusChange_entity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -9122,6 +9989,16 @@ func (ec *executionContext) _TicketMention(ctx context.Context, sel ast.Selectio
 			out.Values[i] = graphql.MarshalString("TicketMention")
 		case "eventType":
 			out.Values[i] = ec._TicketMention_eventType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "ticket":
+			out.Values[i] = ec._TicketMention_ticket(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "entity":
+			out.Values[i] = ec._TicketMention_entity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -9508,6 +10385,16 @@ func (ec *executionContext) _UserMention(ctx context.Context, sel ast.SelectionS
 			out.Values[i] = graphql.MarshalString("UserMention")
 		case "eventType":
 			out.Values[i] = ec._UserMention_eventType(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "ticket":
+			out.Values[i] = ec._UserMention_ticket(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
+		case "entity":
+			out.Values[i] = ec._UserMention_entity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
@@ -10176,6 +11063,10 @@ func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwn�
 	return ret
 }
 
+func (ec *executionContext) marshalNTicket2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx context.Context, sel ast.SelectionSet, v model.Ticket) graphql.Marshaler {
+	return ec._Ticket(ctx, sel, &v)
+}
+
 func (ec *executionContext) marshalNTicket2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx context.Context, sel ast.SelectionSet, v []*model.Ticket) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
@@ -10270,6 +11161,10 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNTracker2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx context.Context, sel ast.SelectionSet, v model.Tracker) graphql.Marshaler {
+	return ec._Tracker(ctx, sel, &v)
 }
 
 func (ec *executionContext) marshalNTracker2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx context.Context, sel ast.SelectionSet, v []*model.Tracker) graphql.Marshaler {

@@ -34,20 +34,13 @@ type ACLCursor struct {
 
 type Assignment struct {
 	EventType EventType `json:"eventType"`
+	Ticket    *Ticket   `json:"ticket"`
+	Entity    Entity    `json:"entity"`
 	Assigner  Entity    `json:"assigner"`
 	Assignee  Entity    `json:"assignee"`
 }
 
 func (Assignment) IsEventDetail() {}
-
-type Comment struct {
-	EventType     EventType    `json:"eventType"`
-	Text          string       `json:"text"`
-	Authenticity  Authenticity `json:"authenticity"`
-	SuperceededBy *Comment     `json:"superceededBy"`
-}
-
-func (Comment) IsEventDetail() {}
 
 type DefaultACL struct {
 	Browse  bool `json:"browse"`
@@ -74,15 +67,6 @@ type EmailAddress struct {
 }
 
 func (EmailAddress) IsEntity() {}
-
-type Event struct {
-	ID      int           `json:"id"`
-	Created time.Time     `json:"created"`
-	Changes []EventDetail `json:"changes"`
-	Entity  Entity        `json:"entity"`
-	Ticket  *Ticket       `json:"ticket"`
-	Tracker *Tracker      `json:"tracker"`
-}
 
 type EventCursor struct {
 	Results []*Event      `json:"results"`
@@ -116,6 +100,8 @@ type LabelCursor struct {
 
 type LabelUpdate struct {
 	EventType EventType `json:"eventType"`
+	Ticket    *Ticket   `json:"ticket"`
+	Entity    Entity    `json:"entity"`
 	Label     *Label    `json:"label"`
 }
 
@@ -123,6 +109,8 @@ func (LabelUpdate) IsEventDetail() {}
 
 type StatusChange struct {
 	EventType     EventType        `json:"eventType"`
+	Ticket        *Ticket          `json:"ticket"`
+	Entity        Entity           `json:"entity"`
 	OldStatus     TicketStatus     `json:"oldStatus"`
 	NewStatus     TicketStatus     `json:"newStatus"`
 	OldResolution TicketResolution `json:"oldResolution"`
@@ -159,6 +147,8 @@ type TicketCursor struct {
 
 type TicketMention struct {
 	EventType EventType `json:"eventType"`
+	Ticket    *Ticket   `json:"ticket"`
+	Entity    Entity    `json:"entity"`
 	Mentioned *Ticket   `json:"mentioned"`
 }
 
@@ -203,6 +193,8 @@ func (TrackerSubscription) IsSubscription() {}
 
 type UserMention struct {
 	EventType EventType `json:"eventType"`
+	Ticket    *Ticket   `json:"ticket"`
+	Entity    Entity    `json:"entity"`
 	Mentioned Entity    `json:"mentioned"`
 }
 
@@ -308,20 +300,20 @@ func (e AccessScope) MarshalGQL(w io.Writer) {
 type Authenticity string
 
 const (
-	AuthenticityAuthentic   Authenticity = "AUTHENTIC"
-	AuthenticityUnauthentic Authenticity = "UNAUTHENTIC"
-	AuthenticityTampered    Authenticity = "TAMPERED"
+	AuthenticityAuthentic       Authenticity = "AUTHENTIC"
+	AuthenticityUnauthenticated Authenticity = "UNAUTHENTICATED"
+	AuthenticityTampered        Authenticity = "TAMPERED"
 )
 
 var AllAuthenticity = []Authenticity{
 	AuthenticityAuthentic,
-	AuthenticityUnauthentic,
+	AuthenticityUnauthenticated,
 	AuthenticityTampered,
 }
 
 func (e Authenticity) IsValid() bool {
 	switch e {
-	case AuthenticityAuthentic, AuthenticityUnauthentic, AuthenticityTampered:
+	case AuthenticityAuthentic, AuthenticityUnauthenticated, AuthenticityTampered:
 		return true
 	}
 	return false

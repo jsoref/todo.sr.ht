@@ -4,6 +4,8 @@ package loaders
 //go:generate ./gen TrackersByIDLoader int api/graph/model.Tracker
 //go:generate ./gen TrackersByNameLoader string api/graph/model.Tracker
 //go:generate ./gen TrackersByOwnerNameLoader [2]string api/graph/model.Tracker
+//go:generate ./gen CommentsByIDLoader int api/graph/model.Comment
+//go:generate ./gen TicketsByIDLoader int api/graph/model.Ticket
 
 import (
 	"context"
@@ -31,6 +33,7 @@ type Loaders struct {
 	TrackersByID        TrackersByIDLoader
 	TrackersByName      TrackersByNameLoader
 	TrackersByOwnerName TrackersByOwnerNameLoader
+	CommentsByID        CommentsByIDLoader
 }
 
 func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, []error) {
@@ -257,6 +260,65 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 	}
 }
 
+// NOTICE: This does not do any ACL checks.
+func fetchCommentsByID(ctx context.Context) func(ids []int) ([]*model.Comment, []error) {
+	return func(ids []int) ([]*model.Comment, []error) {
+		comments := make([]*model.Comment, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			if rows, err = tx.QueryContext(ctx, `
+				SELECT id, text, authenticity, superceeded_by_id
+				FROM ticket_comment
+				WHERE id = ANY($1)
+			`, pq.Array(ids)); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			commentsByID := map[int]*model.Comment{}
+			for rows.Next() {
+				var authenticity int
+				comment := model.Comment{}
+				if err := rows.Scan(&comment.Database.ID,
+					&comment.Database.Text, &authenticity,
+					&comment.Database.SuperceededByID); err != nil {
+					return err
+				}
+				switch authenticity {
+				case model.AUTH_AUTHENTIC:
+					comment.Database.Authenticity = model.AuthenticityAuthentic
+				case model.AUTH_UNAUTHENTICATED:
+					comment.Database.Authenticity = model.AuthenticityUnauthenticated
+				case model.AUTH_TAMPERED:
+					comment.Database.Authenticity = model.AuthenticityTampered
+				default:
+					panic(errors.New("database invariant broken"))
+				}
+				commentsByID[comment.Database.ID] = &comment
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				comments[i] = commentsByID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return comments, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -279,6 +341,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchTrackersByOwnerName(r.Context()),
+			},
+			CommentsByID: CommentsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchCommentsByID(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

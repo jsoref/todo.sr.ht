@@ -119,7 +119,7 @@ enum Authenticity {
   AUTHENTIC
   # The server does not vouch for this information as entered by the attributed
   # entity, no authentication was provided.
-  UNAUTHENTIC
+  UNAUTHENTICATED
   # The server has evidence that the information has likely been manipulated by
   # a third-party.
   TAMPERED
@@ -233,16 +233,30 @@ type Event {
 
 interface EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+}
+
+type Created implements EventDetail {
+  eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
 }
 
 type Assignment implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   assigner: Entity!
   assignee: Entity!
 }
 
 type Comment implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   text: String!
   authenticity: Authenticity!
 
@@ -252,11 +266,17 @@ type Comment implements EventDetail {
 
 type LabelUpdate implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   label: Label!
 }
 
 type StatusChange implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   oldStatus: TicketStatus!
   newStatus: TicketStatus!
   oldResolution: TicketResolution!
@@ -265,11 +285,17 @@ type StatusChange implements EventDetail {
 
 type UserMention implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   mentioned: Entity!
 }
 
 type TicketMention implements EventDetail {
   eventType: EventType!
+  ticket: Ticket!
+  entity: Entity!
+
   mentioned: Ticket!
 }
 
