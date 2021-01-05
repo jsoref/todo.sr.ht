@@ -42,6 +42,7 @@ type ResolverRoot interface {
 	Created() CreatedResolver
 	Event() EventResolver
 	Query() QueryResolver
+	StatusChange() StatusChangeResolver
 	Tracker() TrackerResolver
 	User() UserResolver
 }
@@ -299,6 +300,10 @@ type QueryResolver interface {
 	TrackerByOwner(ctx context.Context, owner string, tracker string) (*model.Tracker, error)
 	Events(ctx context.Context, cursor *model1.Cursor) (*model.EventCursor, error)
 	Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error)
+}
+type StatusChangeResolver interface {
+	Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error)
+	Entity(ctx context.Context, obj *model.StatusChange) (model.Entity, error)
 }
 type TrackerResolver interface {
 	Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error)
@@ -4858,14 +4863,14 @@ func (ec *executionContext) _StatusChange_ticket(ctx context.Context, field grap
 		Object:     "StatusChange",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Ticket, nil
+		return ec.resolvers.StatusChange().Ticket(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4893,14 +4898,14 @@ func (ec *executionContext) _StatusChange_entity(ctx context.Context, field grap
 		Object:     "StatusChange",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Entity, nil
+		return ec.resolvers.StatusChange().Entity(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9788,37 +9793,55 @@ func (ec *executionContext) _StatusChange(ctx context.Context, sel ast.Selection
 		case "eventType":
 			out.Values[i] = ec._StatusChange_eventType(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "ticket":
-			out.Values[i] = ec._StatusChange_ticket(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._StatusChange_ticket(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "entity":
-			out.Values[i] = ec._StatusChange_entity(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._StatusChange_entity(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "oldStatus":
 			out.Values[i] = ec._StatusChange_oldStatus(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "newStatus":
 			out.Values[i] = ec._StatusChange_newStatus(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "oldResolution":
 			out.Values[i] = ec._StatusChange_oldResolution(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "newResolution":
 			out.Values[i] = ec._StatusChange_newResolution(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))

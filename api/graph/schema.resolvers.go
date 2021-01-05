@@ -150,6 +150,14 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *statusChangeResolver) Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *statusChangeResolver) Entity(ctx context.Context, obj *model.StatusChange) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -182,6 +190,9 @@ func (r *Resolver) Event() api.EventResolver { return &eventResolver{r} }
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
+// StatusChange returns api.StatusChangeResolver implementation.
+func (r *Resolver) StatusChange() api.StatusChangeResolver { return &statusChangeResolver{r} }
+
 // Tracker returns api.TrackerResolver implementation.
 func (r *Resolver) Tracker() api.TrackerResolver { return &trackerResolver{r} }
 
@@ -192,5 +203,6 @@ type commentResolver struct{ *Resolver }
 type createdResolver struct{ *Resolver }
 type eventResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
+type statusChangeResolver struct{ *Resolver }
 type trackerResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }

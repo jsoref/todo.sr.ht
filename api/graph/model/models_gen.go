@@ -107,18 +107,6 @@ type LabelUpdate struct {
 
 func (LabelUpdate) IsEventDetail() {}
 
-type StatusChange struct {
-	EventType     EventType        `json:"eventType"`
-	Ticket        *Ticket          `json:"ticket"`
-	Entity        Entity           `json:"entity"`
-	OldStatus     TicketStatus     `json:"oldStatus"`
-	NewStatus     TicketStatus     `json:"newStatus"`
-	OldResolution TicketResolution `json:"oldResolution"`
-	NewResolution TicketResolution `json:"newResolution"`
-}
-
-func (StatusChange) IsEventDetail() {}
-
 type SubscriptionCursor struct {
 	Results []Subscription `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`
