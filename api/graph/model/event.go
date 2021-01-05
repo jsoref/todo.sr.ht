@@ -136,6 +136,42 @@ type StatusChange struct {
 
 func (StatusChange) IsEventDetail() {}
 
+type LabelUpdate struct {
+	EventType EventType `json:"eventType"`
+	TicketID      int
+	ParticipantID int
+	LabelID       int
+}
+
+func (LabelUpdate) IsEventDetail() {}
+
+type Assignment struct {
+	EventType EventType `json:"eventType"`
+	TicketID      int
+	AssignerID    int
+	AssigneeID    int
+}
+
+func (Assignment) IsEventDetail() {}
+
+type UserMention struct {
+	EventType EventType `json:"eventType"`
+	TicketID      int
+	ParticipantID int
+	MentionedID   int
+}
+
+func (UserMention) IsEventDetail() {}
+
+type TicketMention struct {
+	EventType EventType `json:"eventType"`
+	TicketID      int
+	ParticipantID int
+	MentionedID   int
+}
+
+func (TicketMention) IsEventDetail() {}
+
 const (
     EVENT_CREATED = 1
     EVENT_COMMENT = 2
@@ -179,6 +215,60 @@ func (ev *Event) Changes() []EventDetail {
 			NewStatus:     intToStatus(ev.NewStatus),
 			OldResolution: intToResolution(ev.OldResolution),
 			NewResolution: intToResolution(ev.NewResolution),
+		})
+	}
+
+	if ev.EventType & EVENT_LABEL_ADDED != 0 {
+		changes = append(changes, LabelUpdate{
+			EventType:     EventTypeLabelAdded,
+			TicketID:      ev.TicketID,
+			ParticipantID: ev.ParticipantID,
+			LabelID:       *ev.LabelID,
+		})
+	}
+
+	if ev.EventType & EVENT_LABEL_REMOVED != 0 {
+		changes = append(changes, LabelUpdate{
+			EventType:     EventTypeLabelAdded,
+			TicketID:      ev.TicketID,
+			ParticipantID: ev.ParticipantID,
+			LabelID:       *ev.LabelID,
+		})
+	}
+
+	if ev.EventType & EVENT_ASSIGNED_USER != 0 {
+		changes = append(changes, Assignment{
+			EventType:  EventTypeAssignedUser,
+			TicketID:   ev.TicketID,
+			AssigneeID: ev.ParticipantID,
+			AssignerID: *ev.ByParticipantID,
+		})
+	}
+
+	if ev.EventType & EVENT_UNASSIGNED_USER != 0 {
+		changes = append(changes, Assignment{
+			EventType:  EventTypeUnassignedUser,
+			TicketID:   ev.TicketID,
+			AssigneeID: ev.ParticipantID,
+			AssignerID: *ev.ByParticipantID,
+		})
+	}
+
+	if ev.EventType & EVENT_USER_MENTIONED != 0 {
+		changes = append(changes, UserMention{
+			EventType:     EventTypeUserMentioned,
+			TicketID:      ev.TicketID,
+			ParticipantID: *ev.ByParticipantID,
+			MentionedID:   ev.ParticipantID,
+		})
+	}
+
+	if ev.EventType & EVENT_TICKET_MENTIONED != 0 {
+		changes = append(changes, TicketMention{
+			EventType:     EventTypeTicketMentioned,
+			TicketID:      *ev.FromTicketID,
+			ParticipantID: ev.ParticipantID,
+			MentionedID:   ev.TicketID,
 		})
 	}
 

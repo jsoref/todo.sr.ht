@@ -17,6 +17,22 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 )
 
+func (r *assignmentResolver) Ticket(ctx context.Context, obj *model.Assignment) (*model.Ticket, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *assignmentResolver) Entity(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *assignmentResolver) Assigner(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *assignmentResolver) Assignee(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *commentResolver) Ticket(ctx context.Context, obj *model.Comment) (*model.Ticket, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -56,6 +72,18 @@ func (r *eventResolver) Ticket(ctx context.Context, obj *model.Event) (*model.Ti
 }
 
 func (r *eventResolver) Tracker(ctx context.Context, obj *model.Event) (*model.Tracker, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *labelUpdateResolver) Ticket(ctx context.Context, obj *model.LabelUpdate) (*model.Ticket, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *labelUpdateResolver) Entity(ctx context.Context, obj *model.LabelUpdate) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -158,6 +186,18 @@ func (r *statusChangeResolver) Entity(ctx context.Context, obj *model.StatusChan
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *ticketMentionResolver) Entity(ctx context.Context, obj *model.TicketMention) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *ticketMentionResolver) Mentioned(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -178,6 +218,21 @@ func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *co
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *userMentionResolver) Ticket(ctx context.Context, obj *model.UserMention) (*model.Ticket, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userMentionResolver) Entity(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *userMentionResolver) Mentioned(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+// Assignment returns api.AssignmentResolver implementation.
+func (r *Resolver) Assignment() api.AssignmentResolver { return &assignmentResolver{r} }
+
 // Comment returns api.CommentResolver implementation.
 func (r *Resolver) Comment() api.CommentResolver { return &commentResolver{r} }
 
@@ -187,11 +242,17 @@ func (r *Resolver) Created() api.CreatedResolver { return &createdResolver{r} }
 // Event returns api.EventResolver implementation.
 func (r *Resolver) Event() api.EventResolver { return &eventResolver{r} }
 
+// LabelUpdate returns api.LabelUpdateResolver implementation.
+func (r *Resolver) LabelUpdate() api.LabelUpdateResolver { return &labelUpdateResolver{r} }
+
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
 // StatusChange returns api.StatusChangeResolver implementation.
 func (r *Resolver) StatusChange() api.StatusChangeResolver { return &statusChangeResolver{r} }
+
+// TicketMention returns api.TicketMentionResolver implementation.
+func (r *Resolver) TicketMention() api.TicketMentionResolver { return &ticketMentionResolver{r} }
 
 // Tracker returns api.TrackerResolver implementation.
 func (r *Resolver) Tracker() api.TrackerResolver { return &trackerResolver{r} }
@@ -199,10 +260,17 @@ func (r *Resolver) Tracker() api.TrackerResolver { return &trackerResolver{r} }
 // User returns api.UserResolver implementation.
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 
+// UserMention returns api.UserMentionResolver implementation.
+func (r *Resolver) UserMention() api.UserMentionResolver { return &userMentionResolver{r} }
+
+type assignmentResolver struct{ *Resolver }
 type commentResolver struct{ *Resolver }
 type createdResolver struct{ *Resolver }
 type eventResolver struct{ *Resolver }
+type labelUpdateResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type statusChangeResolver struct{ *Resolver }
+type ticketMentionResolver struct{ *Resolver }
 type trackerResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
+type userMentionResolver struct{ *Resolver }

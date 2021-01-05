@@ -32,16 +32,6 @@ type ACLCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type Assignment struct {
-	EventType EventType `json:"eventType"`
-	Ticket    *Ticket   `json:"ticket"`
-	Entity    Entity    `json:"entity"`
-	Assigner  Entity    `json:"assigner"`
-	Assignee  Entity    `json:"assignee"`
-}
-
-func (Assignment) IsEventDetail() {}
-
 type DefaultACL struct {
 	Browse  bool `json:"browse"`
 	Submit  bool `json:"submit"`
@@ -98,15 +88,6 @@ type LabelCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type LabelUpdate struct {
-	EventType EventType `json:"eventType"`
-	Ticket    *Ticket   `json:"ticket"`
-	Entity    Entity    `json:"entity"`
-	Label     *Label    `json:"label"`
-}
-
-func (LabelUpdate) IsEventDetail() {}
-
 type SubscriptionCursor struct {
 	Results []Subscription `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`
@@ -132,15 +113,6 @@ type TicketCursor struct {
 	Results []*Ticket     `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
-
-type TicketMention struct {
-	EventType EventType `json:"eventType"`
-	Ticket    *Ticket   `json:"ticket"`
-	Entity    Entity    `json:"entity"`
-	Mentioned *Ticket   `json:"mentioned"`
-}
-
-func (TicketMention) IsEventDetail() {}
 
 type TicketSubscription struct {
 	ID      int       `json:"id"`
@@ -178,15 +150,6 @@ type TrackerSubscription struct {
 }
 
 func (TrackerSubscription) IsSubscription() {}
-
-type UserMention struct {
-	EventType EventType `json:"eventType"`
-	Ticket    *Ticket   `json:"ticket"`
-	Entity    Entity    `json:"entity"`
-	Mentioned Entity    `json:"mentioned"`
-}
-
-func (UserMention) IsEventDetail() {}
 
 type Version struct {
 	Major           int        `json:"major"`
