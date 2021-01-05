@@ -382,7 +382,7 @@ type Query {
 
   # Returns a specific tracker, owned by the given canonical name (e.g.
   # "~sircmpwn").
-  trackerByOwner(owner: String!, repo: String!): Tracker @access(scope: TRACKERS, kind: RO)
+  trackerByOwner(owner: String!, tracker: String!): Tracker @access(scope: TRACKERS, kind: RO)
 
   # List of events which the authenticated user is subscribed to or implicated
   # in, ordered by the event date (recent events first).

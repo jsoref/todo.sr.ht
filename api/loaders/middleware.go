@@ -27,9 +27,10 @@ type contextKey struct {
 }
 
 type Loaders struct {
-	UsersByName    UsersByNameLoader
-	TrackersByID   TrackersByIDLoader
-	TrackersByName TrackersByNameLoader
+	UsersByName         UsersByNameLoader
+	TrackersByID        TrackersByIDLoader
+	TrackersByName      TrackersByNameLoader
+	TrackersByOwnerName TrackersByOwnerNameLoader
 }
 
 func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, []error) {
@@ -184,6 +185,78 @@ func fetchTrackersByName(ctx context.Context) func(names []string) ([]*model.Tra
 	}
 }
 
+func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*model.Tracker, []error) {
+	return func(tuples [][2]string) ([]*model.Tracker, []error) {
+		trackers := make([]*model.Tracker, len(tuples))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err        error
+				rows       *sql.Rows
+				ownerNames []string = make([]string, len(tuples))
+			)
+			for i, tuple := range tuples {
+				ownerNames[i] = tuple[0] + "/" + tuple[1]
+			}
+			// TODO: Stash the ACL details in case they're useful later?
+			auser := auth.ForContext(ctx)
+			query := database.
+				Select(ctx).
+				Prefix(`WITH user_tracker AS (
+					SELECT
+						substring(un for position('/' in un)-1) AS owner,
+						substring(un from position('/' in un)+1) AS tracker
+					FROM unnest(?::text[]) un)`, pq.Array(ownerNames)).
+				Columns(database.Columns(ctx, (&model.Tracker{}).As(`tr`))...).
+				Columns(`u.username`).
+				Distinct().
+				From(`user_tracker ut`).
+				Join(`"user" u on ut.owner = u.username`).
+				Join(`"tracker" tr ON ut.tracker = tr.name
+					AND u.id = tr.owner_id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				Where(sq.Or{
+					sq.Expr(`tr.owner_id = ?`, auser.UserID),
+					sq.Expr(`tr.default_user_perms > 0`),
+					sq.And{
+						sq.Expr(`ua.user_id = ?`, auser.UserID),
+						sq.Expr(`ua.permissions > 0`),
+					},
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			trackersByOwnerName := map[[2]string]*model.Tracker{}
+			for rows.Next() {
+				var ownerName string
+				tracker := model.Tracker{}
+				if err := rows.Scan(append(
+					database.Scan(ctx, &tracker), &ownerName)...); err != nil {
+					return err
+				}
+				trackersByOwnerName[[2]string{ownerName, tracker.Name}] = &tracker
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, tuple := range tuples {
+				trackers[i] = trackersByOwnerName[tuple]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return trackers, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -201,6 +274,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchTrackersByName(r.Context()),
+			},
+			TrackersByOwnerName: TrackersByOwnerNameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchTrackersByOwnerName(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

@@ -137,7 +137,7 @@ type ComplexityRoot struct {
 		Subscriptions  func(childComplexity int, cursor *model1.Cursor) int
 		Tracker        func(childComplexity int, id int) int
 		TrackerByName  func(childComplexity int, name string) int
-		TrackerByOwner func(childComplexity int, owner string, repo string) int
+		TrackerByOwner func(childComplexity int, owner string, tracker string) int
 		Trackers       func(childComplexity int, cursor *model1.Cursor) int
 		User           func(childComplexity int, username string) int
 		Version        func(childComplexity int) int
@@ -259,7 +259,7 @@ type QueryResolver interface {
 	Trackers(ctx context.Context, cursor *model1.Cursor) (*model.TrackerCursor, error)
 	Tracker(ctx context.Context, id int) (*model.Tracker, error)
 	TrackerByName(ctx context.Context, name string) (*model.Tracker, error)
-	TrackerByOwner(ctx context.Context, owner string, repo string) (*model.Tracker, error)
+	TrackerByOwner(ctx context.Context, owner string, tracker string) (*model.Tracker, error)
 	Events(ctx context.Context, cursor *model1.Cursor) (*model.EventCursor, error)
 	Subscriptions(ctx context.Context, cursor *model1.Cursor) (*model.SubscriptionCursor, error)
 }
@@ -681,7 +681,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Query.TrackerByOwner(childComplexity, args["owner"].(string), args["repo"].(string)), true
+		return e.complexity.Query.TrackerByOwner(childComplexity, args["owner"].(string), args["tracker"].(string)), true
 
 	case "Query.trackers":
 		if e.complexity.Query.Trackers == nil {
@@ -1651,7 +1651,7 @@ type Query {
 
   # Returns a specific tracker, owned by the given canonical name (e.g.
   # "~sircmpwn").
-  trackerByOwner(owner: String!, repo: String!): Tracker @access(scope: TRACKERS, kind: RO)
+  trackerByOwner(owner: String!, tracker: String!): Tracker @access(scope: TRACKERS, kind: RO)
 
   # List of events which the authenticated user is subscribed to or implicated
   # in, ordered by the event date (recent events first).
@@ -1795,14 +1795,14 @@ func (ec *executionContext) field_Query_trackerByOwner_args(ctx context.Context,
 	}
 	args["owner"] = arg0
 	var arg1 string
-	if tmp, ok := rawArgs["repo"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("repo"))
+	if tmp, ok := rawArgs["tracker"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("tracker"))
 		arg1, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["repo"] = arg1
+	args["tracker"] = arg1
 	return args, nil
 }
 
@@ -4083,7 +4083,7 @@ func (ec *executionContext) _Query_trackerByOwner(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Query().TrackerByOwner(rctx, args["owner"].(string), args["repo"].(string))
+			return ec.resolvers.Query().TrackerByOwner(rctx, args["owner"].(string), args["tracker"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")

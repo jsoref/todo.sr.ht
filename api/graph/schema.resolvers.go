@@ -7,6 +7,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/database"
@@ -72,8 +73,13 @@ func (r *queryResolver) TrackerByName(ctx context.Context, name string) (*model.
 	return loaders.ForContext(ctx).TrackersByName.Load(name)
 }
 
-func (r *queryResolver) TrackerByOwner(ctx context.Context, owner string, repo string) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *queryResolver) TrackerByOwner(ctx context.Context, owner string, tracker string) (*model.Tracker, error) {
+	if strings.HasPrefix(owner, "~") {
+		owner = owner[1:]
+	} else {
+		return nil, fmt.Errorf("Expected owner to be a canonical name")
+	}
+	return loaders.ForContext(ctx).TrackersByOwnerName.Load([2]string{owner, tracker})
 }
 
 func (r *queryResolver) Events(ctx context.Context, cursor *coremodel.Cursor) (*model.EventCursor, error) {
