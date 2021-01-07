@@ -101,6 +101,8 @@ def find_mentioned_users(text):
     return participants
 
 def find_mentioned_tickets(tracker, text):
+    if text is None:
+        return set()
     filters = or_()
     matches = chain(
         re.finditer(TICKET_MENTION_PATTERN, text),
