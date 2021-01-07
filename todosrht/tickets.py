@@ -92,6 +92,8 @@ def get_participant_for_external(external_id, external_url):
     return participant
 
 def find_mentioned_users(text):
+    if text is None:
+        return []
     # TODO: Find mentioned email addresses as well
     usernames = re.findall(USER_MENTION_PATTERN, text)
     users = User.query.filter(User.username.in_(usernames)).all()
