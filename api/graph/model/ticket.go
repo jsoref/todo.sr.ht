@@ -91,9 +91,9 @@ func (t *Ticket) Fields() *database.ModelFields {
 }
 
 func (t *Ticket) Select(q sq.SelectBuilder) sq.SelectBuilder {
-	return q.Join(fmt.Sprintf(`tracker on %s = tracker.id`,
+	return q.LeftJoin(fmt.Sprintf(`tracker on %s = tracker.id`,
 			database.WithAlias(t.alias, "tracker_id"))).
-		Join(`"user" on tracker.owner_id = "user".id`)
+		LeftJoin(`"user" on tracker.owner_id = "user".id`)
 }
 
 func (t *Ticket) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
