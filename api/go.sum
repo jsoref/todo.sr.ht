@@ -4,6 +4,8 @@ dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7
 git.sr.ht/~sircmpwn/core-go v0.0.0-20201203133317-52d6dc99ff2d/go.mod h1:LLLvDJIgVgmA/sHl0fzj9UvpFiLi0v8a/aiBc3g22ik=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20201204152724-12996e4a1893 h1:QL10/Nx8PLVtItghzIZyc1DRcI7oMb2523tb1SwkjnQ=
 git.sr.ht/~sircmpwn/core-go v0.0.0-20201204152724-12996e4a1893/go.mod h1:LLLvDJIgVgmA/sHl0fzj9UvpFiLi0v8a/aiBc3g22ik=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20210108160653-070566136c1a h1:IcA4EpKy2wKo08smM79GdCkH+PtuFdti/TQ5/y6mcbo=
+git.sr.ht/~sircmpwn/core-go v0.0.0-20210108160653-070566136c1a/go.mod h1:LLLvDJIgVgmA/sHl0fzj9UvpFiLi0v8a/aiBc3g22ik=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20201013160733-35ca012e4dc8/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20201121170652-c2a771442daf h1:wRE9o+wlpTSuq/ucFJsfbglAobfGPIgFdaTtZXrk8P0=
 git.sr.ht/~sircmpwn/dowork v0.0.0-20201121170652-c2a771442daf/go.mod h1:8neHEO3503w/rNtttnR0JFpQgM/GFhaafVwvkPsFIDw=

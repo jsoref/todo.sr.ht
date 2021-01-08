@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"strconv"
 	"time"
 
@@ -23,6 +24,7 @@ type Ticket struct {
 	PKID         int // global ID
 	TrackerID    int
 	TrackerName  string
+	OwnerName    string
 	SubmitterID  int
 
 	authenticity int
@@ -47,7 +49,7 @@ func (t *Ticket) Table() string {
 }
 
 func (t *Ticket) Ref() string {
-	panic(errors.New("TODO"))
+	return fmt.Sprintf("~%s/%s#%d", t.OwnerName, t.TrackerName, t.ID)
 }
 
 func (t *Ticket) Status() TicketStatus {
@@ -75,6 +77,8 @@ func (t *Ticket) Fields() *database.ModelFields {
 			{ "authenticity", "authenticity", &t.authenticity },
 			{ "status", "status", &t.status },
 			{ "resolution", "resolution", &t.resolution },
+			{ "tracker.name", "ref", &t.TrackerName },
+			{ `"user".username`, "ref", &t.OwnerName },
 
 			// Always fetch:
 			{ "id", "", &t.PKID },
@@ -84,6 +88,12 @@ func (t *Ticket) Fields() *database.ModelFields {
 		},
 	}
 	return t.fields
+}
+
+func (t *Ticket) Select(q sq.SelectBuilder) sq.SelectBuilder {
+	return q.Join(fmt.Sprintf(`tracker on %s = tracker.id`,
+			database.WithAlias(t.alias, "tracker_id"))).
+		Join(`"user" on tracker.owner_id = "user".id`)
 }
 
 func (t *Ticket) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
