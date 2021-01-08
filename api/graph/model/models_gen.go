@@ -93,22 +93,6 @@ type SubscriptionCursor struct {
 	Cursor  *model.Cursor  `json:"cursor"`
 }
 
-type Ticket struct {
-	ID           int              `json:"id"`
-	Created      time.Time        `json:"created"`
-	Updated      time.Time        `json:"updated"`
-	Submitter    Entity           `json:"submitter"`
-	Tracker      *Tracker         `json:"tracker"`
-	Ref          string           `json:"ref"`
-	Title        string           `json:"title"`
-	Description  string           `json:"description"`
-	Status       TicketStatus     `json:"status"`
-	Resolution   TicketResolution `json:"resolution"`
-	Authenticity Authenticity     `json:"authenticity"`
-	Labels       []*Label         `json:"labels"`
-	Assignees    []Entity         `json:"assignees"`
-}
-
 type TicketCursor struct {
 	Results []*Ticket     `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`

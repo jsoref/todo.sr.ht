@@ -45,6 +45,7 @@ type ResolverRoot interface {
 	LabelUpdate() LabelUpdateResolver
 	Query() QueryResolver
 	StatusChange() StatusChangeResolver
+	Ticket() TicketResolver
 	TicketMention() TicketMentionResolver
 	Tracker() TrackerResolver
 	User() UserResolver
@@ -319,6 +320,13 @@ type QueryResolver interface {
 type StatusChangeResolver interface {
 	Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error)
 	Entity(ctx context.Context, obj *model.StatusChange) (model.Entity, error)
+}
+type TicketResolver interface {
+	Submitter(ctx context.Context, obj *model.Ticket) (model.Entity, error)
+	Tracker(ctx context.Context, obj *model.Ticket) (*model.Tracker, error)
+
+	Labels(ctx context.Context, obj *model.Ticket) ([]*model.Label, error)
+	Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error)
 }
 type TicketMentionResolver interface {
 	Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error)
@@ -5270,15 +5278,15 @@ func (ec *executionContext) _Ticket_submitter(ctx context.Context, field graphql
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Submitter, nil
+			return ec.resolvers.Ticket().Submitter(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
@@ -5333,15 +5341,15 @@ func (ec *executionContext) _Ticket_tracker(ctx context.Context, field graphql.C
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Tracker, nil
+			return ec.resolvers.Ticket().Tracker(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
@@ -5396,14 +5404,14 @@ func (ec *executionContext) _Ticket_ref(ctx context.Context, field graphql.Colle
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Ref, nil
+		return obj.Ref(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5501,14 +5509,14 @@ func (ec *executionContext) _Ticket_status(ctx context.Context, field graphql.Co
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Status, nil
+		return obj.Status(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5536,14 +5544,14 @@ func (ec *executionContext) _Ticket_resolution(ctx context.Context, field graphq
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Resolution, nil
+		return obj.Resolution(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5571,14 +5579,14 @@ func (ec *executionContext) _Ticket_authenticity(ctx context.Context, field grap
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Authenticity, nil
+		return obj.Authenticity(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5606,14 +5614,14 @@ func (ec *executionContext) _Ticket_labels(ctx context.Context, field graphql.Co
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Labels, nil
+		return ec.resolvers.Ticket().Labels(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5641,15 +5649,15 @@ func (ec *executionContext) _Ticket_assignees(ctx context.Context, field graphql
 		Object:     "Ticket",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Assignees, nil
+			return ec.resolvers.Ticket().Assignees(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
@@ -9985,68 +9993,104 @@ func (ec *executionContext) _Ticket(ctx context.Context, sel ast.SelectionSet, o
 		case "id":
 			out.Values[i] = ec._Ticket_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._Ticket_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "updated":
 			out.Values[i] = ec._Ticket_updated(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "submitter":
-			out.Values[i] = ec._Ticket_submitter(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Ticket_submitter(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "tracker":
-			out.Values[i] = ec._Ticket_tracker(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Ticket_tracker(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "ref":
 			out.Values[i] = ec._Ticket_ref(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "title":
 			out.Values[i] = ec._Ticket_title(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "description":
 			out.Values[i] = ec._Ticket_description(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "status":
 			out.Values[i] = ec._Ticket_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "resolution":
 			out.Values[i] = ec._Ticket_resolution(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "authenticity":
 			out.Values[i] = ec._Ticket_authenticity(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "labels":
-			out.Values[i] = ec._Ticket_labels(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Ticket_labels(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "assignees":
-			out.Values[i] = ec._Ticket_assignees(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Ticket_assignees(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

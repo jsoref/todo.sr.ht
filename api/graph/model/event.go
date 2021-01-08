@@ -3,7 +3,6 @@ package model
 import (
 	"context"
 	"database/sql"
-	"errors"
 	"strconv"
 	"time"
 
@@ -35,12 +34,6 @@ type Event struct {
 	fields *database.ModelFields
 }
 
-const (
-	AUTH_AUTHENTIC = 0
-	AUTH_UNAUTHENTICATED = 1
-	AUTH_TAMPERED = 2
-)
-
 type Created struct {
 	EventType     EventType `json:"eventType"`
 	TicketID      int
@@ -63,65 +56,6 @@ type Comment struct {
 }
 
 func (Comment) IsEventDetail() {}
-
-const (
-    STATUS_REPORTED = 0
-    STATUS_CONFIRMED = 1
-    STATUS_IN_PROGRESS = 2
-    STATUS_PENDING = 4
-    STATUS_RESOLVED = 8
-)
-
-func intToStatus(status int) TicketStatus {
-	switch (status) {
-	case STATUS_REPORTED:
-		return TicketStatusReported
-	case STATUS_CONFIRMED:
-		return TicketStatusConfirmed
-	case STATUS_IN_PROGRESS:
-		return TicketStatusInProgress
-	case STATUS_PENDING:
-		return TicketStatusPending
-	case STATUS_RESOLVED:
-		return TicketStatusResolved
-	default:
-		panic(errors.New("database invariant broken"))
-	}
-}
-
-const (
-    RESOLVED_UNRESOLVED = 0
-    RESOLVED_FIXED = 1
-    RESOLVED_IMPLEMENTED = 2
-    RESOLVED_WONT_FIX = 4
-    RESOLVED_BY_DESIGN = 8
-    RESOLVED_INVALID = 16
-    RESOLVED_DUPLICATE = 32
-    RESOLVED_NOT_OUR_BUG = 64
-)
-
-func intToResolution(resolution int) TicketResolution {
-	switch (resolution) {
-	case RESOLVED_UNRESOLVED:
-		return TicketResolutionUnresolved
-	case RESOLVED_FIXED:
-		return TicketResolutionFixed
-	case RESOLVED_IMPLEMENTED:
-		return TicketResolutionImplemented
-	case RESOLVED_WONT_FIX:
-		return TicketResolutionWontFix
-	case RESOLVED_BY_DESIGN:
-		return TicketResolutionByDesign
-	case RESOLVED_INVALID:
-		return TicketResolutionInvalid
-	case RESOLVED_DUPLICATE:
-		return TicketResolutionDuplicate
-	case RESOLVED_NOT_OUR_BUG:
-		return TicketResolutionNotOurBug
-	default:
-		panic(errors.New("database invariant broken"))
-	}
-}
 
 type StatusChange struct {
 	EventType     EventType        `json:"eventType"`

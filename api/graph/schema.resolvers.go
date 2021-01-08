@@ -120,7 +120,10 @@ func (r *queryResolver) Trackers(ctx context.Context, cursor *coremodel.Cursor) 
 	}
 
 	var trackers []*model.Tracker
-	if err := database.WithTx(ctx, &sql.TxOptions{}, func(tx *sql.Tx) error {
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
 		tracker := (&model.Tracker{}).As(`tr`)
 		query := database.
 			Select(ctx, tracker).
@@ -186,6 +189,22 @@ func (r *statusChangeResolver) Entity(ctx context.Context, obj *model.StatusChan
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *ticketResolver) Submitter(ctx context.Context, obj *model.Ticket) (model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *ticketResolver) Tracker(ctx context.Context, obj *model.Ticket) (*model.Tracker, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *ticketResolver) Labels(ctx context.Context, obj *model.Ticket) ([]*model.Label, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *ticketResolver) Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -203,7 +222,27 @@ func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.
 }
 
 func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var tickets []*model.Ticket
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		ticket := (&model.Ticket{}).As(`tk`)
+		query := database.
+			Select(ctx, ticket).
+			From(`ticket tk`).
+			Where(`tk.tracker_id = ?`, obj.ID)
+		tickets, cursor = ticket.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.TicketCursor{tickets, cursor}, nil
 }
 
 func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.LabelCursor, error) {
@@ -251,6 +290,9 @@ func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 // StatusChange returns api.StatusChangeResolver implementation.
 func (r *Resolver) StatusChange() api.StatusChangeResolver { return &statusChangeResolver{r} }
 
+// Ticket returns api.TicketResolver implementation.
+func (r *Resolver) Ticket() api.TicketResolver { return &ticketResolver{r} }
+
 // TicketMention returns api.TicketMentionResolver implementation.
 func (r *Resolver) TicketMention() api.TicketMentionResolver { return &ticketMentionResolver{r} }
 
@@ -270,6 +312,7 @@ type eventResolver struct{ *Resolver }
 type labelUpdateResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type statusChangeResolver struct{ *Resolver }
+type ticketResolver struct{ *Resolver }
 type ticketMentionResolver struct{ *Resolver }
 type trackerResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
