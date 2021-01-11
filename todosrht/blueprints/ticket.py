@@ -349,7 +349,7 @@ def ticket_add_label(owner, name, ticket_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
-    if not TicketAccess.edit in access:
+    if not TicketAccess.triage in access:
         abort(401)
 
     valid = Validation(request)
@@ -409,7 +409,7 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
-    if not TicketAccess.edit in access:
+    if not TicketAccess.triage in access:
         abort(401)
     label = Label.query.filter(Label.id==label_id).first()
     if not label:
