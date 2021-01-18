@@ -161,7 +161,10 @@ select.form-control {
 
 .assign {
   &[open] {
-    background: #f5f5f5;
+    background: $gray-300;
+    @media(prefers-color-scheme: dark) {
+      background: $gray-800;
+    }
     padding: 0.5rem;
   }
 }
