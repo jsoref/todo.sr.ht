@@ -22,7 +22,7 @@ def notify(sub, template, subject, headers, **kwargs):
     elif to.participant_type == ParticipantType.user:
         user = to.user
         to = user.email
-        encrypt_key = lookup_key(user.username, user.oauth_token)
+        encrypt_key = lookup_key(user)
     else:
         return
     with open(os.path.join(os.path.dirname(__file__), "emails", template)) as f:
