@@ -18,9 +18,7 @@ from todosrht.webhooks import worker
 our_upstream = get_origin("todo.sr.ht", external=True)
 
 def _parse_date(date):
-    if "+" in date:
-        date = date[:date.index("+")]
-    date = datetime.strptime(date, "%Y-%m-%dT%H:%M:%S")
+    date = datetime.fromisoformat(date)
     date = date.astimezone(timezone.utc).replace(tzinfo=None)
     return date
 
