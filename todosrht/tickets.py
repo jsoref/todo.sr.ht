@@ -222,7 +222,8 @@ def _send_comment_notifications(
     """
     # Find subscribers, eliminate duplicates
     subscriptions = {sub.participant: sub
-        for sub in ticket.tracker.subscriptions + ticket.subscriptions}
+        for sub in ticket.tracker.subscriptions + ticket.subscriptions
+        if sub.participant}
 
     # Subscribe commenter if not already subscribed
     if participant not in subscriptions:

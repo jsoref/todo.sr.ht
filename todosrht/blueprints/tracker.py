@@ -206,7 +206,7 @@ def tracker_submit_POST(owner, name):
         return return_tracker(tracker, access, **valid.kwargs), 400
 
     if "preview" in request.form:
-        preview = render_markup(tracker, desc)
+        preview = render_markup(tracker, desc or "")
         return return_tracker(tracker, access,
                 rendered_preview=preview, **valid.kwargs), 200
 
