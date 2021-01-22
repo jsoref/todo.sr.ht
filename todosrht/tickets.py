@@ -222,13 +222,13 @@ def _send_comment_notifications(
     """
     # Find subscribers, eliminate duplicates
     subscriptions = {sub.participant: sub
-        for sub in ticket.tracker.subscriptions + ticket.subscriptions
-        if sub.participant}
+        for sub in ticket.tracker.subscriptions + ticket.subscriptions}
 
     # Subscribe commenter if not already subscribed
     if participant not in subscriptions:
         subscription = TicketSubscription()
         subscription.ticket_id = ticket.id
+        subscription.participant = participant
         subscription.participant_id = participant.id
         db.session.add(subscription)
         subscriptions[participant] = subscription
