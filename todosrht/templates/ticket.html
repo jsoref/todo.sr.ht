@@ -200,13 +200,13 @@
         <dt class="col-md-3">Labels</dt>
         <dd id="labels-field" class="col-md-9">
           {% for label in ticket.labels %}
-            {% if TicketAccess.edit in access %}
+            {% if TicketAccess.triage in access %}
               {{ label|label_badge(remove_from_ticket=ticket) }}
             {% else %}
               {{ label|label_badge }}
             {% endif %}
           {% else %}
-            {% if TicketAccess.edit in access
+            {% if TicketAccess.triage in access
                and tracker.labels|count == 0 %}
                 No labels defined.
                 {% if current_user and current_user.id == tracker.owner_id %}
@@ -220,7 +220,7 @@
           {% endfor %}
         </dd>
 
-        {% if TicketAccess.edit in access
+        {% if TicketAccess.triage in access
            and tracker.labels|count > ticket.labels|count %}
         <dd class="col-md-9 offset-md-3">
           <form method="POST" action="{{ ticket|label_add_url }}">
