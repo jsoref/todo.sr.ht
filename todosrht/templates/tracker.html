@@ -176,7 +176,7 @@
         <input
           name="search"
           type="text"
-          placeholder="Search tickets...     status:closed     label:label     order:updated{{"     submitter:me" if current_user else ""}}"
+          placeholder="Search tickets...     status:closed     label:label{{"     submitter:me" if current_user else ""}}"
           class="form-control{% if search_error %} is-invalid{% endif %}"
           {% if not another %}
           autofocus
