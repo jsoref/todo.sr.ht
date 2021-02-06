@@ -102,8 +102,6 @@ type ComplexityRoot struct {
 
 	EmailAddress struct {
 		CanonicalName func(childComplexity int) int
-		Created       func(childComplexity int) int
-		ID            func(childComplexity int) int
 		Mailbox       func(childComplexity int) int
 		Name          func(childComplexity int) int
 	}
@@ -124,10 +122,8 @@ type ComplexityRoot struct {
 
 	ExternalUser struct {
 		CanonicalName func(childComplexity int) int
-		Created       func(childComplexity int) int
 		ExternalID    func(childComplexity int) int
 		ExternalURL   func(childComplexity int) int
-		ID            func(childComplexity int) int
 	}
 
 	Label struct {
@@ -539,20 +535,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.EmailAddress.CanonicalName(childComplexity), true
 
-	case "EmailAddress.created":
-		if e.complexity.EmailAddress.Created == nil {
-			break
-		}
-
-		return e.complexity.EmailAddress.Created(childComplexity), true
-
-	case "EmailAddress.id":
-		if e.complexity.EmailAddress.ID == nil {
-			break
-		}
-
-		return e.complexity.EmailAddress.ID(childComplexity), true
-
 	case "EmailAddress.mailbox":
 		if e.complexity.EmailAddress.Mailbox == nil {
 			break
@@ -630,13 +612,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.ExternalUser.CanonicalName(childComplexity), true
 
-	case "ExternalUser.created":
-		if e.complexity.ExternalUser.Created == nil {
-			break
-		}
-
-		return e.complexity.ExternalUser.Created(childComplexity), true
-
 	case "ExternalUser.externalId":
 		if e.complexity.ExternalUser.ExternalID == nil {
 			break
@@ -650,13 +625,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.ExternalUser.ExternalURL(childComplexity), true
-
-	case "ExternalUser.id":
-		if e.complexity.ExternalUser.ID == nil {
-			break
-		}
-
-		return e.complexity.ExternalUser.ID(childComplexity), true
 
 	case "Label.backgroundColor":
 		if e.complexity.Label.BackgroundColor == nil {
@@ -1486,8 +1454,6 @@ type Version {
 }
 
 interface Entity {
-  id: Int!
-  created: Time!
   canonicalName: String!
 }
 
@@ -1506,19 +1472,15 @@ type User implements Entity {
 }
 
 type EmailAddress implements Entity {
-  id: Int!
-  created: Time!
   canonicalName: String!
 
   # "jdoe@example.org" of "Jane Doe <jdoe@example.org>"
   mailbox: String!
   # "Jane Doe" of "Jane Doe <jdoe@example.org>"
-  name: String!
+  name: String
 }
 
 type ExternalUser implements Entity {
-  id: Int!
-  created: Time!
   canonicalName: String!
 
   # <service>:<service specific details...>
@@ -2989,76 +2951,6 @@ func (ec *executionContext) _DefaultACLs_logged_in(ctx context.Context, field gr
 	return ec.marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _EmailAddress_id(ctx context.Context, field graphql.CollectedField, obj *model.EmailAddress) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "EmailAddress",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _EmailAddress_created(ctx context.Context, field graphql.CollectedField, obj *model.EmailAddress) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "EmailAddress",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Created, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _EmailAddress_canonicalName(ctx context.Context, field graphql.CollectedField, obj *model.EmailAddress) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3070,14 +2962,14 @@ func (ec *executionContext) _EmailAddress_canonicalName(ctx context.Context, fie
 		Object:     "EmailAddress",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CanonicalName, nil
+		return obj.CanonicalName(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3154,14 +3046,11 @@ func (ec *executionContext) _EmailAddress_name(ctx context.Context, field graphq
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Event_id(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
@@ -3525,76 +3414,6 @@ func (ec *executionContext) _EventCursor_cursor(ctx context.Context, field graph
 	return ec.marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _ExternalUser_id(ctx context.Context, field graphql.CollectedField, obj *model.ExternalUser) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ExternalUser",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.ID, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(int)
-	fc.Result = res
-	return ec.marshalNInt2int(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _ExternalUser_created(ctx context.Context, field graphql.CollectedField, obj *model.ExternalUser) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "ExternalUser",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Created, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(time.Time)
-	fc.Result = res
-	return ec.marshalNTime2timeᚐTime(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _ExternalUser_canonicalName(ctx context.Context, field graphql.CollectedField, obj *model.ExternalUser) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3606,14 +3425,14 @@ func (ec *executionContext) _ExternalUser_canonicalName(ctx context.Context, fie
 		Object:     "ExternalUser",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
+		IsMethod:   true,
 		IsResolver: false,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.CanonicalName, nil
+		return obj.CanonicalName(), nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9397,16 +9216,6 @@ func (ec *executionContext) _EmailAddress(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("EmailAddress")
-		case "id":
-			out.Values[i] = ec._EmailAddress_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "created":
-			out.Values[i] = ec._EmailAddress_created(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "canonicalName":
 			out.Values[i] = ec._EmailAddress_canonicalName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -9419,9 +9228,6 @@ func (ec *executionContext) _EmailAddress(ctx context.Context, sel ast.Selection
 			}
 		case "name":
 			out.Values[i] = ec._EmailAddress_name(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9552,16 +9358,6 @@ func (ec *executionContext) _ExternalUser(ctx context.Context, sel ast.Selection
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("ExternalUser")
-		case "id":
-			out.Values[i] = ec._ExternalUser_id(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "created":
-			out.Values[i] = ec._ExternalUser_created(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
 		case "canonicalName":
 			out.Values[i] = ec._ExternalUser_canonicalName(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

@@ -48,30 +48,10 @@ type DefaultACLs struct {
 	LoggedIn  ACL `json:"logged_in"`
 }
 
-type EmailAddress struct {
-	ID            int       `json:"id"`
-	Created       time.Time `json:"created"`
-	CanonicalName string    `json:"canonicalName"`
-	Mailbox       string    `json:"mailbox"`
-	Name          string    `json:"name"`
-}
-
-func (EmailAddress) IsEntity() {}
-
 type EventCursor struct {
 	Results []*Event      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
-
-type ExternalUser struct {
-	ID            int       `json:"id"`
-	Created       time.Time `json:"created"`
-	CanonicalName string    `json:"canonicalName"`
-	ExternalID    string    `json:"externalId"`
-	ExternalURL   *string   `json:"externalUrl"`
-}
-
-func (ExternalUser) IsEntity() {}
 
 type Label struct {
 	ID              int           `json:"id"`

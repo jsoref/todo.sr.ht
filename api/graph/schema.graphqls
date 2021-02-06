@@ -37,8 +37,6 @@ type Version {
 }
 
 interface Entity {
-  id: Int!
-  created: Time!
   canonicalName: String!
 }
 
@@ -57,19 +55,15 @@ type User implements Entity {
 }
 
 type EmailAddress implements Entity {
-  id: Int!
-  created: Time!
   canonicalName: String!
 
   # "jdoe@example.org" of "Jane Doe <jdoe@example.org>"
   mailbox: String!
   # "Jane Doe" of "Jane Doe <jdoe@example.org>"
-  name: String!
+  name: String
 }
 
 type ExternalUser implements Entity {
-  id: Int!
-  created: Time!
   canonicalName: String!
 
   # <service>:<service specific details...>

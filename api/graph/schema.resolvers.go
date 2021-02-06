@@ -190,7 +190,7 @@ func (r *statusChangeResolver) Entity(ctx context.Context, obj *model.StatusChan
 }
 
 func (r *ticketResolver) Submitter(ctx context.Context, obj *model.Ticket) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.SubmitterID)
 }
 
 func (r *ticketResolver) Tracker(ctx context.Context, obj *model.Ticket) (*model.Tracker, error) {

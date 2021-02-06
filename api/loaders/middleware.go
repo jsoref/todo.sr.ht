@@ -6,11 +6,13 @@ package loaders
 //go:generate ./gen TrackersByOwnerNameLoader [2]string api/graph/model.Tracker
 //go:generate ./gen CommentsByIDLoader int api/graph/model.Comment
 //go:generate ./gen TicketsByIDLoader int api/graph/model.Ticket
+//go:generate go run github.com/vektah/dataloaden ParticipantsByIDLoader int git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Entity
 
 import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -34,6 +36,7 @@ type Loaders struct {
 	TrackersByName      TrackersByNameLoader
 	TrackersByOwnerName TrackersByOwnerNameLoader
 	CommentsByID        CommentsByIDLoader
+	ParticipantsByID    ParticipantsByIDLoader
 }
 
 func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, []error) {
@@ -319,6 +322,99 @@ func fetchCommentsByID(ctx context.Context) func(ids []int) ([]*model.Comment, [
 	}
 }
 
+func fetchParticipantsByID(ctx context.Context) func(ids []int) ([]model.Entity, []error) {
+	return func(ids []int) ([]model.Entity, []error) {
+		entities := make([]model.Entity, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			if rows, err = tx.QueryContext(ctx, `
+					SELECT
+						participant.id,
+						participant_type,
+
+						-- User fields:
+						COALESCE("user".id, 0),
+						COALESCE("user".created, now() at time zone 'utc'),
+						COALESCE("user".updated, now() at time zone 'utc'),
+						COALESCE("user".username, ''),
+						COALESCE("user".email, ''),
+						"user".url, "user".location, "user".bio,
+
+						-- Email fields:
+						COALESCE(participant.email, ''),
+						participant.email_name,
+
+						-- External user fields:
+						COALESCE(participant.external_id, ''),
+						participant.external_url
+					FROM participant
+					LEFT JOIN "user" on participant.user_id = "user".id
+					WHERE participant.id = ANY($1)
+			`, pq.Array(ids)); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			entitiesByID := map[int]model.Entity{}
+			for rows.Next() {
+				var (
+					pid    int
+					ptype  string
+					entity model.Entity
+					email  model.EmailAddress
+					ext    model.ExternalUser
+					user   model.User
+				)
+
+				if err := rows.Scan(&pid, &ptype, &user.ID, &user.Created,
+					&user.Updated, &user.Username, &user.Email, &user.URL,
+					&user.Location, &user.Bio, &email.Mailbox, &email.Name,
+					&ext.ExternalID, &ext.ExternalURL); err != nil {
+
+					if err == sql.ErrNoRows {
+						return nil
+					} else {
+						return err
+					}
+				}
+
+				switch (ptype) {
+				case "user":
+					entity = &user
+				case "email":
+					entity = &email
+				case "external":
+					entity = &ext
+				default:
+					panic(fmt.Errorf("Database invariant broken; invalid participant type for ID %d", pid))
+				}
+
+				entitiesByID[pid] = entity
+			}
+
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				entities[i] = entitiesByID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return entities, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -346,6 +442,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchCommentsByID(r.Context()),
+			},
+			ParticipantsByID: ParticipantsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchParticipantsByID(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)
