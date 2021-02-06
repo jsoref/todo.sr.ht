@@ -194,7 +194,7 @@ func (r *ticketResolver) Submitter(ctx context.Context, obj *model.Ticket) (mode
 }
 
 func (r *ticketResolver) Tracker(ctx context.Context, obj *model.Ticket) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
 }
 
 func (r *ticketResolver) Labels(ctx context.Context, obj *model.Ticket) ([]*model.Label, error) {
