@@ -26,11 +26,11 @@ func (r *assignmentResolver) Entity(ctx context.Context, obj *model.Assignment) 
 }
 
 func (r *assignmentResolver) Assigner(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.AssignerID)
 }
 
 func (r *assignmentResolver) Assignee(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.AssigneeID)
 }
 
 func (r *commentResolver) Ticket(ctx context.Context, obj *model.Comment) (*model.Ticket, error) {
