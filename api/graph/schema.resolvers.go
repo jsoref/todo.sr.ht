@@ -237,6 +237,27 @@ func (r *ticketResolver) Assignees(ctx context.Context, obj *model.Ticket) ([]mo
 	return entities, nil
 }
 
+func (r *ticketResolver) Events(ctx context.Context, obj *model.Ticket, cursor *coremodel.Cursor) (*model.EventCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var events []*model.Event
+	if err := database.WithTx(ctx, &sql.TxOptions{}, func(tx *sql.Tx) error {
+		event := (&model.Event{}).As(`ev`)
+		query := database.
+			Select(ctx, event).
+			From(`event ev`).
+			Where(`ev.ticket_id = ?`, obj.PKID)
+		events, cursor = event.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.EventCursor{events, cursor}, nil
+}
+
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
 	panic(fmt.Errorf("not implemented"))
 }

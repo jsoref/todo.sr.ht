@@ -180,6 +180,7 @@ type ComplexityRoot struct {
 		Authenticity func(childComplexity int) int
 		Created      func(childComplexity int) int
 		Description  func(childComplexity int) int
+		Events       func(childComplexity int, cursor *model1.Cursor) int
 		ID           func(childComplexity int) int
 		Labels       func(childComplexity int) int
 		Ref          func(childComplexity int) int
@@ -323,6 +324,7 @@ type TicketResolver interface {
 
 	Labels(ctx context.Context, obj *model.Ticket) ([]*model.Label, error)
 	Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error)
+	Events(ctx context.Context, obj *model.Ticket, cursor *model1.Cursor) (*model.EventCursor, error)
 }
 type TicketMentionResolver interface {
 	Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error)
@@ -910,6 +912,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Ticket.Description(childComplexity), true
+
+	case "Ticket.events":
+		if e.complexity.Ticket.Events == nil {
+			break
+		}
+
+		args, err := ec.field_Ticket_events_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Ticket.Events(childComplexity, args["cursor"].(*model1.Cursor)), true
 
 	case "Ticket.id":
 		if e.complexity.Ticket.ID == nil {
@@ -1555,6 +1569,7 @@ type Ticket {
 
   labels: [Label]!
   assignees: [Entity]! @access(scope: PROFILE, kind: RO)
+  events(cursor: Cursor): EventCursor! @access(scope: EVENTS, kind: RO)
 }
 
 interface ACL {
@@ -2016,6 +2031,21 @@ func (ec *executionContext) field_Query_user_args(ctx context.Context, rawArgs m
 		}
 	}
 	args["username"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Ticket_events_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 *model1.Cursor
+	if tmp, ok := rawArgs["cursor"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("cursor"))
+		arg0, err = ec.unmarshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcoreᚑgoᚋmodelᚐCursor(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["cursor"] = arg0
 	return args, nil
 }
 
@@ -5518,6 +5548,76 @@ func (ec *executionContext) _Ticket_assignees(ctx context.Context, field graphql
 	res := resTmp.([]model.Entity)
 	fc.Result = res
 	return ec.marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Ticket_events(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Ticket",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Ticket_events_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Ticket().Events(rctx, obj, args["cursor"].(*model1.Cursor))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "EVENTS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.EventCursor); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.EventCursor`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.EventCursor)
+	fc.Result = res
+	return ec.marshalNEventCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventCursor(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TicketCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.TicketCursor) (ret graphql.Marshaler) {
@@ -9887,6 +9987,20 @@ func (ec *executionContext) _Ticket(ctx context.Context, sel ast.SelectionSet, o
 				}
 				return res
 			})
+		case "events":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Ticket_events(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10891,6 +11005,20 @@ func (ec *executionContext) marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtod
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) marshalNEventCursor2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventCursor(ctx context.Context, sel ast.SelectionSet, v model.EventCursor) graphql.Marshaler {
+	return ec._EventCursor(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNEventCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventCursor(ctx context.Context, sel ast.SelectionSet, v *model.EventCursor) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._EventCursor(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx context.Context, sel ast.SelectionSet, v []model.EventDetail) graphql.Marshaler {

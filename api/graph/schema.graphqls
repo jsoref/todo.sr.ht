@@ -138,6 +138,7 @@ type Ticket {
 
   labels: [Label]!
   assignees: [Entity]! @access(scope: PROFILE, kind: RO)
+  events(cursor: Cursor): EventCursor! @access(scope: EVENTS, kind: RO)
 }
 
 interface ACL {
