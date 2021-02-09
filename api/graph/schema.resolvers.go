@@ -202,7 +202,39 @@ func (r *ticketResolver) Labels(ctx context.Context, obj *model.Ticket) ([]*mode
 }
 
 func (r *ticketResolver) Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	var entities []model.Entity
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		var (
+			err  error
+			rows *sql.Rows
+		)
+		user := (&model.User{}).As(`u`)
+		query := database.
+			Select(ctx, user).
+			From(`ticket_assignee ta`).
+			Join(`"user" u ON ta.assignee_id = u.id`).
+			Where(`ta.ticket_id = ?`, obj.PKID)
+		if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var user model.User
+			if err := rows.Scan(database.Scan(ctx, &user)...); err != nil {
+				panic(err)
+			}
+			entities = append(entities, &user)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return entities, nil
 }
 
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
