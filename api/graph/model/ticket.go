@@ -19,7 +19,7 @@ type Ticket struct {
 	Created      time.Time `json:"created"`
 	Updated      time.Time `json:"updated"`
 	Title        string    `json:"title"`
-	Description  string    `json:"description"`
+	Description  *string   `json:"description"`
 
 	PKID         int // global ID
 	TrackerID    int

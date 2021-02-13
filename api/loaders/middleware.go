@@ -1,5 +1,6 @@
 package loaders
 
+//go:generate ./gen UsersByIDLoader int api/graph/model.User
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen TrackersByIDLoader int api/graph/model.Tracker
 //go:generate ./gen TrackersByNameLoader string api/graph/model.Tracker
@@ -31,12 +32,59 @@ type contextKey struct {
 }
 
 type Loaders struct {
+	UsersByID           UsersByIDLoader
 	UsersByName         UsersByNameLoader
 	TrackersByID        TrackersByIDLoader
 	TrackersByName      TrackersByNameLoader
 	TrackersByOwnerName TrackersByOwnerNameLoader
+	TicketsByID         TicketsByIDLoader
 	CommentsByID        CommentsByIDLoader
 	ParticipantsByID    ParticipantsByIDLoader
+}
+
+func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
+	return func(ids []int) ([]*model.User, []error) {
+		users := make([]*model.User, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.User{}).As(`u`)).
+				From(`"user" u`).
+				Where(sq.Expr(`u.id = ANY(?)`, pq.Array(ids)))
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			usersByID := map[int]*model.User{}
+			for rows.Next() {
+				user := model.User{}
+				if err := rows.Scan(database.Scan(ctx, &user)...); err != nil {
+					return err
+				}
+				usersByID[user.ID] = &user
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				users[i] = usersByID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return users, nil
+	}
 }
 
 func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, []error) {
@@ -263,6 +311,65 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 	}
 }
 
+func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []error) {
+	return func(ids []int) ([]*model.Ticket, []error) {
+		tickets := make([]*model.Ticket, len(ids))
+
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			auser := auth.ForContext(ctx)
+			query := database.
+				Select(ctx, (&model.Ticket{}).As(`ti`)).
+				From(`"ticket" ti`).
+				Join(`"tracker" tr ON tr.id = ti.tracker_id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				Where(sq.And{
+					sq.Expr(`ti.id = ANY(?)`, pq.Array(ids)),
+					sq.Or{
+						sq.Expr(`tr.owner_id = ?`, auser.UserID),
+						sq.Expr(`tr.default_user_perms > 0`),
+						sq.And{
+							sq.Expr(`ua.user_id = ?`, auser.UserID),
+							sq.Expr(`ua.permissions > 0`),
+						},
+					},
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			ticketsByID := map[int]*model.Ticket{}
+			for rows.Next() {
+				ticket := model.Ticket{}
+				if err := rows.Scan(database.Scan(ctx, &ticket)...); err != nil {
+					return err
+				}
+				ticketsByID[ticket.PKID] = &ticket
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				tickets[i] = ticketsByID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return tickets, nil
+	}
+}
+
 // NOTICE: This does not do any ACL checks.
 func fetchCommentsByID(ctx context.Context) func(ids []int) ([]*model.Comment, []error) {
 	return func(ids []int) ([]*model.Comment, []error) {
@@ -418,6 +525,11 @@ func fetchParticipantsByID(ctx context.Context) func(ids []int) ([]model.Entity,
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
+			UsersByID: UsersByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchUsersByID(r.Context()),
+			},
 			UsersByName: UsersByNameLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
@@ -437,6 +549,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchTrackersByOwnerName(r.Context()),
+			},
+			TicketsByID: TicketsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchTicketsByID(r.Context()),
 			},
 			CommentsByID: CommentsByIDLoader{
 				maxBatch: 100,

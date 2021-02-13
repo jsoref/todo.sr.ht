@@ -66,14 +66,13 @@ type ComplexityRoot struct {
 	Assignment struct {
 		Assignee  func(childComplexity int) int
 		Assigner  func(childComplexity int) int
-		Entity    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Ticket    func(childComplexity int) int
 	}
 
 	Comment struct {
 		Authenticity  func(childComplexity int) int
-		Entity        func(childComplexity int) int
+		Author        func(childComplexity int) int
 		EventType     func(childComplexity int) int
 		SuperceededBy func(childComplexity int) int
 		Text          func(childComplexity int) int
@@ -81,7 +80,7 @@ type ComplexityRoot struct {
 	}
 
 	Created struct {
-		Entity    func(childComplexity int) int
+		Author    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Ticket    func(childComplexity int) int
 	}
@@ -109,10 +108,8 @@ type ComplexityRoot struct {
 	Event struct {
 		Changes func(childComplexity int) int
 		Created func(childComplexity int) int
-		Entity  func(childComplexity int) int
 		ID      func(childComplexity int) int
 		Ticket  func(childComplexity int) int
-		Tracker func(childComplexity int) int
 	}
 
 	EventCursor struct {
@@ -142,9 +139,9 @@ type ComplexityRoot struct {
 	}
 
 	LabelUpdate struct {
-		Entity    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Label     func(childComplexity int) int
+		Labeler   func(childComplexity int) int
 		Ticket    func(childComplexity int) int
 	}
 
@@ -161,7 +158,7 @@ type ComplexityRoot struct {
 	}
 
 	StatusChange struct {
-		Entity        func(childComplexity int) int
+		Editor        func(childComplexity int) int
 		EventType     func(childComplexity int) int
 		NewResolution func(childComplexity int) int
 		NewStatus     func(childComplexity int) int
@@ -198,7 +195,7 @@ type ComplexityRoot struct {
 	}
 
 	TicketMention struct {
-		Entity    func(childComplexity int) int
+		Author    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Mentioned func(childComplexity int) int
 		Ticket    func(childComplexity int) int
@@ -262,7 +259,7 @@ type ComplexityRoot struct {
 	}
 
 	UserMention struct {
-		Entity    func(childComplexity int) int
+		Author    func(childComplexity int) int
 		EventType func(childComplexity int) int
 		Mentioned func(childComplexity int) int
 		Ticket    func(childComplexity int) int
@@ -278,29 +275,26 @@ type ComplexityRoot struct {
 
 type AssignmentResolver interface {
 	Ticket(ctx context.Context, obj *model.Assignment) (*model.Ticket, error)
-	Entity(ctx context.Context, obj *model.Assignment) (model.Entity, error)
 	Assigner(ctx context.Context, obj *model.Assignment) (model.Entity, error)
 	Assignee(ctx context.Context, obj *model.Assignment) (model.Entity, error)
 }
 type CommentResolver interface {
 	Ticket(ctx context.Context, obj *model.Comment) (*model.Ticket, error)
-	Entity(ctx context.Context, obj *model.Comment) (model.Entity, error)
+	Author(ctx context.Context, obj *model.Comment) (model.Entity, error)
 	Text(ctx context.Context, obj *model.Comment) (string, error)
 	Authenticity(ctx context.Context, obj *model.Comment) (model.Authenticity, error)
 	SuperceededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error)
 }
 type CreatedResolver interface {
 	Ticket(ctx context.Context, obj *model.Created) (*model.Ticket, error)
-	Entity(ctx context.Context, obj *model.Created) (model.Entity, error)
+	Author(ctx context.Context, obj *model.Created) (model.Entity, error)
 }
 type EventResolver interface {
-	Entity(ctx context.Context, obj *model.Event) (model.Entity, error)
 	Ticket(ctx context.Context, obj *model.Event) (*model.Ticket, error)
-	Tracker(ctx context.Context, obj *model.Event) (*model.Tracker, error)
 }
 type LabelUpdateResolver interface {
 	Ticket(ctx context.Context, obj *model.LabelUpdate) (*model.Ticket, error)
-	Entity(ctx context.Context, obj *model.LabelUpdate) (model.Entity, error)
+	Labeler(ctx context.Context, obj *model.LabelUpdate) (model.Entity, error)
 	Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error)
 }
 type QueryResolver interface {
@@ -316,7 +310,7 @@ type QueryResolver interface {
 }
 type StatusChangeResolver interface {
 	Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error)
-	Entity(ctx context.Context, obj *model.StatusChange) (model.Entity, error)
+	Editor(ctx context.Context, obj *model.StatusChange) (model.Entity, error)
 }
 type TicketResolver interface {
 	Submitter(ctx context.Context, obj *model.Ticket) (model.Entity, error)
@@ -328,7 +322,7 @@ type TicketResolver interface {
 }
 type TicketMentionResolver interface {
 	Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error)
-	Entity(ctx context.Context, obj *model.TicketMention) (model.Entity, error)
+	Author(ctx context.Context, obj *model.TicketMention) (model.Entity, error)
 	Mentioned(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error)
 }
 type TrackerResolver interface {
@@ -343,7 +337,7 @@ type UserResolver interface {
 }
 type UserMentionResolver interface {
 	Ticket(ctx context.Context, obj *model.UserMention) (*model.Ticket, error)
-	Entity(ctx context.Context, obj *model.UserMention) (model.Entity, error)
+	Author(ctx context.Context, obj *model.UserMention) (model.Entity, error)
 	Mentioned(ctx context.Context, obj *model.UserMention) (model.Entity, error)
 }
 
@@ -390,13 +384,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Assignment.Assigner(childComplexity), true
 
-	case "Assignment.entity":
-		if e.complexity.Assignment.Entity == nil {
-			break
-		}
-
-		return e.complexity.Assignment.Entity(childComplexity), true
-
 	case "Assignment.eventType":
 		if e.complexity.Assignment.EventType == nil {
 			break
@@ -418,12 +405,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Comment.Authenticity(childComplexity), true
 
-	case "Comment.entity":
-		if e.complexity.Comment.Entity == nil {
+	case "Comment.author":
+		if e.complexity.Comment.Author == nil {
 			break
 		}
 
-		return e.complexity.Comment.Entity(childComplexity), true
+		return e.complexity.Comment.Author(childComplexity), true
 
 	case "Comment.eventType":
 		if e.complexity.Comment.EventType == nil {
@@ -453,12 +440,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Comment.Ticket(childComplexity), true
 
-	case "Created.entity":
-		if e.complexity.Created.Entity == nil {
+	case "Created.author":
+		if e.complexity.Created.Author == nil {
 			break
 		}
 
-		return e.complexity.Created.Entity(childComplexity), true
+		return e.complexity.Created.Author(childComplexity), true
 
 	case "Created.eventType":
 		if e.complexity.Created.EventType == nil {
@@ -565,13 +552,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Event.Created(childComplexity), true
 
-	case "Event.entity":
-		if e.complexity.Event.Entity == nil {
-			break
-		}
-
-		return e.complexity.Event.Entity(childComplexity), true
-
 	case "Event.id":
 		if e.complexity.Event.ID == nil {
 			break
@@ -585,13 +565,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Event.Ticket(childComplexity), true
-
-	case "Event.tracker":
-		if e.complexity.Event.Tracker == nil {
-			break
-		}
-
-		return e.complexity.Event.Tracker(childComplexity), true
 
 	case "EventCursor.cursor":
 		if e.complexity.EventCursor.Cursor == nil {
@@ -696,13 +669,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.LabelCursor.Results(childComplexity), true
 
-	case "LabelUpdate.entity":
-		if e.complexity.LabelUpdate.Entity == nil {
-			break
-		}
-
-		return e.complexity.LabelUpdate.Entity(childComplexity), true
-
 	case "LabelUpdate.eventType":
 		if e.complexity.LabelUpdate.EventType == nil {
 			break
@@ -716,6 +682,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.LabelUpdate.Label(childComplexity), true
+
+	case "LabelUpdate.labeler":
+		if e.complexity.LabelUpdate.Labeler == nil {
+			break
+		}
+
+		return e.complexity.LabelUpdate.Labeler(childComplexity), true
 
 	case "LabelUpdate.ticket":
 		if e.complexity.LabelUpdate.Ticket == nil {
@@ -822,12 +795,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Query.Version(childComplexity), true
 
-	case "StatusChange.entity":
-		if e.complexity.StatusChange.Entity == nil {
+	case "StatusChange.editor":
+		if e.complexity.StatusChange.Editor == nil {
 			break
 		}
 
-		return e.complexity.StatusChange.Entity(childComplexity), true
+		return e.complexity.StatusChange.Editor(childComplexity), true
 
 	case "StatusChange.eventType":
 		if e.complexity.StatusChange.EventType == nil {
@@ -1002,12 +975,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.TicketCursor.Results(childComplexity), true
 
-	case "TicketMention.entity":
-		if e.complexity.TicketMention.Entity == nil {
+	case "TicketMention.author":
+		if e.complexity.TicketMention.Author == nil {
 			break
 		}
 
-		return e.complexity.TicketMention.Entity(childComplexity), true
+		return e.complexity.TicketMention.Author(childComplexity), true
 
 	case "TicketMention.eventType":
 		if e.complexity.TicketMention.EventType == nil {
@@ -1323,12 +1296,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.User.Username(childComplexity), true
 
-	case "UserMention.entity":
-		if e.complexity.UserMention.Entity == nil {
+	case "UserMention.author":
+		if e.complexity.UserMention.Author == nil {
 			break
 		}
 
-		return e.complexity.UserMention.Entity(childComplexity), true
+		return e.complexity.UserMention.Author(childComplexity), true
 
 	case "UserMention.eventType":
 		if e.complexity.UserMention.EventType == nil {
@@ -1562,7 +1535,7 @@ type Ticket {
   ref: String!
 
   title: String!
-  description: String!
+  description: String
   status: TicketStatus!
   resolution: TicketResolution!
   authenticity: Authenticity!
@@ -1652,27 +1625,23 @@ type Event {
   created: Time!
   changes: [EventDetail]!
 
-  entity: Entity! @access(scope: PROFILE, kind: RO)
   ticket: Ticket! @access(scope: TICKETS, kind: RO)
-  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
 }
 
 interface EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
 }
 
 type Created implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
+  author: Entity!
 }
 
 type Assignment implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
 
   assigner: Entity!
   assignee: Entity!
@@ -1681,7 +1650,7 @@ type Assignment implements EventDetail {
 type Comment implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
+  author: Entity!
 
   text: String!
   authenticity: Authenticity!
@@ -1693,15 +1662,14 @@ type Comment implements EventDetail {
 type LabelUpdate implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
-
+  labeler: Entity!
   label: Label!
 }
 
 type StatusChange implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
+  editor: Entity!
 
   oldStatus: TicketStatus!
   newStatus: TicketStatus!
@@ -1712,16 +1680,14 @@ type StatusChange implements EventDetail {
 type UserMention implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
-
+  author: Entity!
   mentioned: Entity!
 }
 
 type TicketMention implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
-
+  author: Entity!
   mentioned: Ticket!
 }
 
@@ -2284,41 +2250,6 @@ func (ec *executionContext) _Assignment_ticket(ctx context.Context, field graphq
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Assignment_entity(ctx context.Context, field graphql.CollectedField, obj *model.Assignment) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Assignment",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Assignment().Entity(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Entity)
-	fc.Result = res
-	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Assignment_assigner(ctx context.Context, field graphql.CollectedField, obj *model.Assignment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -2459,7 +2390,7 @@ func (ec *executionContext) _Comment_ticket(ctx context.Context, field graphql.C
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_entity(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_author(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2477,7 +2408,7 @@ func (ec *executionContext) _Comment_entity(ctx context.Context, field graphql.C
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Comment().Entity(rctx, obj)
+		return ec.resolvers.Comment().Author(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -2666,7 +2597,7 @@ func (ec *executionContext) _Created_ticket(ctx context.Context, field graphql.C
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Created_entity(ctx context.Context, field graphql.CollectedField, obj *model.Created) (ret graphql.Marshaler) {
+func (ec *executionContext) _Created_author(ctx context.Context, field graphql.CollectedField, obj *model.Created) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2684,7 +2615,7 @@ func (ec *executionContext) _Created_entity(ctx context.Context, field graphql.C
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Created().Entity(rctx, obj)
+		return ec.resolvers.Created().Author(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3188,69 +3119,6 @@ func (ec *executionContext) _Event_changes(ctx context.Context, field graphql.Co
 	return ec.marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Event_entity(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Event",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Event().Entity(rctx, obj)
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "PROFILE")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, obj, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(model.Entity); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Entity`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.Entity)
-	fc.Result = res
-	return ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Event_ticket(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -3312,69 +3180,6 @@ func (ec *executionContext) _Event_ticket(ctx context.Context, field graphql.Col
 	res := resTmp.(*model.Ticket)
 	fc.Result = res
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Event_tracker(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Event",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Event().Tracker(rctx, obj)
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, obj, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.Tracker); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Tracker`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(*model.Tracker)
-	fc.Result = res
-	return ec.marshalNTracker2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _EventCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.EventCursor) (ret graphql.Marshaler) {
@@ -3991,7 +3796,7 @@ func (ec *executionContext) _LabelUpdate_ticket(ctx context.Context, field graph
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _LabelUpdate_entity(ctx context.Context, field graphql.CollectedField, obj *model.LabelUpdate) (ret graphql.Marshaler) {
+func (ec *executionContext) _LabelUpdate_labeler(ctx context.Context, field graphql.CollectedField, obj *model.LabelUpdate) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4009,7 +3814,7 @@ func (ec *executionContext) _LabelUpdate_entity(ctx context.Context, field graph
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.LabelUpdate().Entity(rctx, obj)
+		return ec.resolvers.LabelUpdate().Labeler(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -4769,7 +4574,7 @@ func (ec *executionContext) _StatusChange_ticket(ctx context.Context, field grap
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _StatusChange_entity(ctx context.Context, field graphql.CollectedField, obj *model.StatusChange) (ret graphql.Marshaler) {
+func (ec *executionContext) _StatusChange_editor(ctx context.Context, field graphql.CollectedField, obj *model.StatusChange) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -4787,7 +4592,7 @@ func (ec *executionContext) _StatusChange_entity(ctx context.Context, field grap
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.StatusChange().Entity(rctx, obj)
+		return ec.resolvers.StatusChange().Editor(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5337,14 +5142,11 @@ func (ec *executionContext) _Ticket_description(ctx context.Context, field graph
 		return graphql.Null
 	}
 	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
 		return graphql.Null
 	}
-	res := resTmp.(string)
+	res := resTmp.(*string)
 	fc.Result = res
-	return ec.marshalNString2string(ctx, field.Selections, res)
+	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Ticket_status(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
@@ -5757,7 +5559,7 @@ func (ec *executionContext) _TicketMention_ticket(ctx context.Context, field gra
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _TicketMention_entity(ctx context.Context, field graphql.CollectedField, obj *model.TicketMention) (ret graphql.Marshaler) {
+func (ec *executionContext) _TicketMention_author(ctx context.Context, field graphql.CollectedField, obj *model.TicketMention) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -5775,7 +5577,7 @@ func (ec *executionContext) _TicketMention_entity(ctx context.Context, field gra
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TicketMention().Entity(rctx, obj)
+		return ec.resolvers.TicketMention().Author(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -7524,7 +7326,7 @@ func (ec *executionContext) _UserMention_ticket(ctx context.Context, field graph
 	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _UserMention_entity(ctx context.Context, field graphql.CollectedField, obj *model.UserMention) (ret graphql.Marshaler) {
+func (ec *executionContext) _UserMention_author(ctx context.Context, field graphql.CollectedField, obj *model.UserMention) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -7542,7 +7344,7 @@ func (ec *executionContext) _UserMention_entity(ctx context.Context, field graph
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.UserMention().Entity(rctx, obj)
+		return ec.resolvers.UserMention().Author(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9019,20 +8821,6 @@ func (ec *executionContext) _Assignment(ctx context.Context, sel ast.SelectionSe
 				}
 				return res
 			})
-		case "entity":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Assignment_entity(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "assigner":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9102,7 +8890,7 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 				}
 				return res
 			})
-		case "entity":
+		case "author":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9110,7 +8898,7 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Comment_entity(ctx, field, obj)
+				res = ec._Comment_author(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -9196,7 +8984,7 @@ func (ec *executionContext) _Created(ctx context.Context, sel ast.SelectionSet, 
 				}
 				return res
 			})
-		case "entity":
+		case "author":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9204,7 +8992,7 @@ func (ec *executionContext) _Created(ctx context.Context, sel ast.SelectionSet, 
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Created_entity(ctx, field, obj)
+				res = ec._Created_author(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -9365,20 +9153,6 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "entity":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Event_entity(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
 		case "ticket":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -9388,20 +9162,6 @@ func (ec *executionContext) _Event(ctx context.Context, sel ast.SelectionSet, ob
 					}
 				}()
 				res = ec._Event_ticket(ctx, field, obj)
-				if res == graphql.Null {
-					atomic.AddUint32(&invalids, 1)
-				}
-				return res
-			})
-		case "tracker":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Event_tracker(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -9597,7 +9357,7 @@ func (ec *executionContext) _LabelUpdate(ctx context.Context, sel ast.SelectionS
 				}
 				return res
 			})
-		case "entity":
+		case "labeler":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9605,7 +9365,7 @@ func (ec *executionContext) _LabelUpdate(ctx context.Context, sel ast.SelectionS
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._LabelUpdate_entity(ctx, field, obj)
+				res = ec._LabelUpdate_labeler(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -9801,7 +9561,7 @@ func (ec *executionContext) _StatusChange(ctx context.Context, sel ast.Selection
 				}
 				return res
 			})
-		case "entity":
+		case "editor":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9809,7 +9569,7 @@ func (ec *executionContext) _StatusChange(ctx context.Context, sel ast.Selection
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._StatusChange_entity(ctx, field, obj)
+				res = ec._StatusChange_editor(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -9941,9 +9701,6 @@ func (ec *executionContext) _Ticket(ctx context.Context, sel ast.SelectionSet, o
 			}
 		case "description":
 			out.Values[i] = ec._Ticket_description(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				atomic.AddUint32(&invalids, 1)
-			}
 		case "status":
 			out.Values[i] = ec._Ticket_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
@@ -10071,7 +9828,7 @@ func (ec *executionContext) _TicketMention(ctx context.Context, sel ast.Selectio
 				}
 				return res
 			})
-		case "entity":
+		case "author":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -10079,7 +9836,7 @@ func (ec *executionContext) _TicketMention(ctx context.Context, sel ast.Selectio
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._TicketMention_entity(ctx, field, obj)
+				res = ec._TicketMention_author(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}
@@ -10494,7 +10251,7 @@ func (ec *executionContext) _UserMention(ctx context.Context, sel ast.SelectionS
 				}
 				return res
 			})
-		case "entity":
+		case "author":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -10502,7 +10259,7 @@ func (ec *executionContext) _UserMention(ctx context.Context, sel ast.SelectionS
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._UserMention_entity(ctx, field, obj)
+				res = ec._UserMention_author(ctx, field, obj)
 				if res == graphql.Null {
 					atomic.AddUint32(&invalids, 1)
 				}

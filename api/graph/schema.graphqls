@@ -131,7 +131,7 @@ type Ticket {
   ref: String!
 
   title: String!
-  description: String!
+  description: String
   status: TicketStatus!
   resolution: TicketResolution!
   authenticity: Authenticity!
@@ -221,27 +221,23 @@ type Event {
   created: Time!
   changes: [EventDetail]!
 
-  entity: Entity! @access(scope: PROFILE, kind: RO)
   ticket: Ticket! @access(scope: TICKETS, kind: RO)
-  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
 }
 
 interface EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
 }
 
 type Created implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
+  author: Entity!
 }
 
 type Assignment implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
 
   assigner: Entity!
   assignee: Entity!
@@ -250,7 +246,7 @@ type Assignment implements EventDetail {
 type Comment implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
+  author: Entity!
 
   text: String!
   authenticity: Authenticity!
@@ -262,15 +258,14 @@ type Comment implements EventDetail {
 type LabelUpdate implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
-
+  labeler: Entity!
   label: Label!
 }
 
 type StatusChange implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
+  editor: Entity!
 
   oldStatus: TicketStatus!
   newStatus: TicketStatus!
@@ -281,16 +276,14 @@ type StatusChange implements EventDetail {
 type UserMention implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
-
+  author: Entity!
   mentioned: Entity!
 }
 
 type TicketMention implements EventDetail {
   eventType: EventType!
   ticket: Ticket!
-  entity: Entity!
-
+  author: Entity!
   mentioned: Ticket!
 }
 

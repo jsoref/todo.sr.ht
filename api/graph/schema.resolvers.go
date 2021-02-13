@@ -18,11 +18,7 @@ import (
 )
 
 func (r *assignmentResolver) Ticket(ctx context.Context, obj *model.Assignment) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *assignmentResolver) Entity(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
 func (r *assignmentResolver) Assigner(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
@@ -34,11 +30,11 @@ func (r *assignmentResolver) Assignee(ctx context.Context, obj *model.Assignment
 }
 
 func (r *commentResolver) Ticket(ctx context.Context, obj *model.Comment) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
-func (r *commentResolver) Entity(ctx context.Context, obj *model.Comment) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *commentResolver) Author(ctx context.Context, obj *model.Comment) (model.Entity, error) {
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
 }
 
 func (r *commentResolver) Text(ctx context.Context, obj *model.Comment) (string, error) {
@@ -52,35 +48,30 @@ func (r *commentResolver) Authenticity(ctx context.Context, obj *model.Comment) 
 }
 
 func (r *commentResolver) SuperceededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.Database.SuperceededByID == nil {
+		return nil, nil
+	}
+	return loaders.ForContext(ctx).CommentsByID.Load(*obj.Database.SuperceededByID)
 }
 
 func (r *createdResolver) Ticket(ctx context.Context, obj *model.Created) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
-func (r *createdResolver) Entity(ctx context.Context, obj *model.Created) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *eventResolver) Entity(ctx context.Context, obj *model.Event) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *createdResolver) Author(ctx context.Context, obj *model.Created) (model.Entity, error) {
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
 }
 
 func (r *eventResolver) Ticket(ctx context.Context, obj *model.Event) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *eventResolver) Tracker(ctx context.Context, obj *model.Event) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
 func (r *labelUpdateResolver) Ticket(ctx context.Context, obj *model.LabelUpdate) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
-func (r *labelUpdateResolver) Entity(ctx context.Context, obj *model.LabelUpdate) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *labelUpdateResolver) Labeler(ctx context.Context, obj *model.LabelUpdate) (model.Entity, error) {
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
 }
 
 func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error) {
@@ -182,11 +173,11 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 }
 
 func (r *statusChangeResolver) Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
-func (r *statusChangeResolver) Entity(ctx context.Context, obj *model.StatusChange) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *statusChangeResolver) Editor(ctx context.Context, obj *model.StatusChange) (model.Entity, error) {
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
 }
 
 func (r *ticketResolver) Submitter(ctx context.Context, obj *model.Ticket) (model.Entity, error) {
@@ -259,19 +250,19 @@ func (r *ticketResolver) Events(ctx context.Context, obj *model.Ticket, cursor *
 }
 
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
-func (r *ticketMentionResolver) Entity(ctx context.Context, obj *model.TicketMention) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *ticketMentionResolver) Author(ctx context.Context, obj *model.TicketMention) (model.Entity, error) {
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
 }
 
 func (r *ticketMentionResolver) Mentioned(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.MentionedID)
 }
 
 func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
 func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
@@ -311,15 +302,15 @@ func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *co
 }
 
 func (r *userMentionResolver) Ticket(ctx context.Context, obj *model.UserMention) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
-func (r *userMentionResolver) Entity(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *userMentionResolver) Author(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
 }
 
 func (r *userMentionResolver) Mentioned(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.MentionedID)
 }
 
 // Assignment returns api.AssignmentResolver implementation.
