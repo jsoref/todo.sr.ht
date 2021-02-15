@@ -15,6 +15,7 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
+	sq "github.com/Masterminds/squirrel"
 )
 
 func (r *assignmentResolver) Ticket(ctx context.Context, obj *model.Assignment) (*model.Ticket, error) {
@@ -413,7 +414,39 @@ func (r *trackerSubscriptionResolver) Tracker(ctx context.Context, obj *model.Tr
 }
 
 func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var trackers []*model.Tracker
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		tracker := (&model.Tracker{}).As(`tr`)
+		auser := auth.ForContext(ctx)
+		query := database.
+			Select(ctx, tracker).
+			From(`tracker tr`).
+			LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+			Where(sq.And{
+				sq.Expr(`tr.owner_id = ?`, obj.ID),
+				sq.Or{
+					sq.Expr(`tr.owner_id = ?`, auser.UserID),
+					sq.Expr(`tr.default_user_perms > 0`),
+					sq.And{
+						sq.Expr(`ua.user_id = ?`, auser.UserID),
+						sq.Expr(`ua.permissions > 0`),
+					},
+				},
+			})
+		trackers, cursor = tracker.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.TrackerCursor{trackers, cursor}, nil
 }
 
 func (r *userMentionResolver) Ticket(ctx context.Context, obj *model.UserMention) (*model.Ticket, error) {
