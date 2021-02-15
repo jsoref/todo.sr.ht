@@ -25,6 +25,7 @@ git.sr.ht/~sircmpwn/meta.sr.ht/api v0.0.0-20201206143838-1de5ca87e423 h1:Ev/J2q9
 git.sr.ht/~sircmpwn/meta.sr.ht/api v0.0.0-20201206143838-1de5ca87e423/go.mod h1:2FVsAboKcadxcaCwSlb1Js6agYKDu5NUbo+ejaWTH50=
 git.sr.ht/~sircmpwn/todo.sr.ht v0.0.0-20201120162938-02d07977c9f8 h1:wVrYuFqAO1qKeIqPBbPO2AgXe1D3I4WhBpsenn77DZA=
 git.sr.ht/~sircmpwn/todo.sr.ht v0.0.0-20201216151634-08b8ce116f08 h1:lN6w3ZpJFfbwrzg5xnPK4w8/PF9yGv3VX8NVkrO0vt0=
+git.sr.ht/~sircmpwn/todo.sr.ht v0.0.0-20210208153736-4fba3b7bdba8 h1:DrhrXlcscXQKiEQbTZQ9m5HZ/LdQef+B1uvVUfOWJVU=
 github.com/99designs/gqlgen v0.11.4-0.20200512031635-40570d1b4d70/go.mod h1:RgX5GRRdDWNkh4pBrdzNpNPFVsdoUFY2+adM6nb1N+4=
 github.com/99designs/gqlgen v0.13.0 h1:haLTcUp3Vwp80xMVEg5KRNwzfUrgFdRmtBY8fuB8scA=
 github.com/99designs/gqlgen v0.13.0/go.mod h1:NV130r6f4tpRWuAI+zsrSdooO/eWUv+Gyyoi3rEfXIk=

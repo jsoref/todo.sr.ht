@@ -288,7 +288,6 @@ type TicketMention implements EventDetail {
 interface Subscription {
   id: Int!
   created: Time!
-  entity: Entity! @access(scope: PROFILE, kind: RO)
 }
 
 # A tracker subscription will notify a participant of all activity for a
@@ -296,7 +295,6 @@ interface Subscription {
 type TrackerSubscription implements Subscription {
   id: Int!
   created: Time!
-  entity: Entity! @access(scope: PROFILE, kind: RO)
   tracker: Tracker! @access(scope: TRACKERS, kind: RO)
 }
 
@@ -305,7 +303,6 @@ type TrackerSubscription implements Subscription {
 type TicketSubscription implements Subscription {
   id: Int!
   created: Time!
-  entity: Entity! @access(scope: PROFILE, kind: RO)
   ticket: Ticket! @access(scope: TICKETS, kind: RO)
 }
 

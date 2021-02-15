@@ -23,10 +23,6 @@ type EventDetail interface {
 	IsEventDetail()
 }
 
-type Subscription interface {
-	IsSubscription()
-}
-
 type ACLCursor struct {
 	Results []ACL         `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
@@ -68,15 +64,6 @@ type TicketCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type TicketSubscription struct {
-	ID      int       `json:"id"`
-	Created time.Time `json:"created"`
-	Entity  Entity    `json:"entity"`
-	Ticket  *Ticket   `json:"ticket"`
-}
-
-func (TicketSubscription) IsSubscription() {}
-
 type TrackerACL struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`
@@ -95,15 +82,6 @@ type TrackerCursor struct {
 	Results []*Tracker    `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
-
-type TrackerSubscription struct {
-	ID      int       `json:"id"`
-	Created time.Time `json:"created"`
-	Entity  Entity    `json:"entity"`
-	Tracker *Tracker  `json:"tracker"`
-}
-
-func (TrackerSubscription) IsSubscription() {}
 
 type Version struct {
 	Major           int        `json:"major"`

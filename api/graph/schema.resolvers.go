@@ -198,7 +198,25 @@ func (r *queryResolver) Events(ctx context.Context, cursor *coremodel.Cursor) (*
 }
 
 func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.SubscriptionCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var subs []model.Subscription
+	if err := database.WithTx(ctx, &sql.TxOptions{}, func(tx *sql.Tx) error {
+		sub := (&model.SubscriptionInfo{}).As(`sub`)
+		query := database.
+			Select(ctx, sub).
+			From(`ticket_subscription sub`).
+			Join(`participant p ON p.id = sub.participant_id`).
+			Where(`p.user_id = ?`, auth.ForContext(ctx).UserID)
+		subs, cursor = sub.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.SubscriptionCursor{subs, cursor}, nil
 }
 
 func (r *statusChangeResolver) Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error) {
@@ -322,6 +340,10 @@ func (r *ticketMentionResolver) Mentioned(ctx context.Context, obj *model.Ticket
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.MentionedID)
 }
 
+func (r *ticketSubscriptionResolver) Ticket(ctx context.Context, obj *model.TicketSubscription) (*model.Ticket, error) {
+	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
+}
+
 func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
@@ -378,6 +400,10 @@ func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *trackerSubscriptionResolver) Tracker(ctx context.Context, obj *model.TrackerSubscription) (*model.Tracker, error) {
+	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
+}
+
 func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {
 	panic(fmt.Errorf("not implemented"))
 }
@@ -424,8 +450,18 @@ func (r *Resolver) Ticket() api.TicketResolver { return &ticketResolver{r} }
 // TicketMention returns api.TicketMentionResolver implementation.
 func (r *Resolver) TicketMention() api.TicketMentionResolver { return &ticketMentionResolver{r} }
 
+// TicketSubscription returns api.TicketSubscriptionResolver implementation.
+func (r *Resolver) TicketSubscription() api.TicketSubscriptionResolver {
+	return &ticketSubscriptionResolver{r}
+}
+
 // Tracker returns api.TrackerResolver implementation.
 func (r *Resolver) Tracker() api.TrackerResolver { return &trackerResolver{r} }
+
+// TrackerSubscription returns api.TrackerSubscriptionResolver implementation.
+func (r *Resolver) TrackerSubscription() api.TrackerSubscriptionResolver {
+	return &trackerSubscriptionResolver{r}
+}
 
 // User returns api.UserResolver implementation.
 func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
@@ -443,6 +479,8 @@ type queryResolver struct{ *Resolver }
 type statusChangeResolver struct{ *Resolver }
 type ticketResolver struct{ *Resolver }
 type ticketMentionResolver struct{ *Resolver }
+type ticketSubscriptionResolver struct{ *Resolver }
 type trackerResolver struct{ *Resolver }
+type trackerSubscriptionResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userMentionResolver struct{ *Resolver }
