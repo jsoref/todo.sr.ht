@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"fmt"
 	"strings"
 
@@ -333,6 +334,10 @@ func (r *ticketResolver) Subscription(ctx context.Context, obj *model.Ticket) (*
 	panic(fmt.Errorf("not implemented"))
 }
 
+func (r *ticketResolver) ACL(ctx context.Context, obj *model.Ticket) (model.ACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
@@ -354,6 +359,10 @@ func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.
 }
 
 func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
+	if !obj.CanBrowse() {
+		return nil, errors.New("You do not have permission to browse this tracker")
+	}
+
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
 	}
@@ -406,6 +415,10 @@ func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *
 }
 
 func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.ACL, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

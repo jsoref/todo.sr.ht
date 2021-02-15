@@ -145,17 +145,23 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 				err  error
 				rows *sql.Rows
 			)
-			// TODO: Stash the ACL details in case they're useful later?
 			auser := auth.ForContext(ctx)
 			query := database.
-				Select(ctx, (&model.Tracker{}).As(`t`)).
-				From(`"tracker" t`).
-				LeftJoin(`user_access ua ON ua.tracker_id = t.id`).
+				Select(ctx, (&model.Tracker{}).As(`tr`)).
+				From(`"tracker" tr`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				Column(`COALESCE(
+					ua.permissions,
+					CASE WHEN tr.owner_id = ?
+						THEN ?
+						ELSE tr.default_user_perms
+					END)`,
+					model.ACCESS_ALL, auser.UserID).
 				Where(sq.And{
-					sq.Expr(`t.id = ANY(?)`, pq.Array(ids)),
+					sq.Expr(`tr.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
-						sq.Expr(`t.owner_id = ?`, auser.UserID),
-						sq.Expr(`t.default_user_perms > 0`),
+						sq.Expr(`tr.owner_id = ?`, auser.UserID),
+						sq.Expr(`tr.default_user_perms > 0`),
 						sq.And{
 							sq.Expr(`ua.user_id = ?`, auser.UserID),
 							sq.Expr(`ua.permissions > 0`),
@@ -170,7 +176,8 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 			trackersByID := map[int]*model.Tracker{}
 			for rows.Next() {
 				tracker := model.Tracker{}
-				if err := rows.Scan(database.Scan(ctx, &tracker)...); err != nil {
+				if err := rows.Scan(append(database.Scan(
+						ctx, &tracker), &tracker.Access)...); err != nil {
 					return err
 				}
 				trackersByID[tracker.ID] = &tracker
@@ -273,6 +280,13 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 				Join(`"tracker" tr ON ut.tracker = tr.name
 					AND u.id = tr.owner_id`).
 				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				Column(`COALESCE(
+					ua.permissions,
+					CASE WHEN tr.owner_id = ?
+						THEN ?
+						ELSE tr.default_user_perms
+					END)`,
+					model.ACCESS_ALL, auser.UserID).
 				Where(sq.Or{
 					sq.Expr(`tr.owner_id = ?`, auser.UserID),
 					sq.Expr(`tr.default_user_perms > 0`),
@@ -290,8 +304,8 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 			for rows.Next() {
 				var ownerName string
 				tracker := model.Tracker{}
-				if err := rows.Scan(append(
-					database.Scan(ctx, &tracker), &ownerName)...); err != nil {
+				if err := rows.Scan(append(database.Scan(ctx, &tracker),
+					&ownerName, &tracker.Access)...); err != nil {
 					return err
 				}
 				trackersByOwnerName[[2]string{ownerName, tracker.Name}] = &tracker

@@ -88,6 +88,10 @@ type Tracker {
   # If the authenticated user is subscribed to this tracker, this is that
   # subscription.
   subscription: TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
+
+  # The access control list entry (or the default ACL) which describes the
+  # authenticated user's permissions with respect to this tracker.
+  acl: ACL
 }
 
 enum TicketStatus {
@@ -145,6 +149,10 @@ type Ticket {
   # If the authenticated user is subscribed to this ticket, this is that
   # subscription.
   subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
+
+  # The access control list entry (or the default ACL) which describes the
+  # authenticated user's permissions with respect to this ticket.
+  acl: ACL
 }
 
 interface ACL {

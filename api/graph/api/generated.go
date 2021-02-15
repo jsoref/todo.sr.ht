@@ -176,6 +176,7 @@ type ComplexityRoot struct {
 	}
 
 	Ticket struct {
+		ACL          func(childComplexity int) int
 		Assignees    func(childComplexity int) int
 		Authenticity func(childComplexity int) int
 		Created      func(childComplexity int) int
@@ -212,6 +213,7 @@ type ComplexityRoot struct {
 	}
 
 	Tracker struct {
+		ACL          func(childComplexity int) int
 		Acls         func(childComplexity int, cursor *model1.Cursor) int
 		Created      func(childComplexity int) int
 		DefaultACLs  func(childComplexity int) int
@@ -328,6 +330,7 @@ type TicketResolver interface {
 	Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error)
 	Events(ctx context.Context, obj *model.Ticket, cursor *model1.Cursor) (*model.EventCursor, error)
 	Subscription(ctx context.Context, obj *model.Ticket) (*model.TicketSubscription, error)
+	ACL(ctx context.Context, obj *model.Ticket) (model.ACL, error)
 }
 type TicketMentionResolver interface {
 	Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error)
@@ -345,6 +348,7 @@ type TrackerResolver interface {
 	Acls(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.ACLCursor, error)
 
 	Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error)
+	ACL(ctx context.Context, obj *model.Tracker) (model.ACL, error)
 }
 type TrackerSubscriptionResolver interface {
 	Tracker(ctx context.Context, obj *model.TrackerSubscription) (*model.Tracker, error)
@@ -875,6 +879,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SubscriptionCursor.Results(childComplexity), true
 
+	case "Ticket.acl":
+		if e.complexity.Ticket.ACL == nil {
+			break
+		}
+
+		return e.complexity.Ticket.ACL(childComplexity), true
+
 	case "Ticket.assignees":
 		if e.complexity.Ticket.Assignees == nil {
 			break
@@ -1047,6 +1058,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.TicketSubscription.Ticket(childComplexity), true
+
+	case "Tracker.acl":
+		if e.complexity.Tracker.ACL == nil {
+			break
+		}
+
+		return e.complexity.Tracker.ACL(childComplexity), true
 
 	case "Tracker.acls":
 		if e.complexity.Tracker.Acls == nil {
@@ -1509,6 +1527,10 @@ type Tracker {
   # If the authenticated user is subscribed to this tracker, this is that
   # subscription.
   subscription: TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
+
+  # The access control list entry (or the default ACL) which describes the
+  # authenticated user's permissions with respect to this tracker.
+  acl: ACL
 }
 
 enum TicketStatus {
@@ -1566,6 +1588,10 @@ type Ticket {
   # If the authenticated user is subscribed to this ticket, this is that
   # subscription.
   subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
+
+  # The access control list entry (or the default ACL) which describes the
+  # authenticated user's permissions with respect to this ticket.
+  acl: ACL
 }
 
 interface ACL {
@@ -5502,6 +5528,38 @@ func (ec *executionContext) _Ticket_subscription(ctx context.Context, field grap
 	return ec.marshalOTicketSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketSubscription(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Ticket_acl(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Ticket",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Ticket().ACL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.ACL)
+	fc.Result = res
+	return ec.marshalOACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TicketCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.TicketCursor) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6349,6 +6407,38 @@ func (ec *executionContext) _Tracker_subscription(ctx context.Context, field gra
 	res := resTmp.(*model.TrackerSubscription)
 	fc.Result = res
 	return ec.marshalOTrackerSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerSubscription(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tracker_acl(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Tracker",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return ec.resolvers.Tracker().ACL(rctx, obj)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(model.ACL)
+	fc.Result = res
+	return ec.marshalOACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TrackerACL_id(ctx context.Context, field graphql.CollectedField, obj *model.TrackerACL) (ret graphql.Marshaler) {
@@ -9801,6 +9891,17 @@ func (ec *executionContext) _Ticket(ctx context.Context, sel ast.SelectionSet, o
 				res = ec._Ticket_subscription(ctx, field, obj)
 				return res
 			})
+		case "acl":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Ticket_acl(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10056,6 +10157,17 @@ func (ec *executionContext) _Tracker(ctx context.Context, sel ast.SelectionSet, 
 					}
 				}()
 				res = ec._Tracker_subscription(ctx, field, obj)
+				return res
+			})
+		case "acl":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tracker_acl(ctx, field, obj)
 				return res
 			})
 		default:
