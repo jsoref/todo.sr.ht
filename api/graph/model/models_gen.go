@@ -53,16 +53,6 @@ type EventCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type Label struct {
-	ID              int           `json:"id"`
-	Created         time.Time     `json:"created"`
-	Name            string        `json:"name"`
-	Tracker         *Tracker      `json:"tracker"`
-	BackgroundColor string        `json:"backgroundColor"`
-	TextColor       string        `json:"textColor"`
-	Tickets         *TicketCursor `json:"tickets"`
-}
-
 type LabelCursor struct {
 	Results []*Label      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`

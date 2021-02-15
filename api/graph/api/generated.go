@@ -42,6 +42,7 @@ type ResolverRoot interface {
 	Comment() CommentResolver
 	Created() CreatedResolver
 	Event() EventResolver
+	Label() LabelResolver
 	LabelUpdate() LabelUpdateResolver
 	Query() QueryResolver
 	StatusChange() StatusChangeResolver
@@ -126,9 +127,9 @@ type ComplexityRoot struct {
 	Label struct {
 		BackgroundColor func(childComplexity int) int
 		Created         func(childComplexity int) int
+		ForegroundColor func(childComplexity int) int
 		ID              func(childComplexity int) int
 		Name            func(childComplexity int) int
-		TextColor       func(childComplexity int) int
 		Tickets         func(childComplexity int, cursor *model1.Cursor) int
 		Tracker         func(childComplexity int) int
 	}
@@ -291,6 +292,11 @@ type CreatedResolver interface {
 }
 type EventResolver interface {
 	Ticket(ctx context.Context, obj *model.Event) (*model.Ticket, error)
+}
+type LabelResolver interface {
+	Tracker(ctx context.Context, obj *model.Label) (*model.Tracker, error)
+
+	Tickets(ctx context.Context, obj *model.Label, cursor *model1.Cursor) (*model.TicketCursor, error)
 }
 type LabelUpdateResolver interface {
 	Ticket(ctx context.Context, obj *model.LabelUpdate) (*model.Ticket, error)
@@ -615,6 +621,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Label.Created(childComplexity), true
 
+	case "Label.foregroundColor":
+		if e.complexity.Label.ForegroundColor == nil {
+			break
+		}
+
+		return e.complexity.Label.ForegroundColor(childComplexity), true
+
 	case "Label.id":
 		if e.complexity.Label.ID == nil {
 			break
@@ -628,13 +641,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Label.Name(childComplexity), true
-
-	case "Label.textColor":
-		if e.complexity.Label.TextColor == nil {
-			break
-		}
-
-		return e.complexity.Label.TextColor(childComplexity), true
 
 	case "Label.tickets":
 		if e.complexity.Label.Tickets == nil {
@@ -1423,9 +1429,7 @@ enum AccessKind {
 }
 
 # Decorates fields for which access requires a particular OAuth 2.0 scope with
-# read or write access. For the meta.sr.ht API, you have access to all public
-# information without any special permissions - user profile information,
-# public keys, and so on.
+# read or write access.
 directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
 
 # https://semver.org
@@ -1601,7 +1605,7 @@ type Label {
 
   # In CSS hexadecimal format
   backgroundColor: String!
-  textColor: String!
+  foregroundColor: String!
 
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
 }
@@ -3467,15 +3471,15 @@ func (ec *executionContext) _Label_tracker(ctx context.Context, field graphql.Co
 		Object:     "Label",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Tracker, nil
+			return ec.resolvers.Label().Tracker(rctx, obj)
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
@@ -3554,7 +3558,7 @@ func (ec *executionContext) _Label_backgroundColor(ctx context.Context, field gr
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Label_textColor(ctx context.Context, field graphql.CollectedField, obj *model.Label) (ret graphql.Marshaler) {
+func (ec *executionContext) _Label_foregroundColor(ctx context.Context, field graphql.CollectedField, obj *model.Label) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -3572,7 +3576,7 @@ func (ec *executionContext) _Label_textColor(ctx context.Context, field graphql.
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.TextColor, nil
+		return obj.ForegroundColor, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -3600,8 +3604,8 @@ func (ec *executionContext) _Label_tickets(ctx context.Context, field graphql.Co
 		Object:     "Label",
 		Field:      field,
 		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
+		IsMethod:   true,
+		IsResolver: true,
 	}
 
 	ctx = graphql.WithFieldContext(ctx, fc)
@@ -3615,7 +3619,7 @@ func (ec *executionContext) _Label_tickets(ctx context.Context, field graphql.Co
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return obj.Tickets, nil
+			return ec.resolvers.Label().Tickets(rctx, obj, args["cursor"].(*model1.Cursor))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -9255,38 +9259,56 @@ func (ec *executionContext) _Label(ctx context.Context, sel ast.SelectionSet, ob
 		case "id":
 			out.Values[i] = ec._Label_id(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "created":
 			out.Values[i] = ec._Label_created(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "name":
 			out.Values[i] = ec._Label_name(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "tracker":
-			out.Values[i] = ec._Label_tracker(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Label_tracker(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "backgroundColor":
 			out.Values[i] = ec._Label_backgroundColor(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
-		case "textColor":
-			out.Values[i] = ec._Label_textColor(ctx, field, obj)
+		case "foregroundColor":
+			out.Values[i] = ec._Label_foregroundColor(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
-				invalids++
+				atomic.AddUint32(&invalids, 1)
 			}
 		case "tickets":
-			out.Values[i] = ec._Label_tickets(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Label_tickets(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}

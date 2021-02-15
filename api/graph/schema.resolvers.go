@@ -66,6 +66,35 @@ func (r *eventResolver) Ticket(ctx context.Context, obj *model.Event) (*model.Ti
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+func (r *labelResolver) Tracker(ctx context.Context, obj *model.Label) (*model.Tracker, error) {
+	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
+}
+
+func (r *labelResolver) Tickets(ctx context.Context, obj *model.Label, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var tickets []*model.Ticket
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		ticket := (&model.Ticket{}).As(`tk`)
+		query := database.
+			Select(ctx, ticket).
+			From(`ticket tk`).
+			Join(`ticket_label tl ON tl.ticket_id = tk.id`).
+			Where(`tl.label_id = ?`, obj.ID)
+		tickets, cursor = ticket.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.TicketCursor{tickets, cursor}, nil
+}
+
 func (r *labelUpdateResolver) Ticket(ctx context.Context, obj *model.LabelUpdate) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
@@ -75,7 +104,7 @@ func (r *labelUpdateResolver) Labeler(ctx context.Context, obj *model.LabelUpdat
 }
 
 func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).LabelsByID.Load(obj.LabelID)
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
@@ -189,7 +218,39 @@ func (r *ticketResolver) Tracker(ctx context.Context, obj *model.Ticket) (*model
 }
 
 func (r *ticketResolver) Labels(ctx context.Context, obj *model.Ticket) ([]*model.Label, error) {
-	panic(fmt.Errorf("not implemented"))
+	var labels []*model.Label
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		var (
+			err  error
+			rows *sql.Rows
+		)
+		label := (&model.Label{}).As(`l`)
+		query := database.
+			Select(ctx, label).
+			From(`label l`).
+			Join(`ticket_label tl ON tl.label_id = l.id`).
+			Where(`tl.ticket_id = ?`, obj.PKID)
+		if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+			panic(err)
+		}
+		defer rows.Close()
+
+		for rows.Next() {
+			var label model.Label
+			if err := rows.Scan(database.Scan(ctx, &label)...); err != nil {
+				panic(err)
+			}
+			labels = append(labels, &label)
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return labels, nil
 }
 
 func (r *ticketResolver) Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error) {
@@ -290,7 +351,27 @@ func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, curso
 }
 
 func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.LabelCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var labels []*model.Label
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		label := (&model.Label{}).As(`l`)
+		query := database.
+			Select(ctx, label).
+			From(`label l`).
+			Where(`l.tracker_id = ?`, obj.ID)
+		labels, cursor = label.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.LabelCursor{labels, cursor}, nil
 }
 
 func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
@@ -325,6 +406,9 @@ func (r *Resolver) Created() api.CreatedResolver { return &createdResolver{r} }
 // Event returns api.EventResolver implementation.
 func (r *Resolver) Event() api.EventResolver { return &eventResolver{r} }
 
+// Label returns api.LabelResolver implementation.
+func (r *Resolver) Label() api.LabelResolver { return &labelResolver{r} }
+
 // LabelUpdate returns api.LabelUpdateResolver implementation.
 func (r *Resolver) LabelUpdate() api.LabelUpdateResolver { return &labelUpdateResolver{r} }
 
@@ -353,6 +437,7 @@ type assignmentResolver struct{ *Resolver }
 type commentResolver struct{ *Resolver }
 type createdResolver struct{ *Resolver }
 type eventResolver struct{ *Resolver }
+type labelResolver struct{ *Resolver }
 type labelUpdateResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type statusChangeResolver struct{ *Resolver }

@@ -5,9 +5,10 @@ package loaders
 //go:generate ./gen TrackersByIDLoader int api/graph/model.Tracker
 //go:generate ./gen TrackersByNameLoader string api/graph/model.Tracker
 //go:generate ./gen TrackersByOwnerNameLoader [2]string api/graph/model.Tracker
-//go:generate ./gen CommentsByIDLoader int api/graph/model.Comment
 //go:generate ./gen TicketsByIDLoader int api/graph/model.Ticket
+//go:generate ./gen CommentsByIDLoader int api/graph/model.Comment
 //go:generate go run github.com/vektah/dataloaden ParticipantsByIDLoader int git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Entity
+//go:generate ./gen LabelsByIDLoader int api/graph/model.Label
 
 import (
 	"context"
@@ -40,6 +41,7 @@ type Loaders struct {
 	TicketsByID         TicketsByIDLoader
 	CommentsByID        CommentsByIDLoader
 	ParticipantsByID    ParticipantsByIDLoader
+	LabelsByID          LabelsByIDLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -522,6 +524,65 @@ func fetchParticipantsByID(ctx context.Context) func(ids []int) ([]model.Entity,
 	}
 }
 
+func fetchLabelsByID(ctx context.Context) func(ids []int) ([]*model.Label, []error) {
+	return func(ids []int) ([]*model.Label, []error) {
+		labels := make([]*model.Label, len(ids))
+
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			auser := auth.ForContext(ctx)
+			query := database.
+				Select(ctx, (&model.Label{}).As(`l`)).
+				From(`"label" l`).
+				Join(`"tracker" tr ON tr.id = l.tracker_id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				Where(sq.And{
+					sq.Expr(`l.id = ANY(?)`, pq.Array(ids)),
+					sq.Or{
+						sq.Expr(`tr.owner_id = ?`, auser.UserID),
+						sq.Expr(`tr.default_user_perms > 0`),
+						sq.And{
+							sq.Expr(`ua.user_id = ?`, auser.UserID),
+							sq.Expr(`ua.permissions > 0`),
+						},
+					},
+				})
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			labelsByID := map[int]*model.Label{}
+			for rows.Next() {
+				label := model.Label{}
+				if err := rows.Scan(database.Scan(ctx, &label)...); err != nil {
+					return err
+				}
+				labelsByID[label.ID] = &label
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				labels[i] = labelsByID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return labels, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -564,6 +625,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchParticipantsByID(r.Context()),
+			},
+			LabelsByID: LabelsByIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchLabelsByID(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)
