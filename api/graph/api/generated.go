@@ -187,6 +187,7 @@ type ComplexityRoot struct {
 		Resolution   func(childComplexity int) int
 		Status       func(childComplexity int) int
 		Submitter    func(childComplexity int) int
+		Subscription func(childComplexity int) int
 		Title        func(childComplexity int) int
 		Tracker      func(childComplexity int) int
 		Updated      func(childComplexity int) int
@@ -211,16 +212,17 @@ type ComplexityRoot struct {
 	}
 
 	Tracker struct {
-		Acls        func(childComplexity int, cursor *model1.Cursor) int
-		Created     func(childComplexity int) int
-		DefaultACLs func(childComplexity int) int
-		Description func(childComplexity int) int
-		ID          func(childComplexity int) int
-		Labels      func(childComplexity int, cursor *model1.Cursor) int
-		Name        func(childComplexity int) int
-		Owner       func(childComplexity int) int
-		Tickets     func(childComplexity int, cursor *model1.Cursor) int
-		Updated     func(childComplexity int) int
+		Acls         func(childComplexity int, cursor *model1.Cursor) int
+		Created      func(childComplexity int) int
+		DefaultACLs  func(childComplexity int) int
+		Description  func(childComplexity int) int
+		ID           func(childComplexity int) int
+		Labels       func(childComplexity int, cursor *model1.Cursor) int
+		Name         func(childComplexity int) int
+		Owner        func(childComplexity int) int
+		Subscription func(childComplexity int) int
+		Tickets      func(childComplexity int, cursor *model1.Cursor) int
+		Updated      func(childComplexity int) int
 	}
 
 	TrackerACL struct {
@@ -325,6 +327,7 @@ type TicketResolver interface {
 	Labels(ctx context.Context, obj *model.Ticket) ([]*model.Label, error)
 	Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error)
 	Events(ctx context.Context, obj *model.Ticket, cursor *model1.Cursor) (*model.EventCursor, error)
+	Subscription(ctx context.Context, obj *model.Ticket) (*model.TicketSubscription, error)
 }
 type TicketMentionResolver interface {
 	Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error)
@@ -340,6 +343,8 @@ type TrackerResolver interface {
 	Tickets(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.TicketCursor, error)
 	Labels(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.LabelCursor, error)
 	Acls(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.ACLCursor, error)
+
+	Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error)
 }
 type TrackerSubscriptionResolver interface {
 	Tracker(ctx context.Context, obj *model.TrackerSubscription) (*model.Tracker, error)
@@ -952,6 +957,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Ticket.Submitter(childComplexity), true
 
+	case "Ticket.subscription":
+		if e.complexity.Ticket.Subscription == nil {
+			break
+		}
+
+		return e.complexity.Ticket.Subscription(childComplexity), true
+
 	case "Ticket.title":
 		if e.complexity.Ticket.Title == nil {
 			break
@@ -1101,6 +1113,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tracker.Owner(childComplexity), true
+
+	case "Tracker.subscription":
+		if e.complexity.Tracker.Subscription == nil {
+			break
+		}
+
+		return e.complexity.Tracker.Subscription(childComplexity), true
 
 	case "Tracker.tickets":
 		if e.complexity.Tracker.Tickets == nil {
@@ -1486,6 +1505,10 @@ type Tracker {
 
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
   defaultACLs: DefaultACLs @access(scope: ACLS, kind: RO)
+
+  # If the authenticated user is subscribed to this tracker, this is that
+  # subscription.
+  subscription: TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
 enum TicketStatus {
@@ -1539,6 +1562,10 @@ type Ticket {
   labels: [Label]!
   assignees: [Entity]! @access(scope: PROFILE, kind: RO)
   events(cursor: Cursor): EventCursor! @access(scope: EVENTS, kind: RO)
+
+  # If the authenticated user is subscribed to this ticket, this is that
+  # subscription.
+  subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
 interface ACL {
@@ -5415,6 +5442,66 @@ func (ec *executionContext) _Ticket_events(ctx context.Context, field graphql.Co
 	return ec.marshalNEventCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventCursor(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Ticket_subscription(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Ticket",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Ticket().Subscription(rctx, obj)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "SUBSCRIPTIONS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.TicketSubscription); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.TicketSubscription`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TicketSubscription)
+	fc.Result = res
+	return ec.marshalOTicketSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketSubscription(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _TicketCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.TicketCursor) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6202,6 +6289,66 @@ func (ec *executionContext) _Tracker_defaultACLs(ctx context.Context, field grap
 	res := resTmp.(*model.DefaultACLs)
 	fc.Result = res
 	return ec.marshalODefaultACLs2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐDefaultACLs(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tracker_subscription(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Tracker",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Tracker().Subscription(rctx, obj)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "SUBSCRIPTIONS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.TrackerSubscription); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.TrackerSubscription`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.TrackerSubscription)
+	fc.Result = res
+	return ec.marshalOTrackerSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerSubscription(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TrackerACL_id(ctx context.Context, field graphql.CollectedField, obj *model.TrackerACL) (ret graphql.Marshaler) {
@@ -9643,6 +9790,17 @@ func (ec *executionContext) _Ticket(ctx context.Context, sel ast.SelectionSet, o
 				}
 				return res
 			})
+		case "subscription":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Ticket_subscription(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9889,6 +10047,17 @@ func (ec *executionContext) _Tracker(ctx context.Context, sel ast.SelectionSet, 
 			})
 		case "defaultACLs":
 			out.Values[i] = ec._Tracker_defaultACLs(ctx, field, obj)
+		case "subscription":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tracker_subscription(ctx, field, obj)
+				return res
+			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -11413,6 +11582,13 @@ func (ec *executionContext) marshalOTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodo�
 	return ec._Ticket(ctx, sel, v)
 }
 
+func (ec *executionContext) marshalOTicketSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketSubscription(ctx context.Context, sel ast.SelectionSet, v *model.TicketSubscription) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TicketSubscription(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v interface{}) (*time.Time, error) {
 	if v == nil {
 		return nil, nil
@@ -11440,6 +11616,13 @@ func (ec *executionContext) marshalOTrackerCursor2ᚖgitᚗsrᚗhtᚋאsircmpwn�
 		return graphql.Null
 	}
 	return ec._TrackerCursor(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalOTrackerSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerSubscription(ctx context.Context, sel ast.SelectionSet, v *model.TrackerSubscription) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._TrackerSubscription(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOUser2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v *model.User) graphql.Marshaler {

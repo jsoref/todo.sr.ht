@@ -328,6 +328,10 @@ func (r *ticketResolver) Events(ctx context.Context, obj *model.Ticket, cursor *
 	return &model.EventCursor{events, cursor}, nil
 }
 
+func (r *ticketResolver) Subscription(ctx context.Context, obj *model.Ticket) (*model.TicketSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
@@ -397,6 +401,10 @@ func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor
 }
 
 func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

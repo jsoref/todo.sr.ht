@@ -84,6 +84,10 @@ type Tracker {
 
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
   defaultACLs: DefaultACLs @access(scope: ACLS, kind: RO)
+
+  # If the authenticated user is subscribed to this tracker, this is that
+  # subscription.
+  subscription: TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
 enum TicketStatus {
@@ -137,6 +141,10 @@ type Ticket {
   labels: [Label]!
   assignees: [Entity]! @access(scope: PROFILE, kind: RO)
   events(cursor: Cursor): EventCursor! @access(scope: EVENTS, kind: RO)
+
+  # If the authenticated user is subscribed to this ticket, this is that
+  # subscription.
+  subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
 interface ACL {
