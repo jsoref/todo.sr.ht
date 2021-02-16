@@ -340,7 +340,9 @@ func (r *ticketResolver) Events(ctx context.Context, obj *model.Ticket, cursor *
 }
 
 func (r *ticketResolver) Subscription(ctx context.Context, obj *model.Ticket) (*model.TicketSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	// Regarding unsafe: if they have access to this ticket resource, they were
+	// already authenticated for it.
+	return loaders.ForContext(ctx).SubsByTicketIDUnsafe.Load(obj.PKID)
 }
 
 func (r *ticketResolver) ACL(ctx context.Context, obj *model.Ticket) (model.ACL, error) {
