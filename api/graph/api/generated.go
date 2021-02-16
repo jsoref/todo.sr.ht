@@ -179,17 +179,17 @@ type ComplexityRoot struct {
 		ACL          func(childComplexity int) int
 		Assignees    func(childComplexity int) int
 		Authenticity func(childComplexity int) int
+		Body         func(childComplexity int) int
 		Created      func(childComplexity int) int
-		Description  func(childComplexity int) int
 		Events       func(childComplexity int, cursor *model1.Cursor) int
 		ID           func(childComplexity int) int
 		Labels       func(childComplexity int) int
 		Ref          func(childComplexity int) int
 		Resolution   func(childComplexity int) int
 		Status       func(childComplexity int) int
+		Subject      func(childComplexity int) int
 		Submitter    func(childComplexity int) int
 		Subscription func(childComplexity int) int
-		Title        func(childComplexity int) int
 		Tracker      func(childComplexity int) int
 		Updated      func(childComplexity int) int
 	}
@@ -900,19 +900,19 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Ticket.Authenticity(childComplexity), true
 
+	case "Ticket.body":
+		if e.complexity.Ticket.Body == nil {
+			break
+		}
+
+		return e.complexity.Ticket.Body(childComplexity), true
+
 	case "Ticket.created":
 		if e.complexity.Ticket.Created == nil {
 			break
 		}
 
 		return e.complexity.Ticket.Created(childComplexity), true
-
-	case "Ticket.description":
-		if e.complexity.Ticket.Description == nil {
-			break
-		}
-
-		return e.complexity.Ticket.Description(childComplexity), true
 
 	case "Ticket.events":
 		if e.complexity.Ticket.Events == nil {
@@ -961,6 +961,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Ticket.Status(childComplexity), true
 
+	case "Ticket.subject":
+		if e.complexity.Ticket.Subject == nil {
+			break
+		}
+
+		return e.complexity.Ticket.Subject(childComplexity), true
+
 	case "Ticket.submitter":
 		if e.complexity.Ticket.Submitter == nil {
 			break
@@ -974,13 +981,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Ticket.Subscription(childComplexity), true
-
-	case "Ticket.title":
-		if e.complexity.Ticket.Title == nil {
-			break
-		}
-
-		return e.complexity.Ticket.Title(childComplexity), true
 
 	case "Ticket.tracker":
 		if e.complexity.Ticket.Tracker == nil {
@@ -1575,8 +1575,8 @@ type Ticket {
   # ticket from anywhere.
   ref: String!
 
-  title: String!
-  description: String
+  subject: String!
+  body: String
   status: TicketStatus!
   resolution: TicketResolution!
   authenticity: Authenticity!
@@ -5128,7 +5128,7 @@ func (ec *executionContext) _Ticket_ref(ctx context.Context, field graphql.Colle
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Ticket_title(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ticket_subject(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -5146,7 +5146,7 @@ func (ec *executionContext) _Ticket_title(ctx context.Context, field graphql.Col
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Title, nil
+		return obj.Subject, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5163,7 +5163,7 @@ func (ec *executionContext) _Ticket_title(ctx context.Context, field graphql.Col
 	return ec.marshalNString2string(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Ticket_description(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
+func (ec *executionContext) _Ticket_body(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -5181,7 +5181,7 @@ func (ec *executionContext) _Ticket_description(ctx context.Context, field graph
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return obj.Description, nil
+		return obj.Body, nil
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9816,13 +9816,13 @@ func (ec *executionContext) _Ticket(ctx context.Context, sel ast.SelectionSet, o
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "title":
-			out.Values[i] = ec._Ticket_title(ctx, field, obj)
+		case "subject":
+			out.Values[i] = ec._Ticket_subject(ctx, field, obj)
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
-		case "description":
-			out.Values[i] = ec._Ticket_description(ctx, field, obj)
+		case "body":
+			out.Values[i] = ec._Ticket_body(ctx, field, obj)
 		case "status":
 			out.Values[i] = ec._Ticket_status(ctx, field, obj)
 			if out.Values[i] == graphql.Null {

@@ -136,8 +136,8 @@ type Ticket {
   # ticket from anywhere.
   ref: String!
 
-  title: String!
-  description: String
+  subject: String!
+  body: String
   status: TicketStatus!
   resolution: TicketResolution!
   authenticity: Authenticity!

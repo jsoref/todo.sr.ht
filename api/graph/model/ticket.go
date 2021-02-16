@@ -15,11 +15,11 @@ import (
 )
 
 type Ticket struct {
-	ID           int       `json:"id"` // tracker-scoped ID
-	Created      time.Time `json:"created"`
-	Updated      time.Time `json:"updated"`
-	Title        string    `json:"title"`
-	Description  *string   `json:"description"`
+	ID      int       `json:"id"` // tracker-scoped ID
+	Created time.Time `json:"created"`
+	Updated time.Time `json:"updated"`
+	Subject string    `json:"subject"`
+	Body    *string   `json:"body"`
 
 	PKID         int // global ID
 	TrackerID    int
@@ -72,8 +72,8 @@ func (t *Ticket) Fields() *database.ModelFields {
 		Fields: []*database.FieldMap{
 			{ "created", "created", &t.Created },
 			{ "updated", "updated", &t.Updated },
-			{ "title", "title", &t.Title },
-			{ "description", "description", &t.Description },
+			{ "title", "subject", &t.Subject },
+			{ "description", "body", &t.Body },
 			{ "authenticity", "authenticity", &t.authenticity },
 			{ "status", "status", &t.status },
 			{ "resolution", "resolution", &t.resolution },
