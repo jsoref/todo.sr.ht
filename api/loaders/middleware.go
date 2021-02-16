@@ -39,9 +39,10 @@ type Loaders struct {
 	TrackersByName      TrackersByNameLoader
 	TrackersByOwnerName TrackersByOwnerNameLoader
 	TicketsByID         TicketsByIDLoader
-	CommentsByID        CommentsByIDLoader
 	ParticipantsByID    ParticipantsByIDLoader
 	LabelsByID          LabelsByIDLoader
+
+	CommentsByIDUnsafe CommentsByIDLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -263,7 +264,6 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 			for i, tuple := range tuples {
 				ownerNames[i] = tuple[0] + "/" + tuple[1]
 			}
-			// TODO: Stash the ACL details in case they're useful later?
 			auser := auth.ForContext(ctx)
 			query := database.
 				Select(ctx).
@@ -386,8 +386,9 @@ func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []e
 	}
 }
 
-// NOTICE: This does not do any ACL checks.
-func fetchCommentsByID(ctx context.Context) func(ids []int) ([]*model.Comment, []error) {
+// This function presumes that the user is authorized to read this comment, no
+// ACL tests are attempted.
+func fetchCommentsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Comment, []error) {
 	return func(ids []int) ([]*model.Comment, []error) {
 		comments := make([]*model.Comment, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
@@ -630,10 +631,10 @@ func Middleware(next http.Handler) http.Handler {
 				wait:     1 * time.Millisecond,
 				fetch:    fetchTicketsByID(r.Context()),
 			},
-			CommentsByID: CommentsByIDLoader{
+			CommentsByIDUnsafe: CommentsByIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
-				fetch:    fetchCommentsByID(r.Context()),
+				fetch:    fetchCommentsByIDUnsafe(r.Context()),
 			},
 			ParticipantsByID: ParticipantsByIDLoader{
 				maxBatch: 100,

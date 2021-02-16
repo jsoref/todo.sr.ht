@@ -40,12 +40,18 @@ func (r *commentResolver) Author(ctx context.Context, obj *model.Comment) (model
 }
 
 func (r *commentResolver) Text(ctx context.Context, obj *model.Comment) (string, error) {
-	comment, err := loaders.ForContext(ctx).CommentsByID.Load(obj.Database.ID)
+	// The only route to this resolver is via event details, which is already
+	// authenticated. Further access to other resources is limited to
+	// authenticated routes, such as TicketByID.
+	comment, err := loaders.ForContext(ctx).CommentsByIDUnsafe.Load(obj.Database.ID)
 	return comment.Database.Text, err
 }
 
 func (r *commentResolver) Authenticity(ctx context.Context, obj *model.Comment) (model.Authenticity, error) {
-	comment, err := loaders.ForContext(ctx).CommentsByID.Load(obj.Database.ID)
+	// The only route to this resolver is via event details, which is already
+	// authenticated. Further access to other resources is limited to
+	// authenticated routes, such as TicketByID.
+	comment, err := loaders.ForContext(ctx).CommentsByIDUnsafe.Load(obj.Database.ID)
 	return comment.Database.Authenticity, err
 }
 
@@ -53,7 +59,10 @@ func (r *commentResolver) SuperceededBy(ctx context.Context, obj *model.Comment)
 	if obj.Database.SuperceededByID == nil {
 		return nil, nil
 	}
-	return loaders.ForContext(ctx).CommentsByID.Load(*obj.Database.SuperceededByID)
+	// The only route to this resolver is via event details, which is already
+	// authenticated. Further access to other resources is limited to
+	// authenticated routes, such as TicketByID.
+	return loaders.ForContext(ctx).CommentsByIDUnsafe.Load(*obj.Database.SuperceededByID)
 }
 
 func (r *createdResolver) Ticket(ctx context.Context, obj *model.Created) (*model.Ticket, error) {
