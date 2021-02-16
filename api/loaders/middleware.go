@@ -10,6 +10,7 @@ package loaders
 //go:generate go run github.com/vektah/dataloaden ParticipantsByIDLoader int git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Entity
 //go:generate ./gen LabelsByIDLoader int api/graph/model.Label
 //go:generate ./gen SubsByTicketIDLoader int api/graph/model.TicketSubscription
+//go:generate ./gen SubsByTrackerIDLoader int api/graph/model.TrackerSubscription
 
 import (
 	"context"
@@ -43,8 +44,9 @@ type Loaders struct {
 	ParticipantsByID    ParticipantsByIDLoader
 	LabelsByID          LabelsByIDLoader
 
-	CommentsByIDUnsafe   CommentsByIDLoader
-	SubsByTicketIDUnsafe SubsByTicketIDLoader
+	CommentsByIDUnsafe    CommentsByIDLoader
+	SubsByTicketIDUnsafe  SubsByTicketIDLoader
+	SubsByTrackerIDUnsafe SubsByTrackerIDLoader
 }
 
 func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error) {
@@ -655,6 +657,61 @@ func fetchSubsByTicketIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Ti
 	}
 }
 
+func fetchSubsByTrackerIDUnsafe(ctx context.Context) func(ids []int) ([]*model.TrackerSubscription, []error) {
+	return func(ids []int) ([]*model.TrackerSubscription, []error) {
+		subs := make([]*model.TrackerSubscription, len(ids))
+
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly: true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			query := database.
+				Select(ctx, (&model.SubscriptionInfo{}).As(`sub`)).
+				Column(`sub.tracker_id`).
+				From(`ticket_subscription sub`).
+				Join(`participant p ON p.id = sub.participant_id`).
+				Where(`p.user_id = ? AND sub.tracker_id = ANY(?)`,
+					auth.ForContext(ctx).UserID, pq.Array(ids))
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			subsByTrackerID := map[int]*model.TrackerSubscription{}
+			for rows.Next() {
+				var trackerID int
+				si := model.SubscriptionInfo{}
+				if err := rows.Scan(append(database.Scan(
+					ctx, &si), &trackerID)...); err != nil {
+					return err
+				}
+				subsByTrackerID[trackerID] = &model.TrackerSubscription{
+					ID:        si.ID,
+					Created:   si.Created,
+					TrackerID: trackerID,
+				}
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				subs[i] = subsByTrackerID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return subs, nil
+	}
+}
+
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
@@ -707,6 +764,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchSubsByTicketIDUnsafe(r.Context()),
+			},
+			SubsByTrackerIDUnsafe: SubsByTrackerIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchSubsByTrackerIDUnsafe(r.Context()),
 			},
 		})
 		r = r.WithContext(ctx)

@@ -426,7 +426,9 @@ func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *
 }
 
 func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	// Regarding unsafe: if they have access to this tracker resource, they
+	// were already authenticated for it.
+	return loaders.ForContext(ctx).SubsByTrackerIDUnsafe.Load(obj.ID)
 }
 
 func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.ACL, error) {
