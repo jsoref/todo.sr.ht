@@ -93,6 +93,7 @@ func (acl *TrackerACL) QueryWithCursor(ctx context.Context, runner sq.BaseRunner
 		q = q.Where(database.WithAlias(acl.alias, "id")+"<= ?", next)
 	}
 	q = q.
+		Column(`permissions`).
 		OrderBy(database.WithAlias(acl.alias, "id")).
 		Limit(uint64(cur.Count + 1))
 
@@ -103,10 +104,19 @@ func (acl *TrackerACL) QueryWithCursor(ctx context.Context, runner sq.BaseRunner
 
 	var acls []*TrackerACL
 	for rows.Next() {
-		var acl TrackerACL
-		if err := rows.Scan(database.Scan(ctx, &acl)...); err != nil {
+		var (
+			acl    TrackerACL
+			access int
+		)
+		if err := rows.Scan(append(
+			database.Scan(ctx, &acl), &access)...); err != nil {
 			panic(err)
 		}
+		acl.Browse = access & ACCESS_BROWSE != 0
+		acl.Submit = access & ACCESS_SUBMIT != 0
+		acl.Comment = access & ACCESS_COMMENT != 0
+		acl.Edit = access & ACCESS_EDIT != 0
+		acl.Triage = access & ACCESS_TRIAGE != 0
 		acls = append(acls, &acl)
 	}
 

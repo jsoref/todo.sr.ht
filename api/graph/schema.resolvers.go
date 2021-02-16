@@ -464,7 +464,7 @@ func (r *trackerACLResolver) Tracker(ctx context.Context, obj *model.TrackerACL)
 }
 
 func (r *trackerACLResolver) Entity(ctx context.Context, obj *model.TrackerACL) (model.Entity, error) {
-	panic(fmt.Errorf("not implemented"))
+	return loaders.ForContext(ctx).UsersByID.Load(obj.UserID)
 }
 
 func (r *trackerSubscriptionResolver) Tracker(ctx context.Context, obj *model.TrackerSubscription) (*model.Tracker, error) {
