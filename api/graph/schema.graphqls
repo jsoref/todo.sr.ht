@@ -82,8 +82,10 @@ type Tracker {
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
 
-  acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
   defaultACLs: DefaultACLs @access(scope: ACLS, kind: RO)
+
+  # Only available to the tracker owner:
+  acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
   # If the authenticated user is subscribed to this tracker, this is that
   # subscription.
@@ -358,7 +360,7 @@ type LabelCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type ACLCursor {
-  results: [ACL]!
+  results: [TrackerACL]!
   cursor: Cursor
 }
 

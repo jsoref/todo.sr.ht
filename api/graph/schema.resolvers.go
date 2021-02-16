@@ -422,7 +422,31 @@ func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor
 }
 
 func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
-	panic(fmt.Errorf("not implemented"))
+	if obj.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, errors.New("Access denied")
+	}
+
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var acls []*model.TrackerACL
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		acl := (&model.TrackerACL{}).As(`ua`)
+		query := database.
+			Select(ctx, acl).
+			From(`user_access ua`).
+			Where(`ua.tracker_id = ?`, obj.ID)
+		acls, cursor = acl.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ACLCursor{acls, cursor}, nil
 }
 
 func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error) {
@@ -432,6 +456,14 @@ func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) 
 }
 
 func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.ACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerACLResolver) Tracker(ctx context.Context, obj *model.TrackerACL) (*model.Tracker, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *trackerACLResolver) Entity(ctx context.Context, obj *model.TrackerACL) (model.Entity, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -525,6 +557,9 @@ func (r *Resolver) TicketSubscription() api.TicketSubscriptionResolver {
 // Tracker returns api.TrackerResolver implementation.
 func (r *Resolver) Tracker() api.TrackerResolver { return &trackerResolver{r} }
 
+// TrackerACL returns api.TrackerACLResolver implementation.
+func (r *Resolver) TrackerACL() api.TrackerACLResolver { return &trackerACLResolver{r} }
+
 // TrackerSubscription returns api.TrackerSubscriptionResolver implementation.
 func (r *Resolver) TrackerSubscription() api.TrackerSubscriptionResolver {
 	return &trackerSubscriptionResolver{r}
@@ -548,6 +583,7 @@ type ticketResolver struct{ *Resolver }
 type ticketMentionResolver struct{ *Resolver }
 type ticketSubscriptionResolver struct{ *Resolver }
 type trackerResolver struct{ *Resolver }
+type trackerACLResolver struct{ *Resolver }
 type trackerSubscriptionResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userMentionResolver struct{ *Resolver }

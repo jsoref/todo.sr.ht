@@ -11,10 +11,6 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/model"
 )
 
-type ACL interface {
-	IsACL()
-}
-
 type Entity interface {
 	IsEntity()
 }
@@ -24,24 +20,8 @@ type EventDetail interface {
 }
 
 type ACLCursor struct {
-	Results []ACL         `json:"results"`
+	Results []*TrackerACL `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
-}
-
-type DefaultACL struct {
-	Browse  bool `json:"browse"`
-	Submit  bool `json:"submit"`
-	Comment bool `json:"comment"`
-	Edit    bool `json:"edit"`
-	Triage  bool `json:"triage"`
-}
-
-func (DefaultACL) IsACL() {}
-
-type DefaultACLs struct {
-	Anonymous ACL `json:"anonymous"`
-	Submitter ACL `json:"submitter"`
-	LoggedIn  ACL `json:"logged_in"`
 }
 
 type EventCursor struct {
@@ -63,20 +43,6 @@ type TicketCursor struct {
 	Results []*Ticket     `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
-
-type TrackerACL struct {
-	ID      int       `json:"id"`
-	Created time.Time `json:"created"`
-	Tracker *Tracker  `json:"tracker"`
-	Entity  Entity    `json:"entity"`
-	Browse  bool      `json:"browse"`
-	Submit  bool      `json:"submit"`
-	Comment bool      `json:"comment"`
-	Edit    bool      `json:"edit"`
-	Triage  bool      `json:"triage"`
-}
-
-func (TrackerACL) IsACL() {}
 
 type TrackerCursor struct {
 	Results []*Tracker    `json:"results"`
