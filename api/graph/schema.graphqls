@@ -82,8 +82,6 @@ type Tracker {
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
 
-  defaultACLs: DefaultACLs @access(scope: ACLS, kind: RO)
-
   # Only available to the tracker owner:
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
@@ -175,7 +173,7 @@ interface ACL {
 type TrackerACL implements ACL {
   id: Int!
   created: Time!
-  tracker: Tracker!
+  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
   entity: Entity! @access(scope: PROFILE, kind: RO)
 
   browse: Boolean!
@@ -185,24 +183,14 @@ type TrackerACL implements ACL {
   triage: Boolean!
 }
 
+# These ACL policies are applied non-specifically, e.g. the default ACL for all
+# authenticated users.
 type DefaultACL implements ACL {
   browse: Boolean!
   submit: Boolean!
   comment: Boolean!
   edit: Boolean!
   triage: Boolean!
-}
-
-# These ACLs are inherited by users who do not have a more specific ACL
-# configured.
-type DefaultACLs {
-  # Permissions granted to anyone who visits this tracker, logged in or
-  # otherwise.
-  anonymous: ACL!
-  # Permissions granted to the ticket submitter on the tickets they submit.
-  submitter: ACL!
-  # Permissions granted to any logged-in sourcehut user.
-  logged_in: ACL!
 }
 
 type Label {

@@ -25,15 +25,15 @@ const (
 )
 
 type Tracker struct {
-	ID          int           `json:"id"`
-	Created     time.Time     `json:"created"`
-	Updated     time.Time     `json:"updated"`
-	Name        string        `json:"name"`
-	Description *string       `json:"description"`
-	DefaultACLs *DefaultACLs  `json:"defaultACLs"`
+	ID          int         `json:"id"`
+	Created     time.Time   `json:"created"`
+	Updated     time.Time   `json:"updated"`
+	Name        string      `json:"name"`
+	Description *string     `json:"description"`
 
 	OwnerID int
 	Access  int
+	ACLID   *int
 
 	alias  string
 	fields *database.ModelFields
@@ -95,6 +95,7 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 				ELSE tr.default_user_perms
 			END)`,
 			ACCESS_ALL, auser.UserID).
+		Column(`tr_ua.id`).
 		Where(`COALESCE(tr_ua.user_id, ?) = ?`, auser.UserID, auser.UserID)
 
 	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
@@ -106,7 +107,7 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 	for rows.Next() {
 		var tracker Tracker
 		if err := rows.Scan(append(database.Scan(
-				ctx, &tracker), &tracker.Access)...); err != nil {
+				ctx, &tracker), &tracker.Access, &tracker.ACLID)...); err != nil {
 			panic(err)
 		}
 		trackers = append(trackers, &tracker)

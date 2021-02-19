@@ -162,6 +162,7 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 						ELSE tr.default_user_perms
 					END)`,
 					model.ACCESS_ALL, auser.UserID).
+				Column(`ua.id`).
 				Where(sq.And{
 					sq.Expr(`tr.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
@@ -182,7 +183,8 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 			for rows.Next() {
 				tracker := model.Tracker{}
 				if err := rows.Scan(append(database.Scan(
-						ctx, &tracker), &tracker.Access)...); err != nil {
+						ctx, &tracker), &tracker.Access,
+						&tracker.ACLID)...); err != nil {
 					return err
 				}
 				trackersByID[tracker.ID] = &tracker

@@ -97,12 +97,6 @@ type ComplexityRoot struct {
 		Triage  func(childComplexity int) int
 	}
 
-	DefaultACLs struct {
-		Anonymous func(childComplexity int) int
-		LoggedIn  func(childComplexity int) int
-		Submitter func(childComplexity int) int
-	}
-
 	EmailAddress struct {
 		CanonicalName func(childComplexity int) int
 		Mailbox       func(childComplexity int) int
@@ -217,7 +211,6 @@ type ComplexityRoot struct {
 		ACL          func(childComplexity int) int
 		Acls         func(childComplexity int, cursor *model1.Cursor) int
 		Created      func(childComplexity int) int
-		DefaultACLs  func(childComplexity int) int
 		Description  func(childComplexity int) int
 		ID           func(childComplexity int) int
 		Labels       func(childComplexity int, cursor *model1.Cursor) int
@@ -346,7 +339,6 @@ type TrackerResolver interface {
 
 	Tickets(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.TicketCursor, error)
 	Labels(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.LabelCursor, error)
-
 	Acls(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.ACLCursor, error)
 	Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error)
 	ACL(ctx context.Context, obj *model.Tracker) (model.ACL, error)
@@ -521,27 +513,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.DefaultACL.Triage(childComplexity), true
-
-	case "DefaultACLs.anonymous":
-		if e.complexity.DefaultACLs.Anonymous == nil {
-			break
-		}
-
-		return e.complexity.DefaultACLs.Anonymous(childComplexity), true
-
-	case "DefaultACLs.logged_in":
-		if e.complexity.DefaultACLs.LoggedIn == nil {
-			break
-		}
-
-		return e.complexity.DefaultACLs.LoggedIn(childComplexity), true
-
-	case "DefaultACLs.submitter":
-		if e.complexity.DefaultACLs.Submitter == nil {
-			break
-		}
-
-		return e.complexity.DefaultACLs.Submitter(childComplexity), true
 
 	case "EmailAddress.canonicalName":
 		if e.complexity.EmailAddress.CanonicalName == nil {
@@ -1090,13 +1061,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tracker.Created(childComplexity), true
 
-	case "Tracker.defaultACLs":
-		if e.complexity.Tracker.DefaultACLs == nil {
-			break
-		}
-
-		return e.complexity.Tracker.DefaultACLs(childComplexity), true
-
 	case "Tracker.description":
 		if e.complexity.Tracker.Description == nil {
 			break
@@ -1526,8 +1490,6 @@ type Tracker {
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
 
-  defaultACLs: DefaultACLs @access(scope: ACLS, kind: RO)
-
   # Only available to the tracker owner:
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
@@ -1619,7 +1581,7 @@ interface ACL {
 type TrackerACL implements ACL {
   id: Int!
   created: Time!
-  tracker: Tracker!
+  tracker: Tracker! @access(scope: TRACKERS, kind: RO)
   entity: Entity! @access(scope: PROFILE, kind: RO)
 
   browse: Boolean!
@@ -1629,24 +1591,14 @@ type TrackerACL implements ACL {
   triage: Boolean!
 }
 
+# These ACL policies are applied non-specifically, e.g. the default ACL for all
+# authenticated users.
 type DefaultACL implements ACL {
   browse: Boolean!
   submit: Boolean!
   comment: Boolean!
   edit: Boolean!
   triage: Boolean!
-}
-
-# These ACLs are inherited by users who do not have a more specific ACL
-# configured.
-type DefaultACLs {
-  # Permissions granted to anyone who visits this tracker, logged in or
-  # otherwise.
-  anonymous: ACL!
-  # Permissions granted to the ticket submitter on the tickets they submit.
-  submitter: ACL!
-  # Permissions granted to any logged-in sourcehut user.
-  logged_in: ACL!
 }
 
 type Label {
@@ -2858,111 +2810,6 @@ func (ec *executionContext) _DefaultACL_triage(ctx context.Context, field graphq
 	res := resTmp.(bool)
 	fc.Result = res
 	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DefaultACLs_anonymous(ctx context.Context, field graphql.CollectedField, obj *model.DefaultACLs) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "DefaultACLs",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Anonymous, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.ACL)
-	fc.Result = res
-	return ec.marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DefaultACLs_submitter(ctx context.Context, field graphql.CollectedField, obj *model.DefaultACLs) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "DefaultACLs",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.Submitter, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.ACL)
-	fc.Result = res
-	return ec.marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _DefaultACLs_logged_in(ctx context.Context, field graphql.CollectedField, obj *model.DefaultACLs) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "DefaultACLs",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return obj.LoggedIn, nil
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		if !graphql.HasFieldError(ctx, fc) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	res := resTmp.(model.ACL)
-	fc.Result = res
-	return ec.marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _EmailAddress_canonicalName(ctx context.Context, field graphql.CollectedField, obj *model.EmailAddress) (ret graphql.Marshaler) {
@@ -6226,66 +6073,6 @@ func (ec *executionContext) _Tracker_labels(ctx context.Context, field graphql.C
 	return ec.marshalNLabelCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabelCursor(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Tracker_defaultACLs(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Tracker",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   false,
-		IsResolver: false,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return obj.DefaultACLs, nil
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "ACLS")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, obj, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.DefaultACLs); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.DefaultACLs`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.DefaultACLs)
-	fc.Result = res
-	return ec.marshalODefaultACLs2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐDefaultACLs(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Tracker_acls(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6535,8 +6322,36 @@ func (ec *executionContext) _TrackerACL_tracker(ctx context.Context, field graph
 
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.TrackerACL().Tracker(rctx, obj)
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.TrackerACL().Tracker(rctx, obj)
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Tracker); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Tracker`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9167,43 +8982,6 @@ func (ec *executionContext) _DefaultACL(ctx context.Context, sel ast.SelectionSe
 	return out
 }
 
-var defaultACLsImplementors = []string{"DefaultACLs"}
-
-func (ec *executionContext) _DefaultACLs(ctx context.Context, sel ast.SelectionSet, obj *model.DefaultACLs) graphql.Marshaler {
-	fields := graphql.CollectFields(ec.OperationContext, sel, defaultACLsImplementors)
-
-	out := graphql.NewFieldSet(fields)
-	var invalids uint32
-	for i, field := range fields {
-		switch field.Name {
-		case "__typename":
-			out.Values[i] = graphql.MarshalString("DefaultACLs")
-		case "anonymous":
-			out.Values[i] = ec._DefaultACLs_anonymous(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "submitter":
-			out.Values[i] = ec._DefaultACLs_submitter(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		case "logged_in":
-			out.Values[i] = ec._DefaultACLs_logged_in(ctx, field, obj)
-			if out.Values[i] == graphql.Null {
-				invalids++
-			}
-		default:
-			panic("unknown field " + strconv.Quote(field.Name))
-		}
-	}
-	out.Dispatch()
-	if invalids > 0 {
-		return graphql.Null
-	}
-	return out
-}
-
 var emailAddressImplementors = []string{"EmailAddress", "Entity"}
 
 func (ec *executionContext) _EmailAddress(ctx context.Context, sel ast.SelectionSet, obj *model.EmailAddress) graphql.Marshaler {
@@ -10139,8 +9917,6 @@ func (ec *executionContext) _Tracker(ctx context.Context, sel ast.SelectionSet, 
 				}
 				return res
 			})
-		case "defaultACLs":
-			out.Values[i] = ec._Tracker_defaultACLs(ctx, field, obj)
 		case "acls":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -10772,16 +10548,6 @@ func (ec *executionContext) ___Type(ctx context.Context, sel ast.SelectionSet, o
 // endregion **************************** object.gotpl ****************************
 
 // region    ***************************** type.gotpl *****************************
-
-func (ec *executionContext) marshalNACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx context.Context, sel ast.SelectionSet, v model.ACL) graphql.Marshaler {
-	if v == nil {
-		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
-			ec.Errorf(ctx, "must not be null")
-		}
-		return graphql.Null
-	}
-	return ec._ACL(ctx, sel, v)
-}
 
 func (ec *executionContext) marshalNACLCursor2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLCursor(ctx context.Context, sel ast.SelectionSet, v model.ACLCursor) graphql.Marshaler {
 	return ec._ACLCursor(ctx, sel, &v)
@@ -11630,13 +11396,6 @@ func (ec *executionContext) marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcore�
 		return graphql.Null
 	}
 	return v
-}
-
-func (ec *executionContext) marshalODefaultACLs2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐDefaultACLs(ctx context.Context, sel ast.SelectionSet, v *model.DefaultACLs) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._DefaultACLs(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {

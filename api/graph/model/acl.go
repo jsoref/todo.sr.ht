@@ -26,12 +26,6 @@ type DefaultACL struct {
 
 func (DefaultACL) IsACL() {}
 
-type DefaultACLs struct {
-	Anonymous ACL `json:"anonymous"`
-	Submitter ACL `json:"submitter"`
-	LoggedIn  ACL `json:"logged_in"`
-}
-
 type TrackerACL struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`
@@ -93,7 +87,7 @@ func (acl *TrackerACL) QueryWithCursor(ctx context.Context, runner sq.BaseRunner
 		q = q.Where(database.WithAlias(acl.alias, "id")+"<= ?", next)
 	}
 	q = q.
-		Column(`permissions`).
+		Column(database.WithAlias(acl.alias, `permissions`)).
 		OrderBy(database.WithAlias(acl.alias, "id")).
 		Limit(uint64(cur.Count + 1))
 
