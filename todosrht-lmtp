@@ -332,7 +332,6 @@ class MailHandler:
             return "250 Unsubscribed"
 
 async def create_server():
-    sock_gid = getgrnam(cfg("todo.sr.ht::mail", "sock-group")).gr_gid
     handler = MailHandler()
     sock = cfg("todo.sr.ht::mail", "sock")
     if "/" in sock:
@@ -340,7 +339,10 @@ async def create_server():
                 lambda: LMTP(handler, enable_SMTPUTF8=True),
                 path=sock)
         os.chmod(sock, 0o775)
-        os.chown(sock, os.getuid(), sock_gid)
+        sock_group = cfg("todo.sr.ht::mail", "sock-group", default=None)
+        if sock_group is not None:
+            sock_gid = getgrnam(sock_group).gr_gid
+            os.chown(sock, os.getuid(), sock_gid)
     else:
         host, port = sock.split(":")
         await loop.create_server(
