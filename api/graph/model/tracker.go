@@ -94,7 +94,7 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 				THEN ?
 				ELSE tr.default_user_perms
 			END)`,
-			ACCESS_ALL, auser.UserID).
+			auser.UserID, ACCESS_ALL).
 		Column(`tr_ua.id`).
 		Where(`COALESCE(tr_ua.user_id, ?) = ?`, auser.UserID, auser.UserID)
 
