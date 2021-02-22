@@ -458,11 +458,11 @@ func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) 
 func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.ACL, error) {
 	if obj.ACLID == nil {
 		return &model.DefaultACL{
-			Browse: obj.CanBrowse(),
-			Submit: obj.CanSubmit(),
+			Browse:  obj.CanBrowse(),
+			Submit:  obj.CanSubmit(),
 			Comment: obj.CanComment(),
-			Edit: obj.CanEdit(),
-			Triage: obj.CanTriage(),
+			Edit:    obj.CanEdit(),
+			Triage:  obj.CanTriage(),
 		}, nil
 	}
 
@@ -482,11 +482,11 @@ func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.AC
 			&access)...); err != nil {
 			return err
 		}
-		acl.Browse = access & model.ACCESS_BROWSE != 0
-		acl.Submit = access & model.ACCESS_SUBMIT != 0
-		acl.Comment = access & model.ACCESS_COMMENT != 0
-		acl.Edit = access & model.ACCESS_EDIT != 0
-		acl.Triage = access & model.ACCESS_TRIAGE != 0
+		acl.Browse = access&model.ACCESS_BROWSE != 0
+		acl.Submit = access&model.ACCESS_SUBMIT != 0
+		acl.Comment = access&model.ACCESS_COMMENT != 0
+		acl.Edit = access&model.ACCESS_EDIT != 0
+		acl.Triage = access&model.ACCESS_TRIAGE != 0
 		return nil
 	}); err != nil {
 		return nil, err
