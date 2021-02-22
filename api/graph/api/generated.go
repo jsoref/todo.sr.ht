@@ -75,12 +75,12 @@ type ComplexityRoot struct {
 	}
 
 	Comment struct {
-		Authenticity  func(childComplexity int) int
-		Author        func(childComplexity int) int
-		EventType     func(childComplexity int) int
-		SuperceededBy func(childComplexity int) int
-		Text          func(childComplexity int) int
-		Ticket        func(childComplexity int) int
+		Authenticity func(childComplexity int) int
+		Author       func(childComplexity int) int
+		EventType    func(childComplexity int) int
+		SupersededBy func(childComplexity int) int
+		Text         func(childComplexity int) int
+		Ticket       func(childComplexity int) int
 	}
 
 	Created struct {
@@ -282,7 +282,7 @@ type CommentResolver interface {
 	Author(ctx context.Context, obj *model.Comment) (model.Entity, error)
 	Text(ctx context.Context, obj *model.Comment) (string, error)
 	Authenticity(ctx context.Context, obj *model.Comment) (model.Authenticity, error)
-	SuperceededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error)
+	SupersededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error)
 }
 type CreatedResolver interface {
 	Ticket(ctx context.Context, obj *model.Created) (*model.Ticket, error)
@@ -437,12 +437,12 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Comment.EventType(childComplexity), true
 
-	case "Comment.superceededBy":
-		if e.complexity.Comment.SuperceededBy == nil {
+	case "Comment.supersededBy":
+		if e.complexity.Comment.SupersededBy == nil {
 			break
 		}
 
-		return e.complexity.Comment.SuperceededBy(childComplexity), true
+		return e.complexity.Comment.SupersededBy(childComplexity), true
 
 	case "Comment.text":
 		if e.complexity.Comment.Text == nil {
@@ -1664,7 +1664,7 @@ type Comment implements EventDetail {
   authenticity: Authenticity!
 
   # If this comment has been edited, this field points to the new revision.
-  superceededBy: Comment
+  supersededBy: Comment
 }
 
 type LabelUpdate implements EventDetail {
@@ -2640,7 +2640,7 @@ func (ec *executionContext) _Comment_authenticity(ctx context.Context, field gra
 	return ec.marshalNAuthenticity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAuthenticity(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Comment_superceededBy(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
+func (ec *executionContext) _Comment_supersededBy(ctx context.Context, field graphql.CollectedField, obj *model.Comment) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
 			ec.Error(ctx, ec.Recover(ctx, r))
@@ -2658,7 +2658,7 @@ func (ec *executionContext) _Comment_superceededBy(ctx context.Context, field gr
 	ctx = graphql.WithFieldContext(ctx, fc)
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Comment().SuperceededBy(rctx, obj)
+		return ec.resolvers.Comment().SupersededBy(rctx, obj)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -9362,7 +9362,7 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 				}
 				return res
 			})
-		case "superceededBy":
+		case "supersededBy":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
 				defer func() {
@@ -9370,7 +9370,7 @@ func (ec *executionContext) _Comment(ctx context.Context, sel ast.SelectionSet, 
 						ec.Error(ctx, ec.Recover(ctx, r))
 					}
 				}()
-				res = ec._Comment_superceededBy(ctx, field, obj)
+				res = ec._Comment_supersededBy(ctx, field, obj)
 				return res
 			})
 		default:

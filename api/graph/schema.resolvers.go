@@ -55,14 +55,8 @@ func (r *commentResolver) Authenticity(ctx context.Context, obj *model.Comment) 
 	return comment.Database.Authenticity, err
 }
 
-func (r *commentResolver) SuperceededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error) {
-	if obj.Database.SuperceededByID == nil {
-		return nil, nil
-	}
-	// The only route to this resolver is via event details, which is already
-	// authenticated. Further access to other resources is limited to
-	// authenticated routes, such as TicketByID.
-	return loaders.ForContext(ctx).CommentsByIDUnsafe.Load(*obj.Database.SuperceededByID)
+func (r *commentResolver) SupersededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *createdResolver) Ticket(ctx context.Context, obj *model.Created) (*model.Ticket, error) {
@@ -623,3 +617,19 @@ type trackerACLResolver struct{ *Resolver }
 type trackerSubscriptionResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userMentionResolver struct{ *Resolver }
+
+// !!! WARNING !!!
+// The code below was going to be deleted when updating resolvers. It has been copied here so you have
+// one last chance to move it out of harms way if you want. There are two reasons this happens:
+//  - When renaming or deleting a resolver the old code will be put in here. You can safely delete
+//    it when you're done.
+//  - You have helper methods in this file. Move them out to keep these resolver files clean.
+func (r *commentResolver) SuperceededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error) {
+	if obj.Database.SuperceededByID == nil {
+		return nil, nil
+	}
+	// The only route to this resolver is via event details, which is already
+	// authenticated. Further access to other resources is limited to
+	// authenticated routes, such as TicketByID.
+	return loaders.ForContext(ctx).CommentsByIDUnsafe.Load(*obj.Database.SuperceededByID)
+}

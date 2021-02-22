@@ -256,7 +256,7 @@ type Comment implements EventDetail {
   authenticity: Authenticity!
 
   # If this comment has been edited, this field points to the new revision.
-  superceededBy: Comment
+  supersededBy: Comment
 }
 
 type LabelUpdate implements EventDetail {
