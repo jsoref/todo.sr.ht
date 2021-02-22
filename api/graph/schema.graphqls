@@ -75,7 +75,7 @@ type Tracker {
   id: Int!
   created: Time!
   updated: Time!
-  owner: Entity!
+  owner: Entity! @access(scope: PROFILE, kind: RO)
   name: String!
   description: String
 
@@ -230,27 +230,27 @@ type Event {
 
 interface EventDetail {
   eventType: EventType!
-  ticket: Ticket!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
 }
 
 type Created implements EventDetail {
   eventType: EventType!
-  ticket: Ticket!
-  author: Entity!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+  author: Entity! @access(scope: PROFILE, kind: RO)
 }
 
 type Assignment implements EventDetail {
   eventType: EventType!
-  ticket: Ticket!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
 
-  assigner: Entity!
-  assignee: Entity!
+  assigner: Entity! @access(scope: PROFILE, kind: RO)
+  assignee: Entity! @access(scope: PROFILE, kind: RO)
 }
 
 type Comment implements EventDetail {
   eventType: EventType!
-  ticket: Ticket!
-  author: Entity!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+  author: Entity! @access(scope: PROFILE, kind: RO)
 
   text: String!
   authenticity: Authenticity!
@@ -261,15 +261,15 @@ type Comment implements EventDetail {
 
 type LabelUpdate implements EventDetail {
   eventType: EventType!
-  ticket: Ticket!
-  labeler: Entity!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+  labeler: Entity! @access(scope: PROFILE, kind: RO)
   label: Label!
 }
 
 type StatusChange implements EventDetail {
   eventType: EventType!
-  ticket: Ticket!
-  editor: Entity!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+  editor: Entity! @access(scope: PROFILE, kind: RO)
 
   oldStatus: TicketStatus!
   newStatus: TicketStatus!
@@ -279,16 +279,16 @@ type StatusChange implements EventDetail {
 
 type UserMention implements EventDetail {
   eventType: EventType!
-  ticket: Ticket!
-  author: Entity!
-  mentioned: Entity!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+  author: Entity! @access(scope: PROFILE, kind: RO)
+  mentioned: Entity! @access(scope: PROFILE, kind: RO)
 }
 
 type TicketMention implements EventDetail {
   eventType: EventType!
-  ticket: Ticket!
-  author: Entity!
-  mentioned: Ticket!
+  ticket: Ticket! @access(scope: TICKETS, kind: RO)
+  author: Entity! @access(scope: PROFILE, kind: RO)
+  mentioned: Ticket! @access(scope: TICKETS, kind: RO)
 }
 
 interface Subscription {
