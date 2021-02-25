@@ -42,9 +42,9 @@ setup(
           'templates/*.js',
           'static/*',
           'static/icons/*',
-          'emails/*'
+          'emails/*',
           'schema.graphqls',
-          'default_query.graphql'
+          'default_query.graphql',
       ]
   },
   scripts = [
