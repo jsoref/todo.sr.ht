@@ -19,12 +19,14 @@ class TodoApp(SrhtFlask):
         from todosrht.blueprints.tracker import tracker
         from todosrht.blueprints.ticket import ticket
         from todosrht.blueprints.settings import settings
+        from srht.graphql import gql_blueprint
 
         register_api(self)
         self.register_blueprint(html)
         self.register_blueprint(tracker)
         self.register_blueprint(ticket)
         self.register_blueprint(settings)
+        self.register_blueprint(gql_blueprint)
 
         self.add_template_filter(filters.label_badge)
         self.add_template_filter(filters.render_comment)
