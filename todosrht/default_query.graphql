@@ -8,7 +8,7 @@ query {
     # Grab their canonical name:
     canonicalName
     # And a list of trackers:
-    trackers(filter: { count: 5 }) {
+    trackers {
       # This resource is paginated, so it has a cursor. If you pass this value
       # into trackers(cursor:"...") in a subsequent request, you'll get the
       # next page.
