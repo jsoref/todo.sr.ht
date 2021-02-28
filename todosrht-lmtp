@@ -154,7 +154,7 @@ class MailHandler:
 
         if not valid.ok:
             print("Rejecting email due to validation errors")
-            return "550 " + ", ".join([e["reason"] for e in valid.errors])
+            return "550 " + ", ".join([e.message for e in valid.errors])
 
         ticket = submit_ticket(tracker, sender, title, desc,
                 from_email=True, from_email_id=mail["Message-ID"])
