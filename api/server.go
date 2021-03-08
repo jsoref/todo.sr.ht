@@ -33,8 +33,10 @@ func main() {
 	mail := email.NewQueue()
 	server.NewServer("todo.sr.ht", appConfig).
 		WithDefaultMiddleware().
-		WithMiddleware(loaders.Middleware).
-		WithMiddleware(email.Middleware(mail)).
+		WithMiddleware(
+			loaders.Middleware,
+			email.Middleware(mail),
+		).
 		WithSchema(schema, scopes).
 		WithQueues(mail).
 		Run()

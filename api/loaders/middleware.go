@@ -236,6 +236,7 @@ func fetchTrackersByName(ctx context.Context) func(names []string) ([]*model.Tra
 				if err := rows.Scan(database.Scan(ctx, &tracker)...); err != nil {
 					return err
 				}
+				tracker.Access = model.ACCESS_ALL
 				trackersByName[tracker.Name] = &tracker
 			}
 			if err = rows.Err(); err != nil {
