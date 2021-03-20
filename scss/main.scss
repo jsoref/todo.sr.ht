@@ -159,6 +159,10 @@ select.form-control {
   }
 }
 
+.event .label a {
+  color: inherit;
+}
+
 .assign {
   &[open] {
     background: $gray-300;
