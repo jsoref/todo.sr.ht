@@ -85,7 +85,7 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 	}
 	auser := auth.ForContext(ctx)
 	q = q.
-		OrderBy(database.WithAlias(t.alias, "id")).
+		OrderBy(database.WithAlias(t.alias, "id") + " DESC").
 		Limit(uint64(cur.Count + 1)).
 		LeftJoin(`user_access tr_ua ON tr_ua.tracker_id = tr.id`).
 		Column(`COALESCE(
