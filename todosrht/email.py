@@ -1,7 +1,7 @@
 import html.parser
 import os
-import pystache
 import textwrap
+from string import Template
 from srht.config import cfg, cfgi
 from srht.email import send_email, lookup_key
 from srht.oauth import current_user
@@ -26,11 +26,11 @@ def notify(sub, template, subject, headers, **kwargs):
     else:
         return
     with open(os.path.join(os.path.dirname(__file__), "emails", template)) as f:
-        body = html.unescape(
-            pystache.render(f.read(), {
-                'user': current_user,
-                'root': origin,
-                'format_lines': format_lines,
-                **kwargs
-            }))
+        tmpl = Template(f.read())
+        body = tmpl.substitute(**{
+            'username': current_user.username,
+            'user_email': current_user.email,
+            'root': origin,
+            **kwargs,
+        })
     send_email(body, to, subject, encrypt_key=encrypt_key, **headers)

@@ -1,5 +1,4 @@
-{{! vim: set ft=email }}
-{{ticket.description}}
+$description
 
 -- 
-View on the web: {{root}}{{ticket_url}}
+View on the web: $root$ticket_url

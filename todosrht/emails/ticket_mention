@@ -1,7 +1,6 @@
-{{! vim: set ft=email }}
-You were mentioned in {{ ticket_ref }} by {{ submitter }}.
+You were mentioned in $ticket_ref by $submitter.
 
-{{ text }}
+$text
 
 -- 
-View on the web: {{root}}{{ticket_url}}
+View on the web: $root$ticket_url

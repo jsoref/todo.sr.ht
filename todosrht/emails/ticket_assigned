@@ -1,5 +1,4 @@
-{{! vim: set ft=email }}
-You were assigned to {{ ticket_ref }} by {{ assigner }}.
+You were assigned to $ticket_ref by $assigner.
 
 -- 
-View on the web: {{root}}{{ticket_url}}
+View on the web: $root$ticket_url

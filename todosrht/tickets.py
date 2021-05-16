@@ -190,7 +190,7 @@ def _send_comment_notification(subscription, ticket,
         ticket=ticket,
         comment=comment,
         comment_text=format_lines(comment.text) if comment else "",
-        resolution=resolution.name if resolution else None,
+        resolution=f"""Ticket resolved: {resolution.name}\n\n""" if resolution else None,
         ticket_url=url)
 
 def _change_ticket_status(ticket, resolve, resolution, reopen):
@@ -474,7 +474,8 @@ def _send_new_ticket_notification(subscription, ticket, email_trigger_id):
         headers["In-Reply-To"] = email_trigger_id
 
     notify(subscription, "new_ticket", subject,
-        headers=headers, ticket=ticket, ticket_url=ticket_url(ticket))
+        headers=headers, description=ticket.description,
+        ticket_url=ticket_url(ticket))
 
 def submit_ticket(tracker, submitter, title, description,
         importing=False, from_email=False, from_email_id=None):
