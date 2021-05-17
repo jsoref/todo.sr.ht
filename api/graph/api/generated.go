@@ -1406,7 +1406,9 @@ func (ec *executionContext) introspectType(name string) (*introspection.Type, er
 }
 
 var sources = []*ast.Source{
-	{Name: "graph/schema.graphqls", Input: `scalar Cursor
+	{Name: "graph/schema.graphqls", Input: `# This schema definition is available in the public domain, or under the terms
+# of CC-0, at your choice.
+scalar Cursor
 scalar Time
 
 # Used to provide a human-friendly description of an access scope
@@ -1726,7 +1728,7 @@ type TicketSubscription implements Subscription {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type TrackerCursor {
-  results: [Tracker]!
+  results: [Tracker!]!
   cursor: Cursor
 }
 
@@ -1736,7 +1738,7 @@ type TrackerCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type TicketCursor {
-  results: [Ticket]!
+  results: [Ticket!]!
   cursor: Cursor
 }
 
@@ -1746,7 +1748,7 @@ type TicketCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type LabelCursor {
-  results: [Label]!
+  results: [Label!]!
   cursor: Cursor
 }
 
@@ -1756,7 +1758,7 @@ type LabelCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type ACLCursor {
-  results: [TrackerACL]!
+  results: [TrackerACL!]!
   cursor: Cursor
 }
 
@@ -1766,7 +1768,7 @@ type ACLCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type EventCursor {
-  results: [Event]!
+  results: [Event!]!
   cursor: Cursor
 }
 
@@ -1776,7 +1778,7 @@ type EventCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type SubscriptionCursor {
-  results: [Subscription]!
+  results: [Subscription!]!
   cursor: Cursor
 }
 
@@ -2150,7 +2152,7 @@ func (ec *executionContext) _ACLCursor_results(ctx context.Context, field graphq
 	}
 	res := resTmp.([]*model.TrackerACL)
 	fc.Result = res
-	return ec.marshalNTrackerACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx, field.Selections, res)
+	return ec.marshalNTrackerACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACLᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _ACLCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.ACLCursor) (ret graphql.Marshaler) {
@@ -3310,7 +3312,7 @@ func (ec *executionContext) _EventCursor_results(ctx context.Context, field grap
 	}
 	res := resTmp.([]*model.Event)
 	fc.Result = res
-	return ec.marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx, field.Selections, res)
+	return ec.marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _EventCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.EventCursor) (ret graphql.Marshaler) {
@@ -3787,7 +3789,7 @@ func (ec *executionContext) _LabelCursor_results(ctx context.Context, field grap
 	}
 	res := resTmp.([]*model.Label)
 	fc.Result = res
-	return ec.marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx, field.Selections, res)
+	return ec.marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _LabelCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.LabelCursor) (ret graphql.Marshaler) {
@@ -4989,7 +4991,7 @@ func (ec *executionContext) _SubscriptionCursor_results(ctx context.Context, fie
 	}
 	res := resTmp.([]model.Subscription)
 	fc.Result = res
-	return ec.marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx, field.Selections, res)
+	return ec.marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _SubscriptionCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.SubscriptionCursor) (ret graphql.Marshaler) {
@@ -5754,7 +5756,7 @@ func (ec *executionContext) _TicketCursor_results(ctx context.Context, field gra
 	}
 	res := resTmp.([]*model.Ticket)
 	fc.Result = res
-	return ec.marshalNTicket2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+	return ec.marshalNTicket2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TicketCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.TicketCursor) (ret graphql.Marshaler) {
@@ -7058,7 +7060,7 @@ func (ec *executionContext) _TrackerCursor_results(ctx context.Context, field gr
 	}
 	res := resTmp.([]*model.Tracker)
 	fc.Result = res
-	return ec.marshalNTracker2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx, field.Selections, res)
+	return ec.marshalNTracker2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _TrackerCursor_cursor(ctx context.Context, field graphql.CollectedField, obj *model.TrackerCursor) (ret graphql.Marshaler) {
@@ -11159,7 +11161,7 @@ func (ec *executionContext) marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodo�
 	return ret
 }
 
-func (ec *executionContext) marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v []*model.Event) graphql.Marshaler {
+func (ec *executionContext) marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Event) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -11183,7 +11185,7 @@ func (ec *executionContext) marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtod
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx, sel, v[i])
+			ret[i] = ec.marshalNEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -11194,6 +11196,16 @@ func (ec *executionContext) marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtod
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) marshalNEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v *model.Event) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Event(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNEventCursor2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventCursor(ctx context.Context, sel ast.SelectionSet, v model.EventCursor) graphql.Marshaler {
@@ -11313,6 +11325,43 @@ func (ec *executionContext) marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtod
 	return ret
 }
 
+func (ec *executionContext) marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabelᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Label) graphql.Marshaler {
+	ret := make(graphql.Array, len(v))
+	var wg sync.WaitGroup
+	isLen1 := len(v) == 1
+	if !isLen1 {
+		wg.Add(len(v))
+	}
+	for i := range v {
+		i := i
+		fc := &graphql.FieldContext{
+			Index:  &i,
+			Result: &v[i],
+		}
+		ctx := graphql.WithFieldContext(ctx, fc)
+		f := func(i int) {
+			defer func() {
+				if r := recover(); r != nil {
+					ec.Error(ctx, ec.Recover(ctx, r))
+					ret = nil
+				}
+			}()
+			if !isLen1 {
+				defer wg.Done()
+			}
+			ret[i] = ec.marshalNLabel2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx, sel, v[i])
+		}
+		if isLen1 {
+			f(i)
+		} else {
+			go f(i)
+		}
+
+	}
+	wg.Wait()
+	return ret
+}
+
 func (ec *executionContext) marshalNLabel2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx context.Context, sel ast.SelectionSet, v *model.Label) graphql.Marshaler {
 	if v == nil {
 		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
@@ -11352,7 +11401,17 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 	return res
 }
 
-func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx context.Context, sel ast.SelectionSet, v []model.Subscription) graphql.Marshaler {
+func (ec *executionContext) marshalNSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx context.Context, sel ast.SelectionSet, v model.Subscription) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._Subscription(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Subscription) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -11376,7 +11435,7 @@ func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx, sel, v[i])
+			ret[i] = ec.marshalNSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -11393,7 +11452,7 @@ func (ec *executionContext) marshalNTicket2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗs
 	return ec._Ticket(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTicket2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx context.Context, sel ast.SelectionSet, v []*model.Ticket) graphql.Marshaler {
+func (ec *executionContext) marshalNTicket2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Ticket) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -11417,7 +11476,7 @@ func (ec *executionContext) marshalNTicket2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋto
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, sel, v[i])
+			ret[i] = ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -11493,7 +11552,7 @@ func (ec *executionContext) marshalNTracker2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗ
 	return ec._Tracker(ctx, sel, &v)
 }
 
-func (ec *executionContext) marshalNTracker2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx context.Context, sel ast.SelectionSet, v []*model.Tracker) graphql.Marshaler {
+func (ec *executionContext) marshalNTracker2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Tracker) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -11517,7 +11576,7 @@ func (ec *executionContext) marshalNTracker2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋt
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOTracker2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx, sel, v[i])
+			ret[i] = ec.marshalNTracker2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -11540,7 +11599,7 @@ func (ec *executionContext) marshalNTracker2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodo
 	return ec._Tracker(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNTrackerACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx context.Context, sel ast.SelectionSet, v []*model.TrackerACL) graphql.Marshaler {
+func (ec *executionContext) marshalNTrackerACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACLᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.TrackerACL) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -11564,7 +11623,7 @@ func (ec *executionContext) marshalNTrackerACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOTrackerACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx, sel, v[i])
+			ret[i] = ec.marshalNTrackerACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -11575,6 +11634,16 @@ func (ec *executionContext) marshalNTrackerACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 	}
 	wg.Wait()
 	return ret
+}
+
+func (ec *executionContext) marshalNTrackerACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx context.Context, sel ast.SelectionSet, v *model.TrackerACL) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._TrackerACL(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNTrackerCursor2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerCursor(ctx context.Context, sel ast.SelectionSet, v model.TrackerCursor) graphql.Marshaler {
@@ -11909,13 +11978,6 @@ func (ec *executionContext) marshalOEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗs
 	return ec._Entity(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v *model.Event) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Event(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOEventCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventCursor(ctx context.Context, sel ast.SelectionSet, v *model.EventCursor) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -11961,25 +12023,11 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	return graphql.MarshalString(*v)
 }
 
-func (ec *executionContext) marshalOSubscription2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscription(ctx context.Context, sel ast.SelectionSet, v model.Subscription) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Subscription(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOSubscriptionCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubscriptionCursor(ctx context.Context, sel ast.SelectionSet, v *model.SubscriptionCursor) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
 	}
 	return ec._SubscriptionCursor(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx context.Context, sel ast.SelectionSet, v *model.Ticket) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Ticket(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOTicketSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketSubscription(ctx context.Context, sel ast.SelectionSet, v *model.TicketSubscription) graphql.Marshaler {
@@ -12009,13 +12057,6 @@ func (ec *executionContext) marshalOTracker2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodo
 		return graphql.Null
 	}
 	return ec._Tracker(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOTrackerACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx context.Context, sel ast.SelectionSet, v *model.TrackerACL) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._TrackerACL(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOTrackerCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerCursor(ctx context.Context, sel ast.SelectionSet, v *model.TrackerCursor) graphql.Marshaler {

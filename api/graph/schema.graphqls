@@ -320,7 +320,7 @@ type TicketSubscription implements Subscription {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type TrackerCursor {
-  results: [Tracker]!
+  results: [Tracker!]!
   cursor: Cursor
 }
 
@@ -330,7 +330,7 @@ type TrackerCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type TicketCursor {
-  results: [Ticket]!
+  results: [Ticket!]!
   cursor: Cursor
 }
 
@@ -340,7 +340,7 @@ type TicketCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type LabelCursor {
-  results: [Label]!
+  results: [Label!]!
   cursor: Cursor
 }
 
@@ -350,7 +350,7 @@ type LabelCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type ACLCursor {
-  results: [TrackerACL]!
+  results: [TrackerACL!]!
   cursor: Cursor
 }
 
@@ -360,7 +360,7 @@ type ACLCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type EventCursor {
-  results: [Event]!
+  results: [Event!]!
   cursor: Cursor
 }
 
@@ -370,7 +370,7 @@ type EventCursor {
 # back into the same endpoint to retrieve another page. If the cursor is null,
 # there are no remaining results to return.
 type SubscriptionCursor {
-  results: [Subscription]!
+  results: [Subscription!]!
   cursor: Cursor
 }
 
