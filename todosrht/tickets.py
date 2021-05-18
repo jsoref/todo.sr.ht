@@ -190,7 +190,7 @@ def _send_comment_notification(subscription, ticket,
         ticket=ticket,
         comment=comment,
         comment_text=format_lines(comment.text) if comment else "",
-        resolution=f"""Ticket resolved: {resolution.name}\n\n""" if resolution else None,
+        resolution=f"""Ticket resolved: {resolution.name}\n\n""" if resolution else "",
         ticket_url=url)
 
 def _change_ticket_status(ticket, resolve, resolution, reopen):
