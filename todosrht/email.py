@@ -28,8 +28,6 @@ def notify(sub, template, subject, headers, **kwargs):
     with open(os.path.join(os.path.dirname(__file__), "emails", template)) as f:
         tmpl = Template(f.read())
         body = tmpl.substitute(**{
-            'username': current_user.username,
-            'user_email': current_user.email,
             'root': origin,
             **kwargs,
         })
