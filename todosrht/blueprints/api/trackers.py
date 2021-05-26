@@ -9,7 +9,7 @@ from todosrht.tickets import get_participant_for_user
 from todosrht.types import Label, Tracker, TicketAccess, TicketSubscription
 from todosrht.webhooks import UserWebhook, TrackerWebhook
 
-trackers = Blueprint("api.trackers", __name__)
+trackers = Blueprint("api_trackers", __name__)
 
 @trackers.route("/api/user/<username>/trackers")
 @trackers.route("/api/trackers", defaults={"username": None})

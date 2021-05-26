@@ -13,7 +13,7 @@ from todosrht.types import Event, EventType, Label, TicketLabel, TicketComment
 from todosrht.types import TicketAuthenticity, ParticipantType
 from todosrht.webhooks import TrackerWebhook, TicketWebhook
 
-tickets = Blueprint("api.tickets", __name__)
+tickets = Blueprint("api_tickets", __name__)
 
 @tickets.route("/api/user/<username>/trackers/<tracker_name>/tickets")
 @tickets.route("/api/trackers/<tracker_name>/tickets",
