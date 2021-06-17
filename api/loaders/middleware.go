@@ -161,7 +161,7 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 						THEN ?
 						ELSE tr.default_user_perms
 					END)`,
-					model.ACCESS_ALL, auser.UserID).
+					auser.UserID, model.ACCESS_ALL).
 				Column(`ua.id`).
 				Where(sq.And{
 					sq.Expr(`tr.id = ANY(?)`, pq.Array(ids)),
