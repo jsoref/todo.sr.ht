@@ -57,14 +57,16 @@ class Ticket(Base):
     anonymous_perms = sa.Column(FlagType(TicketAccess), nullable=True)
     """Permissions granted to anonymous (non-logged in) users"""
 
-    view_list = sa.orm.relationship("TicketSeen")
+    view_list = sa.orm.relationship("TicketSeen", viewonly=True)
 
     labels = sa.orm.relationship("Label",
-        secondary="ticket_label", order_by="Label.name")
+        secondary="ticket_label", order_by="Label.name",
+        viewonly=True)
 
     assigned_users = sa.orm.relationship("User",
         secondary="ticket_assignee",
-        foreign_keys="[TicketAssignee.ticket_id,TicketAssignee.assignee_id]")
+        foreign_keys="[TicketAssignee.ticket_id,TicketAssignee.assignee_id]",
+        viewonly=True)
 
     authenticity = sa.Column(
             sau.ChoiceType(TicketAuthenticity, impl=sa.Integer()),

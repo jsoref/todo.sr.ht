@@ -19,7 +19,8 @@ class Label(Base):
     color = sa.Column(sa.Text, nullable=False)
     text_color = sa.Column(sa.Text, nullable=False)
 
-    tickets = sa.orm.relationship("Ticket", secondary="ticket_label")
+    tickets = sa.orm.relationship("Ticket",
+            secondary="ticket_label", viewonly=True)
 
     __table_args__ = (
         sa.UniqueConstraint("tracker_id", "name",
