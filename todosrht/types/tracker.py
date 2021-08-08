@@ -6,7 +6,7 @@ from srht.flagtype import FlagType
 from srht.validation import Validation
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
-name_re = re.compile(r"^([a-zA-Z][a-zA-Z0-9._-]*?)+$")
+name_re = re.compile(r"^[A-Za-z0-9._-]+$")
 
 class Tracker(Base):
     __tablename__ = 'tracker'
@@ -70,10 +70,13 @@ class Tracker(Base):
                 "Must be between 1 and 255 characters",
                 field="name")
         valid.expect(not valid.ok or name_re.match(name),
-                "Only alphanumeric characters or <samp>._-</samp>",
+                "Name must match [A-Za-z0-9._-]+",
                 field="name")
         valid.expect(not valid.ok or name not in [".", ".."],
                 "Name cannot be '.' or '..'",
+                field="name")
+        valid.expect(not valid.ok or name not in [".git", ".hg"],
+                "Name must not be '.git' or '.hg'",
                 field="name")
         valid.expect(not desc or len(desc) < 4096,
                 "Must be less than 4096 characters",
@@ -83,7 +86,7 @@ class Tracker(Base):
 
         tracker = (Tracker.query
                 .filter(Tracker.owner_id == user.id)
-                .filter(Tracker.name.ilike(name))
+                .filter(Tracker.name.ilike(name.replace('_', '\\_')))
             ).first()
         valid.expect(not tracker,
                 "A tracker by this name already exists", field="name")

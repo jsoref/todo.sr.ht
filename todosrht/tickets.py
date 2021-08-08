@@ -36,21 +36,21 @@ USER_MENTION_PATTERN = re.compile(r"""
 
 # Matches ticket mentions, e.g. #17, tracker#17 and ~user/tracker#17
 TICKET_MENTION_PATTERN = re.compile(r"""
-    (?<![^\s(])                      # No leading non-whitespace characters
-    (~(?P<username>\w+)/)?           # Optional username
-    (?P<tracker_name>[a-z0-9_.-]+)?  # Optional tracker name
-    \#(?P<ticket_id>\d+)             # Ticket ID
-    \b                               # Word boundary
+    (?<![^\s(])                         # No leading non-whitespace characters
+    (~(?P<username>\w+)/)?              # Optional username
+    (?P<tracker_name>[A-Za-z0-9_.-]+)?  # Optional tracker name
+    \#(?P<ticket_id>\d+)                # Ticket ID
+    \b                                  # Word boundary
 """, re.VERBOSE)
 
 # Matches ticket URL
 TICKET_URL_PATTERN = re.compile(f"""
-    (?<![^\\s(])                      # No leading non-whitespace characters
-    {origin}/                         # Base URL
-    ~(?P<username>\\w+)/              # Username
-    (?P<tracker_name>[a-z0-9_.-]+)/   # Tracker name
-    (?P<ticket_id>\\d+)               # Ticket ID
-    \\b                               # Word boundary
+    (?<![^\\s(])                        # No leading non-whitespace characters
+    {origin}/                           # Base URL
+    ~(?P<username>\\w+)/                # Username
+    (?P<tracker_name>[A-Za-z0-9_.-]+)/  # Tracker name
+    (?P<ticket_id>\\d+)                 # Ticket ID
+    \\b                                 # Word boundary
 """, re.VERBOSE)
 
 def get_participant_for_user(user):
