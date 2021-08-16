@@ -11,13 +11,13 @@
     </h4>
     <p>
     {% if EventType.created in event.event_type %}
-      Ticket created by <a href="{{ event.ticket.submitter|participant_url }}">
-        {{ event.ticket.submitter }}
-      </a>
+      Ticket created by <a
+        href="{{ event.ticket.submitter|participant_url }}"
+      >{{ event.ticket.submitter }} </a>
     {% elif EventType.comment in event.event_type %}
-      Comment by <a href="{{ event.comment.submitter|participant_url }}">
-        {{ event.comment.submitter }}
-      </a>
+      Comment by <a
+        href="{{ event.comment.submitter|participant_url }}"
+      >{{ event.comment.submitter }}</a>
     {% elif EventType.label_added in event.event_type %}
       {{ event.label|label_badge(cls="small") }} added by
       <a href="{{ event.participant|participant_url }}">{{ event.participant }}</a>
@@ -25,28 +25,30 @@
       {{ event.label|label_badge(cls="small") }} removed by
       <a href="{{ event.participant|participant_url }}">{{ event.participant }}</a>
     {% elif EventType.assigned_user in event.event_type %}
-      <a href="{{event.by_participant|participant_url}}">
-        {{event.by_participant}}
-      </a>
+      <a
+        href="{{event.by_participant|participant_url}}"
+      >{{event.by_participant}}</a>
       assigned
-      <a href="{{event.participant|participant_url}}">
-        {{event.participant}}
-      </a>
+      <a
+        href="{{event.participant|participant_url}}"
+      >{{event.participant}}</a>
       to #{{event.ticket.scoped_id}}
     {% elif EventType.unassigned_user in event.event_type %}
-      <a href="{{event.by_participant|participant_url}}">
-        {{event.by_participant}}
-      </a>
+      <a
+        href="{{event.by_participant|participant_url}}"
+      >{{event.by_participant}}</a>
       unassigned
-      <a href="{{event.participant|participant_url}}">
-        {{event.participant}}
-      </a>
+      <a
+        href="{{event.participant|participant_url}}"
+      >{{event.participant}}</a>
       from #{{event.ticket.scoped_id}}
     {% endif %}
     {% with tracker=event.ticket.tracker %}
-      on <a href="{{ tracker.owner|user_url }}"
-        >{{ tracker.owner }}</a>/<a href="{{ tracker|tracker_url }}"
-        >{{ tracker.name }}</a>
+      on <a
+       href="{{ tracker.owner|user_url }}"
+      >{{ tracker.owner }}</a>/<a
+       href="{{ tracker|tracker_url }}"
+      >{{ tracker.name }}</a>
     {% endwith %}
     </p>
     <blockquote>
