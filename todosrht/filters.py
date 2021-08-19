@@ -96,7 +96,7 @@ def label_badge(label, cls="", remove_from_ticket=None, terms=None):
         remove_form = f"""
             <form method="POST" action="{remove_url}">
               {csrf_token()}
-              <button type="submit" class="btn btn-link">
+              <button type="submit" class="btn btn-link" aria-label="Remove">
                 {icon('times')}
               </button>
             </form>

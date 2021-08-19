@@ -213,7 +213,7 @@
             {{ ticket.submitter.name }}
           </a>
         </div>
-        <div class="comments">
+        <div class="comments" aria-label="Comments">
           <span class="icon_count">
             {% if ticket.id in seen_ticket_ids or comment_counts.get(ticket.id, 0) == 0 %}
             {{icon("comments-o")}}
