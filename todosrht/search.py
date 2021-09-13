@@ -107,6 +107,7 @@ def apply_search(query, search_string, current_user):
     return apply_sort(query, sort_terms, {
         "created": Ticket.created,
         "updated": Ticket.updated,
+        "comments": Ticket.comment_count,
     })
 
 def find_usernames(query, limit=20):
