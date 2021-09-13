@@ -1,5 +1,6 @@
 import pytest
 
+from datetime import datetime
 from tests import factories as f
 from todosrht.search import apply_search
 from todosrht.types import Ticket, TicketStatus
@@ -95,8 +96,8 @@ def test_ticket_search(client):
     assert search("description_4") == [ticket4]
     assert search("description_5") == [ticket5]
 
-    assert search("lightsabre") == [ticket1, ticket3, ticket5]
-    assert search("blaster") == [ticket2, ticket4]
+    assert search("lightsabre") == [ticket5, ticket3, ticket1]
+    assert search("blaster") == [ticket4, ticket2]
 
     # Search by comment
     assert search("parsecs") == [ticket1]
@@ -110,29 +111,29 @@ def test_ticket_search(client):
     assert search("'force may with you be'") == []
 
     # Search either title, description, or comment
-    assert search("used_to_test_or") == [ticket1, ticket2, ticket3]
+    assert search("used_to_test_or") == [ticket3, ticket2, ticket1]
 
     # Search by submitter
     assert search("submitter:luke") == [ticket3]
-    assert search("submitter:leia") == [ticket4, ticket5]
-    assert search("submitter:han") == [ticket1, ticket2]
+    assert search("submitter:leia") == [ticket5, ticket4]
+    assert search("submitter:han") == [ticket2, ticket1]
 
-    assert search("!submitter:luke") == [ticket1, ticket2, ticket4, ticket5]
-    assert search("!submitter:leia") == [ticket1, ticket2, ticket3]
-    assert search("!submitter:han") == [ticket3, ticket4, ticket5]
+    assert search("!submitter:luke") == [ticket5, ticket4, ticket2, ticket1]
+    assert search("!submitter:leia") == [ticket3, ticket2, ticket1]
+    assert search("!submitter:han") == [ticket5, ticket4, ticket3]
 
     # Search by asignee
-    assert search("assigned:luke") == [ticket1, ticket2]
-    assert search("assigned:leia") == [ticket2, ticket3]
-    assert search("!assigned:luke") == [ticket3, ticket4, ticket5]
-    assert search("!assigned:leia") == [ticket1, ticket4, ticket5]
+    assert search("assigned:luke") == [ticket2, ticket1]
+    assert search("assigned:leia") == [ticket3, ticket2]
+    assert search("!assigned:luke") == [ticket5, ticket4, ticket3]
+    assert search("!assigned:leia") == [ticket5, ticket4, ticket1]
     assert search("assigned:luke assigned:leia") == [ticket2]
     assert search("assigned:luke !assigned:leia") == [ticket1]
     assert search("!assigned:luke assigned:leia") == [ticket3]
-    assert search("!assigned:luke !assigned:leia") == [ticket4, ticket5]
+    assert search("!assigned:luke !assigned:leia") == [ticket5, ticket4]
 
-    assert search("no:assignee") == [ticket4, ticket5]
-    assert search("!no:assignee") == [ticket1, ticket2, ticket3]
+    assert search("no:assignee") == [ticket5, ticket4]
+    assert search("!no:assignee") == [ticket3, ticket2, ticket1]
 
     with pytest.raises(ValueError) as excinfo:
         search("no:foo")
@@ -140,23 +141,23 @@ def test_ticket_search(client):
 
     assert search("assigned:me") == []
     assert search("assigned:me", han.user) == []
-    assert search("assigned:me", luke.user) == [ticket1, ticket2]
-    assert search("assigned:me", leia.user) == [ticket2, ticket3]
+    assert search("assigned:me", luke.user) == [ticket2, ticket1]
+    assert search("assigned:me", leia.user) == [ticket3, ticket2]
 
-    assert search("!assigned:me") == [ticket1, ticket2, ticket3, ticket4, ticket5]
-    assert search("!assigned:me", han.user) == [ticket1, ticket2, ticket3, ticket4, ticket5]
-    assert search("!assigned:me", luke.user) == [ticket3, ticket4, ticket5]
-    assert search("!assigned:me", leia.user) == [ticket1, ticket4, ticket5]
+    assert search("!assigned:me") == [ticket5, ticket4, ticket3, ticket2, ticket1]
+    assert search("!assigned:me", han.user) == [ticket5, ticket4, ticket3, ticket2, ticket1]
+    assert search("!assigned:me", luke.user) == [ticket5, ticket4, ticket3]
+    assert search("!assigned:me", leia.user) == [ticket5, ticket4, ticket1]
 
     # Search by label
-    assert search("label:jedi") == [ticket1, ticket5]
-    assert search("label:sith") == [ticket2, ticket5]
-    assert search("!label:jedi") == [ticket2, ticket3, ticket4]
-    assert search("!label:sith") == [ticket1, ticket3, ticket4]
+    assert search("label:jedi") == [ticket5, ticket1]
+    assert search("label:sith") == [ticket5, ticket2]
+    assert search("!label:jedi") == [ticket4, ticket3, ticket2]
+    assert search("!label:sith") == [ticket4, ticket3, ticket1]
     assert search("label:jedi label:sith") == [ticket5]
 
-    assert search("no:label") == [ticket3, ticket4]
-    assert search("!no:label") == [ticket1, ticket2, ticket5]
+    assert search("no:label") == [ticket4, ticket3]
+    assert search("!no:label") == [ticket5, ticket2, ticket1]
 
     # Combinations
     assert search(
@@ -184,14 +185,14 @@ def test_ticket_search_by_status(client):
     def search(search_string, user=owner):
         return apply_search(query, search_string, user).all()
 
-    assert search("") == [ticket1, ticket2, ticket3, ticket4]
-    assert search("status:any") == [ticket1, ticket2, ticket3, ticket4, ticket5]
-    assert search("status:open") == [ticket1, ticket2, ticket3, ticket4]
+    assert search("") == [ticket4, ticket3, ticket2, ticket1]
+    assert search("status:any") == [ticket5, ticket4, ticket3, ticket2, ticket1]
+    assert search("status:open") == [ticket4, ticket3, ticket2, ticket1]
     assert search("status:closed") == [ticket5]
 
     assert search("!status:any") == []
     assert search("!status:open") == [ticket5]
-    assert search("!status:closed") == [ticket1, ticket2, ticket3, ticket4]
+    assert search("!status:closed") == [ticket4, ticket3, ticket2, ticket1]
 
     assert search("status:reported") == [ticket1]
     assert search("status:confirmed") == [ticket2]
@@ -199,12 +200,51 @@ def test_ticket_search_by_status(client):
     assert search("status:pending") == [ticket4]
     assert search("status:resolved") == [ticket5]
 
-    assert search("!status:reported") == [ticket2, ticket3, ticket4, ticket5]
-    assert search("!status:confirmed") == [ticket1, ticket3, ticket4, ticket5]
-    assert search("!status:in_progress") == [ticket1, ticket2, ticket4, ticket5]
-    assert search("!status:pending") == [ticket1, ticket2, ticket3, ticket5]
-    assert search("!status:resolved") == [ticket1, ticket2, ticket3, ticket4]
+    assert search("!status:reported") == [ticket5, ticket4, ticket3, ticket2]
+    assert search("!status:confirmed") == [ticket5, ticket4, ticket3, ticket1]
+    assert search("!status:in_progress") == [ticket5, ticket4, ticket2, ticket1]
+    assert search("!status:pending") == [ticket5, ticket3, ticket2, ticket1]
+    assert search("!status:resolved") == [ticket4, ticket3, ticket2, ticket1]
 
     with pytest.raises(ValueError) as excinfo:
         search("status:foo")
     assert str(excinfo.value) == "Invalid status: 'foo'"
+
+def test_sorting(client):
+    owner = f.UserFactory()
+    tracker = f.TrackerFactory(owner=owner)
+
+    ticket1 = f.TicketFactory(tracker=tracker)
+    ticket2 = f.TicketFactory(tracker=tracker)
+    ticket3 = f.TicketFactory(tracker=tracker)
+    ticket4 = f.TicketFactory(tracker=tracker)
+    ticket5 = f.TicketFactory(tracker=tracker)
+    db.session.commit()
+
+    query = Ticket.query.filter(Ticket.tracker_id == tracker.id)
+
+    def search(search_string, user=owner):
+        return apply_search(query, search_string, user).all()
+
+    assert search("") == [ticket5, ticket4, ticket3, ticket2, ticket1]
+    assert search("sort:updated") == [ticket5, ticket4, ticket3, ticket2, ticket1]
+    assert search("rsort:updated") == [ticket1, ticket2, ticket3, ticket4, ticket5]
+    assert search("sort:created") == [ticket5, ticket4, ticket3, ticket2, ticket1]
+    assert search("rsort:created") == [ticket1, ticket2, ticket3, ticket4, ticket5]
+
+    # Changing updated timestamp changes sorting order
+    ticket3.updated = datetime.utcnow()
+    db.session.commit()
+
+    assert search("") == [ticket3, ticket5, ticket4, ticket2, ticket1]
+    assert search("sort:updated") == [ticket3, ticket5, ticket4, ticket2, ticket1]
+    assert search("rsort:updated") == [ticket1, ticket2, ticket4, ticket5, ticket3]
+
+    # Sort by created remains the same
+    assert search("sort:created") == [ticket5, ticket4, ticket3, ticket2, ticket1]
+    assert search("rsort:created") == [ticket1, ticket2, ticket3, ticket4, ticket5]
+
+    with pytest.raises(ValueError) as excinfo:
+        search("sort:foo")
+
+    assert str(excinfo.value).startswith("Invalid sort value: 'foo'.")

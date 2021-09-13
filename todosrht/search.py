@@ -62,19 +62,51 @@ def default_filter(value):
         Ticket.comments.any(TicketComment.text.ilike(f"%{value}%"))
     )
 
+def apply_sort(query, terms, column_map):
+    for term in terms:
+        column_name = term.value
+
+        if column_name.startswith("-"):
+            column_name = column_name[1:]
+
+        if column_name not in column_map:
+            valid = ", ".join(f"'{c}'" for c in column_map.keys())
+            raise ValueError(
+                f"Invalid {term.key} value: '{column_name}'. "
+                f"Supported values are: {valid}."
+            )
+
+        column = column_map[column_name]
+        reverse = term.key == "rsort"
+        ordering = column.asc() if reverse else column.desc()
+        query = query.order_by(ordering)
+
+    return query
+
 def apply_search(query, search_string, current_user):
     terms = list(search.parse_terms(search_string))
+    sort_terms = [t for t in terms if t.key in ["sort", "rsort"]]
+    search_terms = [t for t in terms if t.key not in ["sort", "rsort"]]
 
     # If search does not include a status filter, show open tickets
-    if not any([term.key == "status" for term in terms]):
-        terms.append(search.Term("status", "open", False))
+    if not any([term.key == "status" for term in search_terms]):
+        search_terms.append(search.Term("status", "open", False))
 
-    return search.apply_terms(query, terms, default_filter, key_fns={
+    # Set default sort to 'updated desc' if not specified
+    if not sort_terms:
+        sort_terms = [search.Term("sort", "updated", True)]
+
+    query = search.apply_terms(query, search_terms, default_filter, key_fns={
         "status": status_filter,
         "submitter": lambda v: submitter_filter(v, current_user),
         "assigned": lambda v: asignee_filter(v, current_user),
         "label": label_filter,
         "no": no_filter,
+    })
+
+    return apply_sort(query, sort_terms, {
+        "created": Ticket.created,
+        "updated": Ticket.updated,
     })
 
 def find_usernames(query, limit=20):

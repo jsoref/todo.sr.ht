@@ -90,8 +90,7 @@ def return_tracker(tracker, access, **kwargs):
     tickets = (Ticket.query
         .filter(Ticket.tracker_id == tracker.id)
         .options(subqueryload(Ticket.labels))
-        .options(subqueryload(Ticket.submitter))
-        .order_by(Ticket.updated.desc()))
+        .options(subqueryload(Ticket.submitter)))
 
     try:
         terms = request.args.get("search")
