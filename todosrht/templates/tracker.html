@@ -215,16 +215,15 @@
         </div>
         <div class="comments" aria-label="Comments">
           <span class="icon_count">
-            {% if ticket.id in seen_ticket_ids or comment_counts.get(ticket.id, 0) == 0 %}
+            {% if ticket.id in seen_ticket_ids or ticket.comment_count == 0 %}
             {{icon("comments-o")}}
             {% else %}
             {{icon("comments")}}
             {% endif %}
-            {{ comment_counts.get(ticket.id, 0) }}
+            {{ ticket.comment_count }}
           </span>
           <span class="commentlabel">
-            {{ "comment" if comment_counts.get(ticket.id, 0) == 1
-                else "comments" }}
+            {{ "comment" if ticket.comment_count == 1 else "comments" }}
           </span>
         </div>
         {% endfor %}

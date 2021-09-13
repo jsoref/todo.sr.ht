@@ -36,6 +36,7 @@ class Ticket(Base):
 
     title = sa.Column(sa.Unicode(2048), nullable=False)
     description = sa.Column(sa.Unicode(16384))
+    comment_count = sa.Column(sa.Integer, default=0, nullable=False, index=True)
 
     status = sa.Column(FlagType(TicketStatus),
             nullable=False,

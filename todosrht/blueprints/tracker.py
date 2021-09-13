@@ -5,9 +5,8 @@ from todosrht.color import valid_hex_color_code
 from todosrht.access import get_tracker
 from todosrht.filters import render_markup
 from todosrht.search import apply_search
-from todosrht.tickets import get_last_seen_times, get_comment_counts
+from todosrht.tickets import get_last_seen_times
 from todosrht.tickets import get_participant_for_user, submit_ticket
-from todosrht.trackers import get_recent_users
 from todosrht.types import Event, Label, TicketLabel
 from todosrht.types import TicketSubscription, Participant
 from todosrht.types import Tracker, Ticket, TicketAccess
@@ -107,9 +106,6 @@ def return_tracker(tracker, access, **kwargs):
         seen_ticket_ids = [t.id for t in tickets
             if t.id in seen_times and seen_times[t.id] >= t.updated]
 
-    # Preload comment counts
-    comment_counts = get_comment_counts(tickets)
-
     if "another" in kwargs:
         another = kwargs["another"]
         del kwargs["another"]
@@ -117,7 +113,7 @@ def return_tracker(tracker, access, **kwargs):
     return render_template("tracker.html",
             tracker=tracker, another=another, tickets=tickets,
             access=access, is_subscribed=is_subscribed, search=terms,
-            comment_counts=comment_counts, seen_ticket_ids=seen_ticket_ids,
+            seen_ticket_ids=seen_ticket_ids,
             tracker_subscribe=tracker_subscribe, **pagination, **kwargs)
 
 @tracker.route("/<owner>/<name>")

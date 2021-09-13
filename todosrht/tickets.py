@@ -328,6 +328,7 @@ def add_comment(submitter, ticket,
             comment,
         )
 
+    ticket.comment_count = get_comment_count(ticket.id)
     ticket.updated = datetime.utcnow()
     ticket.tracker.updated = datetime.utcnow()
     db.session.commit()
@@ -450,13 +451,13 @@ def get_last_seen_times(user, tickets):
         .filter(TicketSeen.ticket_id.in_([t.id for t in tickets]))
         .filter(TicketSeen.user == user))
 
-def get_comment_counts(tickets):
-    """Returns comment counts indexed by ticket id."""
-    col = TicketComment.ticket_id
-    return dict(db.session
-        .query(col, func.count(col))
-        .filter(col.in_([t.id for t in tickets]))
-        .group_by(col))
+def get_comment_count(ticket_id):
+    """Returns the number of comments on a given ticket."""
+    return (
+        TicketComment.query
+        .filter_by(ticket_id=ticket_id, superceeded_by_id=None)
+        .count()
+    )
 
 def _send_new_ticket_notification(subscription, ticket, email_trigger_id):
     subject = f"{ticket.ref()}: {ticket.title}"
