@@ -17,7 +17,6 @@ from srht.database import db
 from srht.flask import paginate_query, session
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
-from sqlalchemy.orm import subqueryload
 
 tracker = Blueprint("tracker", __name__)
 
@@ -86,10 +85,7 @@ def return_tracker(tracker, access, **kwargs):
             f"{posting_domain}?subject={subj}&body=" + \
             quote(tracker_subscribe_body.format(tracker_ref=tracker.ref()))
 
-    tickets = (Ticket.query
-        .filter(Ticket.tracker_id == tracker.id)
-        .options(subqueryload(Ticket.labels))
-        .options(subqueryload(Ticket.submitter)))
+    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
 
     try:
         terms = request.args.get("search")
