@@ -25,11 +25,12 @@ const (
 )
 
 type Tracker struct {
-	ID          int         `json:"id"`
-	Created     time.Time   `json:"created"`
-	Updated     time.Time   `json:"updated"`
-	Name        string      `json:"name"`
-	Description *string     `json:"description"`
+	ID          int        `json:"id"`
+	Created     time.Time  `json:"created"`
+	Updated     time.Time  `json:"updated"`
+	Name        string     `json:"name"`
+	Description *string    `json:"description"`
+	Visibility  Visibility `json:"visibility"`
 
 	OwnerID int
 	Access  int
@@ -63,6 +64,7 @@ func (t *Tracker) Fields() *database.ModelFields {
 			{ "updated", "updated", &t.Updated },
 			{ "name", "name", &t.Name },
 			{ "description", "description", &t.Description },
+			{ "visibility", "visibility", &t.Visibility },
 
 			// Always fetch:
 			{ "id", "", &t.ID },
@@ -92,7 +94,7 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 			tr_ua.permissions,
 			CASE WHEN tr.owner_id = ?
 				THEN ?
-				ELSE tr.default_user_perms
+				ELSE tr.default_access
 			END)`,
 			auser.UserID, ACCESS_ALL).
 		Column(`tr_ua.id`).

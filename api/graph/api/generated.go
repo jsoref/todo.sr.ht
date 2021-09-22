@@ -171,7 +171,6 @@ type ComplexityRoot struct {
 	}
 
 	Ticket struct {
-		ACL          func(childComplexity int) int
 		Assignees    func(childComplexity int) int
 		Authenticity func(childComplexity int) int
 		Body         func(childComplexity int) int
@@ -219,6 +218,7 @@ type ComplexityRoot struct {
 		Subscription func(childComplexity int) int
 		Tickets      func(childComplexity int, cursor *model1.Cursor) int
 		Updated      func(childComplexity int) int
+		Visibility   func(childComplexity int) int
 	}
 
 	TrackerACL struct {
@@ -324,7 +324,6 @@ type TicketResolver interface {
 	Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error)
 	Events(ctx context.Context, obj *model.Ticket, cursor *model1.Cursor) (*model.EventCursor, error)
 	Subscription(ctx context.Context, obj *model.Ticket) (*model.TicketSubscription, error)
-	ACL(ctx context.Context, obj *model.Ticket) (model.ACL, error)
 }
 type TicketMentionResolver interface {
 	Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error)
@@ -855,13 +854,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.SubscriptionCursor.Results(childComplexity), true
 
-	case "Ticket.acl":
-		if e.complexity.Ticket.ACL == nil {
-			break
-		}
-
-		return e.complexity.Ticket.ACL(childComplexity), true
-
 	case "Ticket.assignees":
 		if e.complexity.Ticket.Assignees == nil {
 			break
@@ -1126,6 +1118,13 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Tracker.Updated(childComplexity), true
+
+	case "Tracker.visibility":
+		if e.complexity.Tracker.Visibility == nil {
+			break
+		}
+
+		return e.complexity.Tracker.Visibility(childComplexity), true
 
 	case "TrackerACL.browse":
 		if e.complexity.TrackerACL.Browse == nil {
@@ -1481,6 +1480,12 @@ type ExternalUser implements Entity {
   externalUrl: String
 }
 
+enum Visibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
 type Tracker {
   id: Int!
   created: Time!
@@ -1488,6 +1493,7 @@ type Tracker {
   owner: Entity! @access(scope: PROFILE, kind: RO)
   name: String!
   description: String
+  visibility: Visibility!
 
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
@@ -1559,10 +1565,6 @@ type Ticket {
   # If the authenticated user is subscribed to this ticket, this is that
   # subscription.
   subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
-
-  # The access control list entry (or the default ACL) which describes the
-  # authenticated user's permissions with respect to this ticket.
-  acl: ACL
 }
 
 interface ACL {
@@ -1800,6 +1802,7 @@ type Query {
   # ACLs or (2) has implicit access to either by ownership or group membership.
   trackers(cursor: Cursor): TrackerCursor @access(scope: TRACKERS, kind: RO)
 
+  # Returns a specific tracker by ID.
   tracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RO)
 
   # Returns a specific tracker, owned by the authenticated user.
@@ -5692,38 +5695,6 @@ func (ec *executionContext) _Ticket_subscription(ctx context.Context, field grap
 	return ec.marshalOTicketSubscription2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketSubscription(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Ticket_acl(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Ticket",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		ctx = rctx // use context from middleware stack in children
-		return ec.resolvers.Ticket().ACL(rctx, obj)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(model.ACL)
-	fc.Result = res
-	return ec.marshalOACL2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACL(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _TicketCursor_results(ctx context.Context, field graphql.CollectedField, obj *model.TicketCursor) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -6381,6 +6352,41 @@ func (ec *executionContext) _Tracker_description(ctx context.Context, field grap
 	res := resTmp.(*string)
 	fc.Result = res
 	return ec.marshalOString2ᚖstring(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Tracker_visibility(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Tracker",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.Visibility, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(model.Visibility)
+	fc.Result = res
+	return ec.marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Tracker_tickets(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
@@ -10182,17 +10188,6 @@ func (ec *executionContext) _Ticket(ctx context.Context, sel ast.SelectionSet, o
 				res = ec._Ticket_subscription(ctx, field, obj)
 				return res
 			})
-		case "acl":
-			field := field
-			out.Concurrently(i, func() (res graphql.Marshaler) {
-				defer func() {
-					if r := recover(); r != nil {
-						ec.Error(ctx, ec.Recover(ctx, r))
-					}
-				}()
-				res = ec._Ticket_acl(ctx, field, obj)
-				return res
-			})
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -10395,6 +10390,11 @@ func (ec *executionContext) _Tracker(ctx context.Context, sel ast.SelectionSet, 
 			}
 		case "description":
 			out.Values[i] = ec._Tracker_description(ctx, field, obj)
+		case "visibility":
+			out.Values[i] = ec._Tracker_visibility(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				atomic.AddUint32(&invalids, 1)
+			}
 		case "tickets":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
@@ -11686,6 +11686,16 @@ func (ec *executionContext) marshalNVersion2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodo
 		return graphql.Null
 	}
 	return ec._Version(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, v interface{}) (model.Visibility, error) {
+	var res model.Visibility
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx context.Context, sel ast.SelectionSet, v model.Visibility) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) marshalN__Directive2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐDirective(ctx context.Context, sel ast.SelectionSet, v introspection.Directive) graphql.Marshaler {

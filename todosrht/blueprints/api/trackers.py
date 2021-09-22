@@ -19,7 +19,7 @@ def user_trackers_GET(username):
     trackers = Tracker.query.filter(Tracker.owner_id == user.id)
     if current_token.user_id != user.id:
         # TODO: proper ACLs
-        trackers = trackers.filter(Tracker.default_user_perms > 0)
+        trackers = trackers.filter(Tracker.default_access > 0)
     return paginated_response(Tracker.id, trackers)
 
 @trackers.route("/api/trackers", methods=["POST"])

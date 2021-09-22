@@ -73,6 +73,12 @@ type ExternalUser implements Entity {
   externalUrl: String
 }
 
+enum Visibility {
+  PUBLIC
+  UNLISTED
+  PRIVATE
+}
+
 type Tracker {
   id: Int!
   created: Time!
@@ -80,6 +86,7 @@ type Tracker {
   owner: Entity! @access(scope: PROFILE, kind: RO)
   name: String!
   description: String
+  visibility: Visibility!
 
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
@@ -151,10 +158,6 @@ type Ticket {
   # If the authenticated user is subscribed to this ticket, this is that
   # subscription.
   subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
-
-  # The access control list entry (or the default ACL) which describes the
-  # authenticated user's permissions with respect to this ticket.
-  acl: ACL
 }
 
 interface ACL {
@@ -392,6 +395,7 @@ type Query {
   # ACLs or (2) has implicit access to either by ownership or group membership.
   trackers(cursor: Cursor): TrackerCursor @access(scope: TRACKERS, kind: RO)
 
+  # Returns a specific tracker by ID.
   tracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RO)
 
   # Returns a specific tracker, owned by the authenticated user.

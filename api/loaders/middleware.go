@@ -159,7 +159,7 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 					ua.permissions,
 					CASE WHEN tr.owner_id = ?
 						THEN ?
-						ELSE tr.default_user_perms
+						ELSE tr.default_access
 					END)`,
 					auser.UserID, model.ACCESS_ALL).
 				Column(`ua.id`).
@@ -167,7 +167,7 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 					sq.Expr(`tr.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
 						sq.Expr(`tr.owner_id = ?`, auser.UserID),
-						sq.Expr(`tr.default_user_perms > 0`),
+						sq.Expr(`tr.visibility != 'PRIVATE'`),
 						sq.And{
 							sq.Expr(`ua.user_id = ?`, auser.UserID),
 							sq.Expr(`ua.permissions > 0`),
@@ -291,12 +291,12 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 					ua.permissions,
 					CASE WHEN tr.owner_id = ?
 						THEN ?
-						ELSE tr.default_user_perms
+						ELSE tr.default_access
 					END)`,
 					model.ACCESS_ALL, auser.UserID).
 				Where(sq.Or{
 					sq.Expr(`tr.owner_id = ?`, auser.UserID),
-					sq.Expr(`tr.default_user_perms > 0`),
+					sq.Expr(`tr.visibility != 'PRIVATE'`),
 					sq.And{
 						sq.Expr(`ua.user_id = ?`, auser.UserID),
 						sq.Expr(`ua.permissions > 0`),
@@ -356,7 +356,7 @@ func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []e
 					sq.Expr(`ti.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
 						sq.Expr(`tr.owner_id = ?`, auser.UserID),
-						sq.Expr(`tr.default_user_perms > 0`),
+						sq.Expr(`tr.visibility != 'PRIVATE'`),
 						sq.And{
 							sq.Expr(`ua.user_id = ?`, auser.UserID),
 							sq.Expr(`ua.permissions > 0`),
@@ -568,7 +568,7 @@ func fetchLabelsByID(ctx context.Context) func(ids []int) ([]*model.Label, []err
 					sq.Expr(`l.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
 						sq.Expr(`tr.owner_id = ?`, auser.UserID),
-						sq.Expr(`tr.default_user_perms > 0`),
+						sq.Expr(`tr.visibility != 'PRIVATE'`),
 						sq.And{
 							sq.Expr(`ua.user_id = ?`, auser.UserID),
 							sq.Expr(`ua.permissions > 0`),

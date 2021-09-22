@@ -343,3 +343,46 @@ func (e *TicketStatus) UnmarshalGQL(v interface{}) error {
 func (e TicketStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
+
+type Visibility string
+
+const (
+	VisibilityPublic   Visibility = "PUBLIC"
+	VisibilityUnlisted Visibility = "UNLISTED"
+	VisibilityPrivate  Visibility = "PRIVATE"
+)
+
+var AllVisibility = []Visibility{
+	VisibilityPublic,
+	VisibilityUnlisted,
+	VisibilityPrivate,
+}
+
+func (e Visibility) IsValid() bool {
+	switch e {
+	case VisibilityPublic, VisibilityUnlisted, VisibilityPrivate:
+		return true
+	}
+	return false
+}
+
+func (e Visibility) String() string {
+	return string(e)
+}
+
+func (e *Visibility) UnmarshalGQL(v interface{}) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Visibility(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Visibility", str)
+	}
+	return nil
+}
+
+func (e Visibility) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}

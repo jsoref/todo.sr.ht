@@ -91,6 +91,8 @@ func (r *labelResolver) Tickets(ctx context.Context, obj *model.Label, cursor *c
 		Isolation: 0,
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
+		// No authentication necessary: if you have access to the label you
+		// have access to the tickets.
 		ticket := (&model.Ticket{}).As(`tk`)
 		query := database.
 			Select(ctx, ticket).
@@ -345,10 +347,6 @@ func (r *ticketResolver) Subscription(ctx context.Context, obj *model.Ticket) (*
 	return loaders.ForContext(ctx).SubsByTicketIDUnsafe.Load(obj.PKID)
 }
 
-func (r *ticketResolver) ACL(ctx context.Context, obj *model.Ticket) (model.ACL, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
@@ -370,10 +368,6 @@ func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.
 }
 
 func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
-	if !obj.CanBrowse() {
-		return nil, errors.New("You do not have permission to browse this tracker")
-	}
-
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
 	}
@@ -384,10 +378,23 @@ func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, curso
 		ReadOnly:  true,
 	}, func(tx *sql.Tx) error {
 		ticket := (&model.Ticket{}).As(`tk`)
-		query := database.
-			Select(ctx, ticket).
-			From(`ticket tk`).
-			Where(`tk.tracker_id = ?`, obj.ID)
+		var query sq.SelectBuilder
+		if obj.CanBrowse() {
+			query = database.
+				Select(ctx, ticket).
+				From(`ticket tk`).
+				Where(`tk.tracker_id = ?`, obj.ID)
+		} else {
+			user := auth.ForContext(ctx)
+			query = database.
+				Select(ctx, ticket).
+				From(`ticket tk`).
+				Join(`participant p ON p.user_id = ?`, user.UserID).
+				Where(sq.And{
+					sq.Expr(`tk.tracker_id = ?`, obj.ID),
+					sq.Expr(`tk.submitter_id = p.id`),
+				})
+		}
 		tickets, cursor = ticket.QueryWithCursor(ctx, tx, query, cursor)
 		return nil
 	}); err != nil {
@@ -527,7 +534,7 @@ func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *co
 				sq.Expr(`tr.owner_id = ?`, obj.ID),
 				sq.Or{
 					sq.Expr(`tr.owner_id = ?`, auser.UserID),
-					sq.Expr(`tr.default_user_perms > 0`),
+					sq.Expr(`tr.visibility = 'PUBLIC'`),
 					sq.And{
 						sq.Expr(`ua.user_id = ?`, auser.UserID),
 						sq.Expr(`ua.permissions > 0`),
