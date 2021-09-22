@@ -85,7 +85,15 @@ def return_tracker(tracker, access, **kwargs):
             f"{posting_domain}?subject={subj}&body=" + \
             quote(tracker_subscribe_body.format(tracker_ref=tracker.ref()))
 
-    tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
+    if TicketAccess.browse in access:
+        tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id)
+    elif current_user:
+        tickets = (Ticket.query
+                .join(Participant, Participant.user_id == current_user.id)
+                .filter(Ticket.tracker_id == tracker.id)
+                .filter(Ticket.submitter_id == Participant.id))
+    else:
+        tickets = Ticket.query.filter("false")
 
     try:
         terms = request.args.get("search")

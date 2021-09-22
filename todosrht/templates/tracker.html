@@ -15,6 +15,22 @@
      >{{ tracker.name }}
     </h2>
     <ul class="nav nav-tabs">
+      {% if tracker.visibility.value != "PUBLIC" %}
+      <li
+        class="nav-item nav-text vis-{{tracker.visibility.value.lower()}}"
+        {% if tracker.visibility.value == "UNLISTED" %}
+        title="This tracker is only visible to those who know the URL."
+        {% elif tracker.visibility.value == "PRIVATE" %}
+        title="This tracker is only visible to those who were invited to view it."
+        {% endif %}
+      >
+        {% if tracker.visibility.value == "UNLISTED" %}
+        Unlisted
+        {% elif tracker.visibility.value == "PRIVATE" %}
+        Private
+        {% endif %}
+      </li>
+      {% endif %}
       <li class="nav-item">
         <a class="nav-link {{ "active" if not search else "" }}"
           href="{{ tracker | tracker_url }}">open tickets</a>
@@ -170,6 +186,16 @@
       {% if tracker.import_in_progress %}
       <div class="alert alert-primary">
         An import operation is currently in progress.
+      </div>
+      {% endif %}
+      {% if TicketAccess.browse not in access and TicketAccess.submit in access %}
+      <div class="alert alert-warning">
+        You do not have permission to view tickets on this tracker unless you
+        submitted them.
+      </div>
+      {% elif TicketAccess.browse not in access and TicketAccess.submit not in access %}
+      <div class="alert alert-warning">
+        You do not have permission to view tickets on this tracker.
       </div>
       {% endif %}
       <form style="margin-bottom: 0.5rem">

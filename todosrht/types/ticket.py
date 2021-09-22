@@ -46,18 +46,6 @@ class Ticket(Base):
             nullable=False,
             default=TicketResolution.unresolved)
 
-    user_perms = sa.Column(FlagType(TicketAccess), nullable=True)
-    """Permissions given to any logged in user"""
-
-    submitter_perms = sa.Column(FlagType(TicketAccess), nullable=True)
-    """Permissions granted to submitters for their own tickets"""
-
-    committer_perms = sa.Column(FlagType(TicketAccess), nullable=True)
-    """Permissions granted to people who have authored commits in the linked git repo"""
-
-    anonymous_perms = sa.Column(FlagType(TicketAccess), nullable=True)
-    """Permissions granted to anonymous (non-logged in) users"""
-
     view_list = sa.orm.relationship("TicketSeen", viewonly=True)
 
     labels = sa.orm.relationship("Label",
@@ -111,14 +99,6 @@ class Ticket(Base):
                 "description": self.description,
                 "status": self.status.name,
                 "resolution": self.resolution.name,
-                "permissions": {
-                    "anonymous": permissions(self.anonymous_perms)
-                        if self.anonymous_perms else None,
-                    "submitter": permissions(self.submitter_perms)
-                        if self.submitter_perms else None,
-                    "user": permissions(self.user_perms)
-                        if self.user_perms else None,
-                },
                 "labels": [l.name for l in self.labels],
                 "assignees": [u.to_dict(short=True) for u in self.assigned_users],
             } if not short else {}),

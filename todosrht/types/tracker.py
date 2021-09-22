@@ -1,12 +1,19 @@
 import re
 import sqlalchemy as sa
+import sqlalchemy_utils as sau
 import string
+from enum import Enum
 from srht.database import Base
 from srht.flagtype import FlagType
 from srht.validation import Validation
 from todosrht.types import TicketAccess, TicketStatus, TicketResolution
 
 name_re = re.compile(r"^[A-Za-z0-9._-]+$")
+
+class Visibility(Enum):
+    PUBLIC = 'PUBLIC'
+    UNLISTED = 'UNLISTED'
+    PRIVATE = 'PRIVATE'
 
 class Tracker(Base):
     __tablename__ = 'tracker'
@@ -15,6 +22,7 @@ class Tracker(Base):
     owner = sa.orm.relationship("User", backref=sa.orm.backref("owned_trackers"))
     created = sa.Column(sa.DateTime, nullable=False)
     updated = sa.Column(sa.DateTime, nullable=False)
+    visibility = sa.Column(sau.ChoiceType(Visibility), nullable=False)
     name = sa.Column(sa.Unicode(1024))
     """
     May include slashes to serve as categories (nesting is supported,
@@ -35,25 +43,9 @@ class Tracker(Base):
             nullable=False,
             default=TicketResolution.fixed | TicketResolution.duplicate)
 
-    default_user_perms = sa.Column(FlagType(TicketAccess),
+    default_access = sa.Column(FlagType(TicketAccess),
             nullable=False,
             default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
-    """Permissions given to any logged in user"""
-
-    default_submitter_perms = sa.Column(FlagType(TicketAccess),
-            nullable=False,
-            default=TicketAccess.browse + TicketAccess.edit + TicketAccess.comment)
-    """Permissions granted to submitters for their own tickets"""
-
-    default_committer_perms = sa.Column(FlagType(TicketAccess),
-            nullable=False,
-            default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
-    """Permissions granted to people who have authored commits in the linked git repo"""
-
-    default_anonymous_perms = sa.Column(FlagType(TicketAccess),
-            nullable=False,
-            default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
-    """Permissions granted to anonymous (non-logged in) users"""
 
     import_in_progress = sa.Column(sa.Boolean,
             nullable=False, server_default='f')
@@ -62,6 +54,7 @@ class Tracker(Base):
     def create_from_request(request, user):
         valid = Validation(request)
         name = valid.require("name", friendly_name="Name")
+        visibility = valid.require("visibility", cls=Visibility)
         desc = valid.optional("description")
         if not valid.ok:
             return None, valid
@@ -93,7 +86,10 @@ class Tracker(Base):
         if not valid.ok:
             return None, valid
 
-        tracker = Tracker(owner=user, name=name, description=desc)
+        tracker = Tracker(owner=user,
+                name=name,
+                description=desc,
+                visibility=visibility)
 
         return tracker, valid
 
@@ -119,11 +115,8 @@ class Tracker(Base):
             "name": self.name,
             **({
                 "description": self.description,
-                "default_permissions": {
-                    "anonymous": permissions(self.default_anonymous_perms),
-                    "submitter": permissions(self.default_submitter_perms),
-                    "user": permissions(self.default_user_perms),
-                },
+                "default_access": permissions(self.default_access),
+                "visibility": self.visibility,
             } if not short else {})
         }
 

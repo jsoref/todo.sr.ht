@@ -41,44 +41,22 @@
   <div class="col-md-12">
     <form method="POST">
       {{csrf_token()}}
-      <div class="form-group {{valid.cls("tracker_any_access")}}">
+      <div class="form-group {{valid.cls("tracker_default_access")}}">
         <p>
           These permissions allow you to control what kinds of users are able
           to do what sorts of activities on your tracker.
         </p>
         <div class="event-list">
           <div class="event">
-            <h4>Anonymous Permissions</h4>
+            <h4>Default Permissions</h4>
             <p>
-              Permissions granted to anyone who visits this tracker, logged
-              in or otherwise.
+              These permissions are used for anyone who does not have a more
+              specific access configuration.
             </p>
             {% for a in access_type_list %}
-            {{ perm_checkbox(a, tracker.default_anonymous_perms, "anon") }}
+            {{ perm_checkbox(a, tracker.default_access, "default") }}
             {% endfor %}
-            {{ valid.summary("tracker_anon_access") }}
-          </div>
-          <div class="event">
-            <h4>Submitter Permissions</h4>
-            <p>
-              Permissions granted to the ticket submitter on the tickets they
-              submit.
-            </p>
-            {% for a in access_type_list %}
-            {{ perm_checkbox(a, tracker.default_submitter_perms, "submit") }}
-            {% endfor %}
-            {{ valid.summary("tracker_submit_access") }}
-          </div>
-          <div class="event">
-            <h4>Account Holder Permissions</h4>
-            <p>
-              Permissions granted to any logged-in {{cfg("sr.ht",
-              "site-name")}} user.
-            </p>
-            {% for a in access_type_list %}
-            {{ perm_checkbox(a, tracker.default_user_perms, "user") }}
-            {% endfor %}
-            {{ valid.summary("tracker_user_access") }}
+            {{ valid.summary("tracker_default_access") }}
           </div>
         </div>
       </div>

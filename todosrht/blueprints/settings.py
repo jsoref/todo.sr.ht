@@ -13,7 +13,7 @@ from srht.validation import Validation
 from tempfile import NamedTemporaryFile
 from todosrht.access import get_tracker
 from todosrht.trackers import get_recent_users
-from todosrht.types import Event, EventType, Ticket, TicketAccess
+from todosrht.types import Event, EventType, Ticket, TicketAccess, Visibility
 from todosrht.types import ParticipantType, UserAccess, User
 from todosrht.urls import tracker_url
 from todosrht.webhooks import UserWebhook
@@ -64,6 +64,7 @@ def details_POST(owner, name):
 
     valid = Validation(request)
     desc = valid.optional("tracker_desc", default=tracker.description)
+    vis = valid.require("visibility", cls=Visibility)
     valid.expect(not desc or len(desc) < 4096,
             "Must be less than 4096 characters",
             field="tracker_desc")
@@ -72,6 +73,7 @@ def details_POST(owner, name):
             tracker=tracker, **valid.kwargs), 400
 
     tracker.description = desc
+    tracker.visibility = vis
 
     UserWebhook.deliver(UserWebhook.Events.tracker_update,
             tracker.to_dict(),
@@ -108,16 +110,12 @@ def access_POST(owner, name):
         abort(403)
 
     valid = Validation(request)
-    perm_anon = parse_html_perms('anon', valid)
-    perm_user = parse_html_perms('user', valid)
-    perm_submit = parse_html_perms('submit', valid)
+    access = parse_html_perms('default', valid)
 
     if not valid.ok:
         return render_tracker_access(tracker, **valid.kwargs), 400
 
-    tracker.default_anonymous_perms = perm_anon
-    tracker.default_user_perms = perm_user
-    tracker.default_submitter_perms = perm_submit
+    tracker.default_access = access
 
     UserWebhook.deliver(UserWebhook.Events.tracker_update,
             tracker.to_dict(),
