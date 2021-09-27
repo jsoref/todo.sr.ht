@@ -245,7 +245,30 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 }
 
 func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+	var tracker model.Tracker
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		user := auth.ForContext(ctx)
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM tracker
+			WHERE id = $1 AND owner_id = $2
+			RETURNING
+				id, owner_id, created, updated, name, description, visibility;
+		`, id, user.UserID)
+
+		if err := row.Scan(&tracker.ID, &tracker.OwnerID, &tracker.Created,
+			&tracker.Updated, &tracker.Name, &tracker.Description,
+			&tracker.Visibility); err != nil {
+			return err
+		}
+		tracker.Access = model.ACCESS_ALL
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &tracker, nil
 }
 
 func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, userID int, input model.ACLInput) (*model.TrackerACL, error) {
