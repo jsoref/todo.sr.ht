@@ -28,24 +28,14 @@ class Tracker(Base):
     May include slashes to serve as categories (nesting is supported,
     builds.sr.ht style)
     """
-    next_ticket_id = sa.Column(sa.Integer, nullable=False, default=1)
+    next_ticket_id = sa.Column(sa.Integer, nullable=False, server_default='1')
 
     description = sa.Column(sa.Unicode(8192))
     """Markdown"""
 
-    min_desc_length = sa.Column(sa.Integer, nullable=False, default=0)
-
-    enable_ticket_status = sa.Column(FlagType(TicketStatus),
-            nullable=False,
-            default=TicketStatus.resolved)
-
-    enable_ticket_resolution = sa.Column(FlagType(TicketStatus),
-            nullable=False,
-            default=TicketResolution.fixed | TicketResolution.duplicate)
-
     default_access = sa.Column(FlagType(TicketAccess),
             nullable=False,
-            default=TicketAccess.browse + TicketAccess.submit + TicketAccess.comment)
+            server_default=str(TicketAccess.browse + TicketAccess.submit + TicketAccess.comment))
 
     import_in_progress = sa.Column(sa.Boolean,
             nullable=False, server_default='f')

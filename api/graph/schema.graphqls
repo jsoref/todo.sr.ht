@@ -464,7 +464,7 @@ type Mutation {
   # gzipped dump of a tracker to populate tickets from; see Tracker.export.
   createTracker(
     name: String!,
-    description: String!,
+    description: String,
     visibility: Visibility!,
     import: Upload): Tracker @access(scope: TRACKERS, kind: RW)
 

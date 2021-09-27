@@ -147,7 +147,7 @@ type ComplexityRoot struct {
 	Mutation struct {
 		AssignUser         func(childComplexity int, ticketID int, userID int) int
 		CreateLabel        func(childComplexity int, trackerID int, name string, color string) int
-		CreateTracker      func(childComplexity int, name string, description string, visibility model.Visibility, importArg *graphql.Upload) int
+		CreateTracker      func(childComplexity int, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) int
 		DeleteACL          func(childComplexity int, id int) int
 		DeleteLabel        func(childComplexity int, id int) int
 		DeleteTracker      func(childComplexity int, id int) int
@@ -328,7 +328,7 @@ type LabelUpdateResolver interface {
 	Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error)
 }
 type MutationResolver interface {
-	CreateTracker(ctx context.Context, name string, description string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error)
+	CreateTracker(ctx context.Context, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error)
 	UpdateTracker(ctx context.Context, id int, input model.TrackerInput) (*model.Tracker, error)
 	DeleteTracker(ctx context.Context, id int) (*model.Tracker, error)
 	UpdateUserACL(ctx context.Context, trackerID int, userID int, input model.ACLInput) (*model.TrackerACL, error)
@@ -777,7 +777,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateTracker(childComplexity, args["name"].(string), args["description"].(string), args["visibility"].(model.Visibility), args["import"].(*graphql.Upload)), true
+		return e.complexity.Mutation.CreateTracker(childComplexity, args["name"].(string), args["description"].(*string), args["visibility"].(model.Visibility), args["import"].(*graphql.Upload)), true
 
 	case "Mutation.deleteACL":
 		if e.complexity.Mutation.DeleteACL == nil {
@@ -2194,7 +2194,7 @@ type Mutation {
   # gzipped dump of a tracker to populate tickets from; see Tracker.export.
   createTracker(
     name: String!,
-    description: String!,
+    description: String,
     visibility: Visibility!,
     import: Upload): Tracker @access(scope: TRACKERS, kind: RW)
 
@@ -2418,10 +2418,10 @@ func (ec *executionContext) field_Mutation_createTracker_args(ctx context.Contex
 		}
 	}
 	args["name"] = arg0
-	var arg1 string
+	var arg1 *string
 	if tmp, ok := rawArgs["description"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -5021,7 +5021,7 @@ func (ec *executionContext) _Mutation_createTracker(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateTracker(rctx, args["name"].(string), args["description"].(string), args["visibility"].(model.Visibility), args["import"].(*graphql.Upload))
+			return ec.resolvers.Mutation().CreateTracker(rctx, args["name"].(string), args["description"].(*string), args["visibility"].(model.Visibility), args["import"].(*graphql.Upload))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
