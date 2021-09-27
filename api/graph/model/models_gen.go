@@ -24,6 +24,14 @@ type ACLCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type ACLInput struct {
+	Browse  bool `json:"browse"`
+	Submit  bool `json:"submit"`
+	Comment bool `json:"comment"`
+	Edit    bool `json:"edit"`
+	Triage  bool `json:"triage"`
+}
+
 type EventCursor struct {
 	Results []*Event      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
@@ -32,6 +40,14 @@ type EventCursor struct {
 type LabelCursor struct {
 	Results []*Label      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
+}
+
+type SubmitTicketInput struct {
+	Subject     string     `json:"subject"`
+	Body        *string    `json:"body"`
+	Created     *time.Time `json:"created"`
+	ExternalID  *string    `json:"externalId"`
+	ExternalURL *string    `json:"externalUrl"`
 }
 
 type SubscriptionCursor struct {
@@ -47,6 +63,18 @@ type TicketCursor struct {
 type TrackerCursor struct {
 	Results []*Tracker    `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
+}
+
+type TrackerInput struct {
+	Description *string     `json:"description"`
+	Visibility  *Visibility `json:"visibility"`
+}
+
+type UpdateTicketInput struct {
+	Subject    *string           `json:"subject"`
+	Body       *string           `json:"body"`
+	Status     *TicketStatus     `json:"status"`
+	Resolution *TicketResolution `json:"resolution"`
 }
 
 type Version struct {

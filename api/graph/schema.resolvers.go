@@ -16,6 +16,7 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
+	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
 )
 
@@ -118,6 +119,90 @@ func (r *labelUpdateResolver) Labeler(ctx context.Context, obj *model.LabelUpdat
 
 func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error) {
 	return loaders.ForContext(ctx).LabelsByID.Load(obj.LabelID)
+}
+
+func (r *mutationResolver) CreateTracker(ctx context.Context, name string, description string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input model.TrackerInput) (*model.Tracker, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tracker, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, userID int, input model.ACLInput) (*model.TrackerACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateSenderACL(ctx context.Context, trackerID int, address string, input model.ACLInput) (*model.TrackerACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, input model.ACLInput) (*model.Tracker, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.TrackerACL, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) TrackerSubscribe(ctx context.Context, trackerID int) (*model.TrackerSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) TrackerUnsubscribe(ctx context.Context, trackerID int, tickets bool) (*model.TrackerSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) TicketSubscribe(ctx context.Context, ticketID int) (*model.TicketSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, ticketID int) (*model.TicketSubscription, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name string, color string) (*model.Label, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, name *string, color *string) (*model.Label, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Label, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, input model.UpdateTicketInput) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) AssignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UnassignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) LabelTicket(ctx context.Context, ticketID int, labelID int) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) UnlabelTicket(ctx context.Context, ticketID int, labelID int) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) SubmitComment(ctx context.Context, ticketID int, text string) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
@@ -428,34 +513,6 @@ func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor
 	return &model.LabelCursor{labels, cursor}, nil
 }
 
-func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
-	if obj.OwnerID != auth.ForContext(ctx).UserID {
-		return nil, errors.New("Access denied")
-	}
-
-	if cursor == nil {
-		cursor = coremodel.NewCursor(nil)
-	}
-
-	var acls []*model.TrackerACL
-	if err := database.WithTx(ctx, &sql.TxOptions{
-		Isolation: 0,
-		ReadOnly:  true,
-	}, func(tx *sql.Tx) error {
-		acl := (&model.TrackerACL{}).As(`ua`)
-		query := database.
-			Select(ctx, acl).
-			From(`user_access ua`).
-			Where(`ua.tracker_id = ?`, obj.ID)
-		acls, cursor = acl.QueryWithCursor(ctx, tx, query, cursor)
-		return nil
-	}); err != nil {
-		return nil, err
-	}
-
-	return &model.ACLCursor{acls, cursor}, nil
-}
-
 func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error) {
 	// Regarding unsafe: if they have access to this tracker resource, they
 	// were already authenticated for it.
@@ -500,6 +557,38 @@ func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.AC
 	}
 
 	return acl, nil
+}
+
+func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
+	if obj.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, errors.New("Access denied")
+	}
+
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var acls []*model.TrackerACL
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		acl := (&model.TrackerACL{}).As(`ua`)
+		query := database.
+			Select(ctx, acl).
+			From(`user_access ua`).
+			Where(`ua.tracker_id = ?`, obj.ID)
+		acls, cursor = acl.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.ACLCursor{acls, cursor}, nil
+}
+
+func (r *trackerResolver) Export(ctx context.Context, obj *model.Tracker) (string, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *trackerACLResolver) Tracker(ctx context.Context, obj *model.TrackerACL) (*model.Tracker, error) {
@@ -580,6 +669,9 @@ func (r *Resolver) Label() api.LabelResolver { return &labelResolver{r} }
 // LabelUpdate returns api.LabelUpdateResolver implementation.
 func (r *Resolver) LabelUpdate() api.LabelUpdateResolver { return &labelUpdateResolver{r} }
 
+// Mutation returns api.MutationResolver implementation.
+func (r *Resolver) Mutation() api.MutationResolver { return &mutationResolver{r} }
+
 // Query returns api.QueryResolver implementation.
 func (r *Resolver) Query() api.QueryResolver { return &queryResolver{r} }
 
@@ -620,6 +712,7 @@ type createdResolver struct{ *Resolver }
 type eventResolver struct{ *Resolver }
 type labelResolver struct{ *Resolver }
 type labelUpdateResolver struct{ *Resolver }
+type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }
 type statusChangeResolver struct{ *Resolver }
 type ticketResolver struct{ *Resolver }
