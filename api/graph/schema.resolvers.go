@@ -18,6 +18,7 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/lib/pq"
 	sq "github.com/Masterminds/squirrel"
 )
 
@@ -131,7 +132,7 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		WithField("name")
 	// TODO: Unify description limits
 	valid.Expect(description == nil || len(*description) < 8192,
-		"Description must be fewer than 2048 characters").
+		"Description must be fewer than 8192 characters").
 		WithField("description")
 	valid.Expect(importArg == nil, "TODO: imports").WithField("import") // TODO
 	if !valid.Ok() {
@@ -157,6 +158,13 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		if err := row.Scan(&tracker.ID, &tracker.OwnerID, &tracker.Created,
 			&tracker.Updated, &tracker.Name, &tracker.Description,
 			&tracker.Visibility); err != nil {
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23505" && // unique_violation
+				err.Constraint == "tracker_owner_id_name_unique" {
+				valid.Error("A tracker by this name already exists.").
+					WithField("name")
+				return errors.New("placeholder") // To rollback the transaction
+			}
 			return err
 		}
 		tracker.Access = model.ACCESS_ALL
@@ -182,14 +190,58 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		`, user.UserID, tracker.ID)
 		return err
 	}); err != nil {
+		if !valid.Ok() {
+			return nil, nil
+		}
 		return nil, err
 	}
 
 	return &tracker, nil
 }
 
-func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input model.TrackerInput) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[string]interface{}) (*model.Tracker, error) {
+	valid := valid.New(ctx).WithInput(input)
+
+	valid.OptionalString("description", func(desc string) {
+		valid.Expect(len(desc) < 8192,
+			"Description must be fewer than 8192 characters").
+			WithField("description")
+	})
+	valid.OptionalString("visibility", func(vis string) {
+		input["visibility"] = model.Visibility(vis)
+	})
+	if !valid.Ok() {
+		return nil, nil
+	}
+
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(id)
+	if err != nil {
+		return nil, err
+	}
+	if tracker.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		var err error
+
+		if len(input) != 0 {
+			_, err = database.Apply(tracker, input).
+				Where(database.WithAlias(tracker.Alias(), `id`)+"= ?", tracker.ID).
+				Set(database.WithAlias(tracker.Alias(), `updated`),
+					sq.Expr(`now() at time zone 'utc'`)).
+				RunWith(tx).
+				ExecContext(ctx)
+			if err != nil {
+				return err
+			}
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return tracker, nil
 }
 
 func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tracker, error) {
@@ -244,7 +296,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, input model.UpdateTicketInput) (*model.Event, error) {
+func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, input map[string]interface{}) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
