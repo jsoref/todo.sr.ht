@@ -13,6 +13,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/valid"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
@@ -121,8 +122,70 @@ func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate)
 	return loaders.ForContext(ctx).LabelsByID.Load(obj.LabelID)
 }
 
-func (r *mutationResolver) CreateTracker(ctx context.Context, name string, description string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreateTracker(ctx context.Context, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error) {
+	valid := valid.New(ctx)
+	valid.Expect(trackerNameRE.MatchString(name), "Name must match %s", trackerNameRE.String()).
+		WithField("name").
+		And(name != "." && name != ".." && name != ".git" && name != ".hg",
+			"This is a reserved name and cannot be used for user trakcers.").
+		WithField("name")
+	// TODO: Unify description limits
+	valid.Expect(description == nil || len(*description) < 8192,
+		"Description must be fewer than 2048 characters").
+		WithField("description")
+	valid.Expect(importArg == nil, "TODO: imports").WithField("import") // TODO
+	if !valid.Ok() {
+		return nil, nil
+	}
+
+	var tracker model.Tracker
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		user := auth.ForContext(ctx)
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO tracker (
+				created, updated,
+				owner_id, name, description, visibility
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4
+			)
+			RETURNING
+				id, owner_id, created, updated, name, description, visibility;
+		`, user.UserID, name, description, visibility.String())
+
+		if err := row.Scan(&tracker.ID, &tracker.OwnerID, &tracker.Created,
+			&tracker.Updated, &tracker.Name, &tracker.Description,
+			&tracker.Visibility); err != nil {
+			return err
+		}
+		tracker.Access = model.ACCESS_ALL
+
+		_, err := tx.ExecContext(ctx, `
+			WITH part AS (
+				INSERT INTO participant (
+					created, participant_type, user_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					'user', $1
+				)
+				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				DO UPDATE SET created = participant.created
+				RETURNING id
+			) INSERT INTO ticket_subscription (
+				created, updated, tracker_id, participant_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$2, (SELECT id FROM part)
+			);
+		`, user.UserID, tracker.ID)
+		return err
+	}); err != nil {
+		return nil, err
+	}
+
+	return &tracker, nil
 }
 
 func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input model.TrackerInput) (*model.Tracker, error) {
