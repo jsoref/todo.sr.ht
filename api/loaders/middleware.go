@@ -293,7 +293,7 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 						THEN ?
 						ELSE tr.default_access
 					END)`,
-					model.ACCESS_ALL, auser.UserID).
+					auser.UserID, model.ACCESS_ALL).
 				Where(sq.Or{
 					sq.Expr(`tr.owner_id = ?`, auser.UserID),
 					sq.Expr(`tr.visibility != 'PRIVATE'`),
