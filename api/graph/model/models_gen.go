@@ -65,18 +65,6 @@ type TrackerCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
-type TrackerInput struct {
-	Description *string     `json:"description"`
-	Visibility  *Visibility `json:"visibility"`
-}
-
-type UpdateTicketInput struct {
-	Subject    *string           `json:"subject"`
-	Body       *string           `json:"body"`
-	Status     *TicketStatus     `json:"status"`
-	Resolution *TicketResolution `json:"resolution"`
-}
-
 type Version struct {
 	Major           int        `json:"major"`
 	Minor           int        `json:"minor"`

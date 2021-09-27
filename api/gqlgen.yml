@@ -60,3 +60,9 @@ models:
   Filter:
     model:
       - git.sr.ht/~sircmpwn/core-go/model.Filter
+  TrackerInput:
+    model:
+      - "map[string]interface{}"
+  UpdateTicketInput:
+    model:
+      - "map[string]interface{}"

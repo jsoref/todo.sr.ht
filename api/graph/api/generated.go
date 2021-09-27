@@ -162,8 +162,8 @@ type ComplexityRoot struct {
 		UnlabelTicket      func(childComplexity int, ticketID int, labelID int) int
 		UpdateLabel        func(childComplexity int, id int, name *string, color *string) int
 		UpdateSenderACL    func(childComplexity int, trackerID int, address string, input model.ACLInput) int
-		UpdateTicket       func(childComplexity int, trackerID int, input model.UpdateTicketInput) int
-		UpdateTracker      func(childComplexity int, id int, input model.TrackerInput) int
+		UpdateTicket       func(childComplexity int, trackerID int, input map[string]interface{}) int
+		UpdateTracker      func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateTrackerACL   func(childComplexity int, trackerID int, input model.ACLInput) int
 		UpdateUserACL      func(childComplexity int, trackerID int, userID int, input model.ACLInput) int
 	}
@@ -329,7 +329,7 @@ type LabelUpdateResolver interface {
 }
 type MutationResolver interface {
 	CreateTracker(ctx context.Context, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error)
-	UpdateTracker(ctx context.Context, id int, input model.TrackerInput) (*model.Tracker, error)
+	UpdateTracker(ctx context.Context, id int, input map[string]interface{}) (*model.Tracker, error)
 	DeleteTracker(ctx context.Context, id int) (*model.Tracker, error)
 	UpdateUserACL(ctx context.Context, trackerID int, userID int, input model.ACLInput) (*model.TrackerACL, error)
 	UpdateSenderACL(ctx context.Context, trackerID int, address string, input model.ACLInput) (*model.TrackerACL, error)
@@ -343,7 +343,7 @@ type MutationResolver interface {
 	UpdateLabel(ctx context.Context, id int, name *string, color *string) (*model.Label, error)
 	DeleteLabel(ctx context.Context, id int) (*model.Label, error)
 	SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error)
-	UpdateTicket(ctx context.Context, trackerID int, input model.UpdateTicketInput) (*model.Event, error)
+	UpdateTicket(ctx context.Context, trackerID int, input map[string]interface{}) (*model.Event, error)
 	AssignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error)
 	UnassignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error)
 	LabelTicket(ctx context.Context, ticketID int, labelID int) (*model.Event, error)
@@ -957,7 +957,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTicket(childComplexity, args["trackerId"].(int), args["input"].(model.UpdateTicketInput)), true
+		return e.complexity.Mutation.UpdateTicket(childComplexity, args["trackerId"].(int), args["input"].(map[string]interface{})), true
 
 	case "Mutation.updateTracker":
 		if e.complexity.Mutation.UpdateTracker == nil {
@@ -969,7 +969,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTracker(childComplexity, args["id"].(int), args["input"].(model.TrackerInput)), true
+		return e.complexity.Mutation.UpdateTracker(childComplexity, args["id"].(int), args["input"].(map[string]interface{})), true
 
 	case "Mutation.updateTrackerACL":
 		if e.complexity.Mutation.UpdateTrackerACL == nil {
@@ -2760,10 +2760,10 @@ func (ec *executionContext) field_Mutation_updateTicket_args(ctx context.Context
 		}
 	}
 	args["trackerId"] = arg0
-	var arg1 model.UpdateTicketInput
+	var arg1 map[string]interface{}
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg1, err = ec.unmarshalNUpdateTicketInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUpdateTicketInput(ctx, tmp)
+		arg1, err = ec.unmarshalNUpdateTicketInput2map(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -2808,10 +2808,10 @@ func (ec *executionContext) field_Mutation_updateTracker_args(ctx context.Contex
 		}
 	}
 	args["id"] = arg0
-	var arg1 model.TrackerInput
+	var arg1 map[string]interface{}
 	if tmp, ok := rawArgs["input"]; ok {
 		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg1, err = ec.unmarshalNTrackerInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerInput(ctx, tmp)
+		arg1, err = ec.unmarshalNTrackerInput2map(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
@@ -5088,7 +5088,7 @@ func (ec *executionContext) _Mutation_updateTracker(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateTracker(rctx, args["id"].(int), args["input"].(model.TrackerInput))
+			return ec.resolvers.Mutation().UpdateTracker(rctx, args["id"].(int), args["input"].(map[string]interface{}))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
@@ -6026,7 +6026,7 @@ func (ec *executionContext) _Mutation_updateTicket(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateTicket(rctx, args["trackerId"].(int), args["input"].(model.UpdateTicketInput))
+			return ec.resolvers.Mutation().UpdateTicket(rctx, args["trackerId"].(int), args["input"].(map[string]interface{}))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -11576,78 +11576,6 @@ func (ec *executionContext) unmarshalInputSubmitTicketInput(ctx context.Context,
 	return it, nil
 }
 
-func (ec *executionContext) unmarshalInputTrackerInput(ctx context.Context, obj interface{}) (model.TrackerInput, error) {
-	var it model.TrackerInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "description":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("description"))
-			it.Description, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "visibility":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("visibility"))
-			it.Visibility, err = ec.unmarshalOVisibility2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
-func (ec *executionContext) unmarshalInputUpdateTicketInput(ctx context.Context, obj interface{}) (model.UpdateTicketInput, error) {
-	var it model.UpdateTicketInput
-	var asMap = obj.(map[string]interface{})
-
-	for k, v := range asMap {
-		switch k {
-		case "subject":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("subject"))
-			it.Subject, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "body":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("body"))
-			it.Body, err = ec.unmarshalOString2ᚖstring(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "status":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
-			it.Status, err = ec.unmarshalOTicketStatus2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketStatus(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		case "resolution":
-			var err error
-
-			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resolution"))
-			it.Resolution, err = ec.unmarshalOTicketResolution2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketResolution(ctx, v)
-			if err != nil {
-				return it, err
-			}
-		}
-	}
-
-	return it, nil
-}
-
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -14342,9 +14270,8 @@ func (ec *executionContext) marshalNTrackerCursor2ᚖgitᚗsrᚗhtᚋאsircmpwn�
 	return ec._TrackerCursor(ctx, sel, v)
 }
 
-func (ec *executionContext) unmarshalNTrackerInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerInput(ctx context.Context, v interface{}) (model.TrackerInput, error) {
-	res, err := ec.unmarshalInputTrackerInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
+func (ec *executionContext) unmarshalNTrackerInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
+	return v.(map[string]interface{}), nil
 }
 
 func (ec *executionContext) unmarshalNURL2string(ctx context.Context, v interface{}) (string, error) {
@@ -14362,9 +14289,8 @@ func (ec *executionContext) marshalNURL2string(ctx context.Context, sel ast.Sele
 	return res
 }
 
-func (ec *executionContext) unmarshalNUpdateTicketInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUpdateTicketInput(ctx context.Context, v interface{}) (model.UpdateTicketInput, error) {
-	res, err := ec.unmarshalInputUpdateTicketInput(ctx, v)
-	return res, graphql.ErrorOnPath(ctx, err)
+func (ec *executionContext) unmarshalNUpdateTicketInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
+	return v.(map[string]interface{}), nil
 }
 
 func (ec *executionContext) marshalNUser2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUser(ctx context.Context, sel ast.SelectionSet, v model.User) graphql.Marshaler {
