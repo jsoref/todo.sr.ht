@@ -2,6 +2,8 @@
 # of CC-0, at your choice.
 scalar Cursor
 scalar Time
+scalar URL
+scalar Upload
 
 # Used to provide a human-friendly description of an access scope
 directive @scopehelp(details: String!) on ENUM_VALUE
@@ -91,9 +93,6 @@ type Tracker {
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
 
-  # Only available to the tracker owner:
-  acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
-
   # If the authenticated user is subscribed to this tracker, this is that
   # subscription.
   subscription: TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
@@ -101,6 +100,13 @@ type Tracker {
   # The access control list entry (or the default ACL) which describes the
   # authenticated user's permissions with respect to this tracker.
   acl: ACL
+
+  # Only available to the tracker owner:
+  acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
+
+  # Returns a URL from which the tracker owner may download a gzipped JSON
+  # archive of the tracker.
+  export: URL!
 }
 
 enum TicketStatus {
@@ -411,4 +417,143 @@ type Query {
 
   # List of subscriptions of the authenticated user.
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
+}
+
+# You may omit any fields to leave them unchanged.
+# TODO: Allow users to change the name of a tracker
+input TrackerInput {
+  description: String
+  visibility: Visibility
+}
+
+input ACLInput {
+  # Permission to view tickets
+  browse: Boolean!
+  # Permission to submit tickets
+  submit: Boolean!
+  # Permission to comment on tickets
+  comment: Boolean!
+  # Permission to edit tickets
+  edit: Boolean!
+  # Permission to resolve, re-open, transfer, or label tickets
+  triage: Boolean!
+}
+
+input SubmitTicketInput {
+  subject: String!
+  body: String
+
+  # These fields are meant for use when importing tickets from third-party
+  # services, and may only be used by the tracker owner.
+  created: Time
+  externalId: String
+  externalUrl: String
+}
+
+# You may omit any fields to leave them unchanged, or set them to null to clear
+# them.
+input UpdateTicketInput {
+  subject: String
+  body: String
+  status: TicketStatus
+  resolution: TicketResolution
+}
+
+type Mutation {
+  # Creates a new bug tracker. If specified, the 'import' field specifies a
+  # gzipped dump of a tracker to populate tickets from; see Tracker.export.
+  createTracker(
+    name: String!,
+    description: String!,
+    visibility: Visibility!,
+    import: Upload): Tracker @access(scope: TRACKERS, kind: RW)
+
+  # Updates an existing bug tracker
+  updateTracker(
+    id: Int!,
+    input: TrackerInput!): Tracker @access(scope: TRACKERS, kind: RW)
+
+  # Deletes a bug tracker
+  deleteTracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RW)
+
+  # Adds or updates the ACL for a specific user on a bug tracker
+  updateUserACL(
+    trackerId: Int!,
+    userId: Int!,
+    input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
+
+  # Adds or updates the ACL for an email address on a bug tracker
+  updateSenderACL(
+    trackerId: Int!,
+    address: String!,
+    input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
+
+  # Updates the default ACL for a bug tracker, which applies to users and
+  # senders for whom a more specific ACL does not exist.
+  updateTrackerACL(
+    trackerId: Int!,
+    input: ACLInput!): Tracker @access(scope: ACLS, kind: RW)
+
+  # Removes a tracker ACL. Following this change, the default tracker ACL will
+  # apply to this user.
+  deleteACL(id: Int!): TrackerACL @access(scope: ACLS, kind: RW)
+
+  # Subscribes to all email notifications for a tracker
+  trackerSubscribe(
+    trackerId: Int!): TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+
+  # Unsubscribes from email notifications for a tracker. If "tickets" is true,
+  # also unsubscribe from all tickets on this tracker.
+  trackerUnsubscribe(
+    trackerId: Int!,
+    tickets: Boolean!): TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+
+  # Subscribes to all email notifications for a ticket
+  ticketSubscribe(
+    ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+
+  # Unsubscribes from email notifications for a ticket
+  ticketUnsubscribe(
+    ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+
+  # Creates a new ticket label for a tracker
+  createLabel(trackerId: Int!,
+    name: String!, color: String!): Label @access(scope: TRACKERS, kind: RW)
+
+  # Changes the name or color of a label. Either may be omitted to continue
+  # using the current name or color.
+  updateLabel(id: Int!,
+    name: String, color: String): Label @access(scope: TRACKERS, kind: RW)
+
+  # Deletes a label, removing it from any tickets which currently have it
+  # applied.
+  deleteLabel(id: Int!): Label @access(scope: TRACKERS, kind: RW)
+
+  # Creates a new ticket.
+  submitTicket(trackerId: Int!,
+    input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
+
+  # Updates a ticket
+  updateTicket(trackerId: Int!,
+    input: UpdateTicketInput!): Event @access(scope: TICKETS, kind: RW)
+
+  # Adds a user to the list of assigned users for a ticket
+  assignUser(ticketId: Int!,
+    userId: Int!): Event @access(scope: TICKETS, kind: RW)
+
+  # Removes a user from the list of assigned users for a ticket
+  unassignUser(ticketId: Int!,
+    userId: Int!): Event @access(scope: TICKETS, kind: RW)
+
+  # Adds a label to the list of labels for a ticket
+  labelTicket(ticketId: Int!,
+    labelId: Int!): Event @access(scope: TICKETS, kind: RW)
+
+  # Removes a list from the list of labels for a ticket
+  unlabelTicket(ticketId: Int!,
+    labelId: Int!): Event @access(scope: TICKETS, kind: RW)
+
+  # Submits a comment for a ticket
+  submitComment(ticketId: Int!,
+    text: String!): Event @access(scope: TICKETS, kind: RW)
 }
