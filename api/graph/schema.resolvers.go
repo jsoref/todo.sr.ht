@@ -372,11 +372,80 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Tracke
 }
 
 func (r *mutationResolver) TrackerSubscribe(ctx context.Context, trackerID int) (*model.TrackerSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	var sub model.TrackerSubscription
+	user := auth.ForContext(ctx)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH part AS (
+				INSERT INTO participant (
+					created, participant_type, user_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					'user', $1
+				)
+				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				DO UPDATE SET created = participant.created
+				RETURNING id
+			), tk AS (
+				SELECT tracker.id
+				FROM tracker
+				LEFT JOIN user_access ua ON ua.tracker_id = tracker.id
+				WHERE tracker.id = $2 AND (
+					owner_id = $1 OR
+					visibility != 'PRIVATE' OR (
+						ua.user_id = $1 AND
+						ua.permissions > 0
+					)
+				)
+			) INSERT INTO ticket_subscription (
+				created, updated, tracker_id, participant_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				(SELECT id FROM tk),
+				(SELECT id FROM part)
+			)
+			ON CONFLICT ON CONSTRAINT subscription_tracker_participant_uq
+			DO UPDATE SET updated = NOW() at time zone 'utc'
+			RETURNING id, created, tracker_id;
+		`, user.UserID, trackerID)
+		return row.Scan(&sub.ID, &sub.Created, &sub.TrackerID)
+	}); err != nil {
+		return nil, err
+	}
+	return &sub, nil
 }
 
 func (r *mutationResolver) TrackerUnsubscribe(ctx context.Context, trackerID int, tickets bool) (*model.TrackerSubscription, error) {
-	panic(fmt.Errorf("not implemented"))
+	var sub model.TrackerSubscription
+	user := auth.ForContext(ctx)
+	if tickets {
+		panic("not implemented")
+	}
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH part AS (
+				INSERT INTO participant (
+					created, participant_type, user_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					'user', $1
+				)
+				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				DO UPDATE SET created = participant.created
+				RETURNING id
+			) DELETE FROM ticket_subscription
+			WHERE tracker_id = $2 AND participant_id = (SELECT id FROM part)
+			RETURNING id, created, tracker_id;
+		`, user.UserID, trackerID)
+		return row.Scan(&sub.ID, &sub.Created, &sub.TrackerID)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &sub, nil
 }
 
 func (r *mutationResolver) TicketSubscribe(ctx context.Context, ticketID int) (*model.TicketSubscription, error) {
