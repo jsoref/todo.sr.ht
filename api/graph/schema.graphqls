@@ -483,16 +483,17 @@ type Mutation {
     input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
 
   # Adds or updates the ACL for an email address on a bug tracker
-  updateSenderACL(
-    trackerId: Int!,
-    address: String!,
-    input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
+  # TODO: This requires internal changes
+  #updateSenderACL(
+  #  trackerId: Int!,
+  #  address: String!,
+  #  input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
 
   # Updates the default ACL for a bug tracker, which applies to users and
   # senders for whom a more specific ACL does not exist.
   updateTrackerACL(
     trackerId: Int!,
-    input: ACLInput!): Tracker @access(scope: ACLS, kind: RW)
+    input: ACLInput!): DefaultACL @access(scope: ACLS, kind: RW)
 
   # Removes a tracker ACL. Following this change, the default tracker ACL will
   # apply to this user.

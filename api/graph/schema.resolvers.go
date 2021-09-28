@@ -18,8 +18,8 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/lib/pq"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 )
 
 func (r *assignmentResolver) Ticket(ctx context.Context, obj *model.Assignment) (*model.Ticket, error) {
@@ -272,15 +272,68 @@ func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tr
 }
 
 func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, userID int, input model.ACLInput) (*model.TrackerACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	var acl model.TrackerACL
+	bits := aclBits(input)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		user := auth.ForContext(ctx)
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO user_access (
+				created, tracker_id, user_id, permissions
+			) VALUES (
+				NOW() at time zone 'utc',
+				-- The purpose of this is to filter out tracker that the user is
+				-- not an owner of. Saves us a round-trip
+				(SELECT id FROM tracker WHERE id = $1 AND owner_id = $4),
+				$2, $3
+			)
+			ON CONFLICT ON CONSTRAINT idx_useraccess_tracker_user_unique
+			DO UPDATE SET permissions = $3
+			RETURNING id, created, tracker_id, user_id;
+		`, trackerID, userID, bits, user.UserID)
+
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.TrackerID,
+			&acl.UserID); err != nil {
+			return err
+		}
+
+		acl.Browse = bits&model.ACCESS_BROWSE != 0
+		acl.Submit = bits&model.ACCESS_SUBMIT != 0
+		acl.Comment = bits&model.ACCESS_COMMENT != 0
+		acl.Edit = bits&model.ACCESS_EDIT != 0
+		acl.Triage = bits&model.ACCESS_TRIAGE != 0
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &acl, nil
 }
 
-func (r *mutationResolver) UpdateSenderACL(ctx context.Context, trackerID int, address string, input model.ACLInput) (*model.TrackerACL, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, input model.ACLInput) (*model.Tracker, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, input model.ACLInput) (*model.DefaultACL, error) {
+	bits := aclBits(input)
+	user := auth.ForContext(ctx)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			UPDATE tracker
+			SET default_access = $1
+			WHERE id = $2 AND owner_id = $3;
+		`, bits, trackerID, user.UserID)
+		return err
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &model.DefaultACL{
+		bits&model.ACCESS_BROWSE != 0,
+		bits&model.ACCESS_SUBMIT != 0,
+		bits&model.ACCESS_COMMENT != 0,
+		bits&model.ACCESS_EDIT != 0,
+		bits&model.ACCESS_TRIAGE != 0,
+	}, nil
 }
 
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.TrackerACL, error) {
