@@ -519,9 +519,11 @@ type Mutation {
     trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Creates a new ticket label for a tracker
-  createLabel(trackerId: Int!,
-    name: String!, color: String!): Label @access(scope: TRACKERS, kind: RW)
+  # Creates a new ticket label for a tracker. The colors must be in CSS
+  # hexadecimal RGB format "#RRGGBB", i.e. "#000000" for black and "#FF0000" for
+  # red.
+  createLabel(trackerId: Int!, name: String!,
+    foreground: String!, background: String!): Label @access(scope: TRACKERS, kind: RW)
 
   # Changes the name or color of a label. Either may be omitted to continue
   # using the current name or color.
