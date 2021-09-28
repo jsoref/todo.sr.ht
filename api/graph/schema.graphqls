@@ -511,10 +511,12 @@ type Mutation {
 
   # Subscribes to all email notifications for a ticket
   ticketSubscribe(
+    trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
   # Unsubscribes from email notifications for a ticket
   ticketUnsubscribe(
+    trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
   # Creates a new ticket label for a tracker
