@@ -337,7 +337,38 @@ func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, 
 }
 
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.TrackerACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	var acl model.TrackerACL
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		user := auth.ForContext(ctx)
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM user_access ua
+			USING tracker
+			WHERE
+				ua.tracker_id = tracker.id AND
+				ua.id = $1 AND
+				tracker.owner_id = $2
+			RETURNING ua.id, ua.created, ua.tracker_id, ua.user_id, ua.permissions;
+		`, id, user.UserID)
+
+		var bits uint
+		if err := row.Scan(&acl.ID, &acl.Created, &acl.TrackerID,
+			&acl.UserID, &bits); err != nil {
+			return err
+		}
+
+		acl.Browse = bits&model.ACCESS_BROWSE != 0
+		acl.Submit = bits&model.ACCESS_SUBMIT != 0
+		acl.Comment = bits&model.ACCESS_COMMENT != 0
+		acl.Edit = bits&model.ACCESS_EDIT != 0
+		acl.Triage = bits&model.ACCESS_TRIAGE != 0
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &acl, nil
 }
 
 func (r *mutationResolver) TrackerSubscribe(ctx context.Context, trackerID int) (*model.TrackerSubscription, error) {
