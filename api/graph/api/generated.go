@@ -161,7 +161,6 @@ type ComplexityRoot struct {
 		UnassignUser       func(childComplexity int, ticketID int, userID int) int
 		UnlabelTicket      func(childComplexity int, ticketID int, labelID int) int
 		UpdateLabel        func(childComplexity int, id int, name *string, color *string) int
-		UpdateSenderACL    func(childComplexity int, trackerID int, address string, input model.ACLInput) int
 		UpdateTicket       func(childComplexity int, trackerID int, input map[string]interface{}) int
 		UpdateTracker      func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateTrackerACL   func(childComplexity int, trackerID int, input model.ACLInput) int
@@ -332,8 +331,7 @@ type MutationResolver interface {
 	UpdateTracker(ctx context.Context, id int, input map[string]interface{}) (*model.Tracker, error)
 	DeleteTracker(ctx context.Context, id int) (*model.Tracker, error)
 	UpdateUserACL(ctx context.Context, trackerID int, userID int, input model.ACLInput) (*model.TrackerACL, error)
-	UpdateSenderACL(ctx context.Context, trackerID int, address string, input model.ACLInput) (*model.TrackerACL, error)
-	UpdateTrackerACL(ctx context.Context, trackerID int, input model.ACLInput) (*model.Tracker, error)
+	UpdateTrackerACL(ctx context.Context, trackerID int, input model.ACLInput) (*model.DefaultACL, error)
 	DeleteACL(ctx context.Context, id int) (*model.TrackerACL, error)
 	TrackerSubscribe(ctx context.Context, trackerID int) (*model.TrackerSubscription, error)
 	TrackerUnsubscribe(ctx context.Context, trackerID int, tickets bool) (*model.TrackerSubscription, error)
@@ -934,18 +932,6 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateLabel(childComplexity, args["id"].(int), args["name"].(*string), args["color"].(*string)), true
-
-	case "Mutation.updateSenderACL":
-		if e.complexity.Mutation.UpdateSenderACL == nil {
-			break
-		}
-
-		args, err := ec.field_Mutation_updateSenderACL_args(context.TODO(), rawArgs)
-		if err != nil {
-			return 0, false
-		}
-
-		return e.complexity.Mutation.UpdateSenderACL(childComplexity, args["trackerId"].(int), args["address"].(string), args["input"].(model.ACLInput)), true
 
 	case "Mutation.updateTicket":
 		if e.complexity.Mutation.UpdateTicket == nil {
@@ -2213,16 +2199,17 @@ type Mutation {
     input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
 
   # Adds or updates the ACL for an email address on a bug tracker
-  updateSenderACL(
-    trackerId: Int!,
-    address: String!,
-    input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
+  # TODO: This requires internal changes
+  #updateSenderACL(
+  #  trackerId: Int!,
+  #  address: String!,
+  #  input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
 
   # Updates the default ACL for a bug tracker, which applies to users and
   # senders for whom a more specific ACL does not exist.
   updateTrackerACL(
     trackerId: Int!,
-    input: ACLInput!): Tracker @access(scope: ACLS, kind: RW)
+    input: ACLInput!): DefaultACL @access(scope: ACLS, kind: RW)
 
   # Removes a tracker ACL. Following this change, the default tracker ACL will
   # apply to this user.
@@ -2712,39 +2699,6 @@ func (ec *executionContext) field_Mutation_updateLabel_args(ctx context.Context,
 		}
 	}
 	args["color"] = arg2
-	return args, nil
-}
-
-func (ec *executionContext) field_Mutation_updateSenderACL_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
-	var err error
-	args := map[string]interface{}{}
-	var arg0 int
-	if tmp, ok := rawArgs["trackerId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
-		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["trackerId"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["address"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("address"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["address"] = arg1
-	var arg2 model.ACLInput
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg2, err = ec.unmarshalNACLInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐACLInput(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["input"] = arg2
 	return args, nil
 }
 
@@ -5263,73 +5217,6 @@ func (ec *executionContext) _Mutation_updateUserACL(ctx context.Context, field g
 	return ec.marshalOTrackerACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx, field.Selections, res)
 }
 
-func (ec *executionContext) _Mutation_updateSenderACL(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_updateSenderACL_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateSenderACL(rctx, args["trackerId"].(int), args["address"].(string), args["input"].(model.ACLInput))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "ACLS")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, nil, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.TrackerACL); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.TrackerACL`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.TrackerACL)
-	fc.Result = res
-	return ec.marshalOTrackerACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTrackerACL(ctx, field.Selections, res)
-}
-
 func (ec *executionContext) _Mutation_updateTrackerACL(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -5380,10 +5267,10 @@ func (ec *executionContext) _Mutation_updateTrackerACL(ctx context.Context, fiel
 		if tmp == nil {
 			return nil, nil
 		}
-		if data, ok := tmp.(*model.Tracker); ok {
+		if data, ok := tmp.(*model.DefaultACL); ok {
 			return data, nil
 		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Tracker`, tmp)
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.DefaultACL`, tmp)
 	})
 	if err != nil {
 		ec.Error(ctx, err)
@@ -5392,9 +5279,9 @@ func (ec *executionContext) _Mutation_updateTrackerACL(ctx context.Context, fiel
 	if resTmp == nil {
 		return graphql.Null
 	}
-	res := resTmp.(*model.Tracker)
+	res := resTmp.(*model.DefaultACL)
 	fc.Result = res
-	return ec.marshalOTracker2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTracker(ctx, field.Selections, res)
+	return ec.marshalODefaultACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐDefaultACL(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Mutation_deleteACL(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -12356,8 +12243,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_deleteTracker(ctx, field)
 		case "updateUserACL":
 			out.Values[i] = ec._Mutation_updateUserACL(ctx, field)
-		case "updateSenderACL":
-			out.Values[i] = ec._Mutation_updateSenderACL(ctx, field)
 		case "updateTrackerACL":
 			out.Values[i] = ec._Mutation_updateTrackerACL(ctx, field)
 		case "deleteACL":
@@ -14612,6 +14497,13 @@ func (ec *executionContext) marshalOCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋcore�
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) marshalODefaultACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐDefaultACL(ctx context.Context, sel ast.SelectionSet, v *model.DefaultACL) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	return ec._DefaultACL(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalOEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
