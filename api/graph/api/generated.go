@@ -154,8 +154,8 @@ type ComplexityRoot struct {
 		LabelTicket        func(childComplexity int, ticketID int, labelID int) int
 		SubmitComment      func(childComplexity int, ticketID int, text string) int
 		SubmitTicket       func(childComplexity int, trackerID int, input model.SubmitTicketInput) int
-		TicketSubscribe    func(childComplexity int, ticketID int) int
-		TicketUnsubscribe  func(childComplexity int, ticketID int) int
+		TicketSubscribe    func(childComplexity int, trackerID int, ticketID int) int
+		TicketUnsubscribe  func(childComplexity int, trackerID int, ticketID int) int
 		TrackerSubscribe   func(childComplexity int, trackerID int) int
 		TrackerUnsubscribe func(childComplexity int, trackerID int, tickets bool) int
 		UnassignUser       func(childComplexity int, ticketID int, userID int) int
@@ -335,8 +335,8 @@ type MutationResolver interface {
 	DeleteACL(ctx context.Context, id int) (*model.TrackerACL, error)
 	TrackerSubscribe(ctx context.Context, trackerID int) (*model.TrackerSubscription, error)
 	TrackerUnsubscribe(ctx context.Context, trackerID int, tickets bool) (*model.TrackerSubscription, error)
-	TicketSubscribe(ctx context.Context, ticketID int) (*model.TicketSubscription, error)
-	TicketUnsubscribe(ctx context.Context, ticketID int) (*model.TicketSubscription, error)
+	TicketSubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error)
+	TicketUnsubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error)
 	CreateLabel(ctx context.Context, trackerID int, name string, color string) (*model.Label, error)
 	UpdateLabel(ctx context.Context, id int, name *string, color *string) (*model.Label, error)
 	DeleteLabel(ctx context.Context, id int) (*model.Label, error)
@@ -859,7 +859,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.TicketSubscribe(childComplexity, args["ticketId"].(int)), true
+		return e.complexity.Mutation.TicketSubscribe(childComplexity, args["trackerId"].(int), args["ticketId"].(int)), true
 
 	case "Mutation.ticketUnsubscribe":
 		if e.complexity.Mutation.TicketUnsubscribe == nil {
@@ -871,7 +871,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.TicketUnsubscribe(childComplexity, args["ticketId"].(int)), true
+		return e.complexity.Mutation.TicketUnsubscribe(childComplexity, args["trackerId"].(int), args["ticketId"].(int)), true
 
 	case "Mutation.trackerSubscribe":
 		if e.complexity.Mutation.TrackerSubscribe == nil {
@@ -2227,10 +2227,12 @@ type Mutation {
 
   # Subscribes to all email notifications for a ticket
   ticketSubscribe(
+    trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
   # Unsubscribes from email notifications for a ticket
   ticketUnsubscribe(
+    trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
   # Creates a new ticket label for a tracker
@@ -2556,14 +2558,23 @@ func (ec *executionContext) field_Mutation_ticketSubscribe_args(ctx context.Cont
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["ticketId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["ticketId"] = arg0
+	args["trackerId"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticketId"] = arg1
 	return args, nil
 }
 
@@ -2571,14 +2582,23 @@ func (ec *executionContext) field_Mutation_ticketUnsubscribe_args(ctx context.Co
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["ticketId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["ticketId"] = arg0
+	args["trackerId"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticketId"] = arg1
 	return args, nil
 }
 
@@ -5511,7 +5531,7 @@ func (ec *executionContext) _Mutation_ticketSubscribe(ctx context.Context, field
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().TicketSubscribe(rctx, args["ticketId"].(int))
+			return ec.resolvers.Mutation().TicketSubscribe(rctx, args["trackerId"].(int), args["ticketId"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "SUBSCRIPTIONS")
@@ -5578,7 +5598,7 @@ func (ec *executionContext) _Mutation_ticketUnsubscribe(ctx context.Context, fie
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().TicketUnsubscribe(rctx, args["ticketId"].(int))
+			return ec.resolvers.Mutation().TicketUnsubscribe(rctx, args["trackerId"].(int), args["ticketId"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "SUBSCRIPTIONS")
