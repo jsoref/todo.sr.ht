@@ -6,6 +6,7 @@ package graph
 import (
 	"context"
 	"database/sql"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -528,8 +529,66 @@ func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int,
 	return &sub, nil
 }
 
-func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name string, color string) (*model.Label, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name string, foreground string, background string) (*model.Label, error) {
+	var label model.Label
+	user := auth.ForContext(ctx)
+	var (
+		fgb [3]byte
+		bgb [3]byte
+	)
+	if !strings.HasPrefix(foreground, "#") {
+		return nil, fmt.Errorf("Invalid foreground color format")
+	}
+	if n, err := hex.Decode(fgb[:], []byte(foreground[1:])); err != nil || n != 3 {
+		return nil, fmt.Errorf("Invalid foreground color format")
+	}
+	if !strings.HasPrefix(background, "#") {
+		return nil, fmt.Errorf("Invalid background color format")
+	}
+	if n, err := hex.Decode(bgb[:], []byte(background[1:])); err != nil || n != 3 {
+		return nil, fmt.Errorf("Invalid background color format")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		// TODO: Rename the columns for consistency
+		row := tx.QueryRowContext(ctx, `
+			WITH tr AS (
+				SELECT id
+				FROM tracker
+				WHERE id = $1 AND owner_id = $2
+			) INSERT INTO label (
+				created, updated, tracker_id, name, color, text_color
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				(SELECT id FROM tr),
+				$3, $4, $5
+			) RETURNING id, created, name, color, text_color, tracker_id;
+		`, trackerID, user.UserID, name, background, foreground)
+
+		if err := row.Scan(&label.ID, &label.Created, &label.Name,
+			&label.BackgroundColor, &label.ForegroundColor,
+			&label.TrackerID); err != nil {
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23505" && // unique_violation
+				err.Constraint == "idx_tracker_name_unique" {
+				return fmt.Errorf("A label by this name already exists")
+			}
+			// XXX: This is not ideal
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23502" { // not_null_violation
+				return sql.ErrNoRows
+			}
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &label, nil
 }
 
 func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, name *string, color *string) (*model.Label, error) {

@@ -146,7 +146,7 @@ type ComplexityRoot struct {
 
 	Mutation struct {
 		AssignUser         func(childComplexity int, ticketID int, userID int) int
-		CreateLabel        func(childComplexity int, trackerID int, name string, color string) int
+		CreateLabel        func(childComplexity int, trackerID int, name string, foreground string, background string) int
 		CreateTracker      func(childComplexity int, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) int
 		DeleteACL          func(childComplexity int, id int) int
 		DeleteLabel        func(childComplexity int, id int) int
@@ -337,7 +337,7 @@ type MutationResolver interface {
 	TrackerUnsubscribe(ctx context.Context, trackerID int, tickets bool) (*model.TrackerSubscription, error)
 	TicketSubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error)
 	TicketUnsubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error)
-	CreateLabel(ctx context.Context, trackerID int, name string, color string) (*model.Label, error)
+	CreateLabel(ctx context.Context, trackerID int, name string, foreground string, background string) (*model.Label, error)
 	UpdateLabel(ctx context.Context, id int, name *string, color *string) (*model.Label, error)
 	DeleteLabel(ctx context.Context, id int) (*model.Label, error)
 	SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error)
@@ -763,7 +763,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.CreateLabel(childComplexity, args["trackerId"].(int), args["name"].(string), args["color"].(string)), true
+		return e.complexity.Mutation.CreateLabel(childComplexity, args["trackerId"].(int), args["name"].(string), args["foreground"].(string), args["background"].(string)), true
 
 	case "Mutation.createTracker":
 		if e.complexity.Mutation.CreateTracker == nil {
@@ -2235,9 +2235,11 @@ type Mutation {
     trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Creates a new ticket label for a tracker
-  createLabel(trackerId: Int!,
-    name: String!, color: String!): Label @access(scope: TRACKERS, kind: RW)
+  # Creates a new ticket label for a tracker. The colors must be six-character
+  # hex strings in the format "RRGGBB", i.e. "000000" for black and "FF0000"
+  # for red.
+  createLabel(trackerId: Int!, name: String!,
+    foreground: String!, background: String!): Label @access(scope: TRACKERS, kind: RW)
 
   # Changes the name or color of a label. Either may be omitted to continue
   # using the current name or color.
@@ -2384,14 +2386,23 @@ func (ec *executionContext) field_Mutation_createLabel_args(ctx context.Context,
 	}
 	args["name"] = arg1
 	var arg2 string
-	if tmp, ok := rawArgs["color"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("color"))
+	if tmp, ok := rawArgs["foreground"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("foreground"))
 		arg2, err = ec.unmarshalNString2string(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["color"] = arg2
+	args["foreground"] = arg2
+	var arg3 string
+	if tmp, ok := rawArgs["background"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("background"))
+		arg3, err = ec.unmarshalNString2string(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["background"] = arg3
 	return args, nil
 }
 
@@ -5665,7 +5676,7 @@ func (ec *executionContext) _Mutation_createLabel(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().CreateLabel(rctx, args["trackerId"].(int), args["name"].(string), args["color"].(string))
+			return ec.resolvers.Mutation().CreateLabel(rctx, args["trackerId"].(int), args["name"].(string), args["foreground"].(string), args["background"].(string))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
