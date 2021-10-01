@@ -36,15 +36,16 @@ class Ticket(Base):
 
     title = sa.Column(sa.Unicode(2048), nullable=False)
     description = sa.Column(sa.Unicode(16384))
-    comment_count = sa.Column(sa.Integer, default=0, nullable=False, index=True)
+    comment_count = sa.Column(sa.Integer,
+            server_default='0', nullable=False, index=True)
 
     status = sa.Column(FlagType(TicketStatus),
             nullable=False,
-            default=TicketStatus.reported)
+            server_default=str(TicketStatus.reported.value))
 
     resolution = sa.Column(FlagType(TicketResolution),
             nullable=False,
-            default=TicketResolution.unresolved)
+            server_default=str(TicketResolution.unresolved.value))
 
 
     labels = sa.orm.relationship("Label",
