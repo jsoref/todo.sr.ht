@@ -160,7 +160,7 @@ type ComplexityRoot struct {
 		TrackerUnsubscribe func(childComplexity int, trackerID int, tickets bool) int
 		UnassignUser       func(childComplexity int, ticketID int, userID int) int
 		UnlabelTicket      func(childComplexity int, ticketID int, labelID int) int
-		UpdateLabel        func(childComplexity int, id int, name *string, color *string) int
+		UpdateLabel        func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateTicket       func(childComplexity int, trackerID int, input map[string]interface{}) int
 		UpdateTracker      func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateTrackerACL   func(childComplexity int, trackerID int, input model.ACLInput) int
@@ -338,7 +338,7 @@ type MutationResolver interface {
 	TicketSubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error)
 	TicketUnsubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error)
 	CreateLabel(ctx context.Context, trackerID int, name string, foreground string, background string) (*model.Label, error)
-	UpdateLabel(ctx context.Context, id int, name *string, color *string) (*model.Label, error)
+	UpdateLabel(ctx context.Context, id int, input map[string]interface{}) (*model.Label, error)
 	DeleteLabel(ctx context.Context, id int) (*model.Label, error)
 	SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error)
 	UpdateTicket(ctx context.Context, trackerID int, input map[string]interface{}) (*model.Event, error)
@@ -931,7 +931,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateLabel(childComplexity, args["id"].(int), args["name"].(*string), args["color"].(*string)), true
+		return e.complexity.Mutation.UpdateLabel(childComplexity, args["id"].(int), args["input"].(map[string]interface{})), true
 
 	case "Mutation.updateTicket":
 		if e.complexity.Mutation.UpdateTicket == nil {
@@ -2142,6 +2142,13 @@ input TrackerInput {
   visibility: Visibility
 }
 
+# You may omit any fields to leave them unchanged.
+input UpdateLabelInput {
+  name: String
+  foregroundColor: String
+  backgroundColor: String
+}
+
 input ACLInput {
   # Permission to view tickets
   browse: Boolean!
@@ -2235,16 +2242,14 @@ type Mutation {
     trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Creates a new ticket label for a tracker. The colors must be six-character
-  # hex strings in the format "RRGGBB", i.e. "000000" for black and "FF0000"
-  # for red.
+  # Creates a new ticket label for a tracker. The colors must be in CSS
+  # hexadecimal RGB format "#RRGGBB", i.e. "#000000" for black and "#FF0000" for
+  # red.
   createLabel(trackerId: Int!, name: String!,
     foreground: String!, background: String!): Label @access(scope: TRACKERS, kind: RW)
 
-  # Changes the name or color of a label. Either may be omitted to continue
-  # using the current name or color.
-  updateLabel(id: Int!,
-    name: String, color: String): Label @access(scope: TRACKERS, kind: RW)
+  # Changes the name or colors for a label.
+  updateLabel(id: Int!, input: UpdateLabelInput!): Label @access(scope: TRACKERS, kind: RW)
 
   # Deletes a label, removing it from any tickets which currently have it
   # applied.
@@ -2712,24 +2717,15 @@ func (ec *executionContext) field_Mutation_updateLabel_args(ctx context.Context,
 		}
 	}
 	args["id"] = arg0
-	var arg1 *string
-	if tmp, ok := rawArgs["name"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("name"))
-		arg1, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
+	var arg1 map[string]interface{}
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg1, err = ec.unmarshalNUpdateLabelInput2map(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["name"] = arg1
-	var arg2 *string
-	if tmp, ok := rawArgs["color"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("color"))
-		arg2, err = ec.unmarshalOString2ᚖstring(ctx, tmp)
-		if err != nil {
-			return nil, err
-		}
-	}
-	args["color"] = arg2
+	args["input"] = arg1
 	return args, nil
 }
 
@@ -5743,7 +5739,7 @@ func (ec *executionContext) _Mutation_updateLabel(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateLabel(rctx, args["id"].(int), args["name"].(*string), args["color"].(*string))
+			return ec.resolvers.Mutation().UpdateLabel(rctx, args["id"].(int), args["input"].(map[string]interface{}))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TRACKERS")
@@ -14203,6 +14199,10 @@ func (ec *executionContext) marshalNURL2string(ctx context.Context, sel ast.Sele
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNUpdateLabelInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
+	return v.(map[string]interface{}), nil
 }
 
 func (ec *executionContext) unmarshalNUpdateTicketInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {

@@ -66,3 +66,6 @@ models:
   UpdateTicketInput:
     model:
       - "map[string]interface{}"
+  UpdateLabelInput:
+    model:
+      - "map[string]interface{}"
