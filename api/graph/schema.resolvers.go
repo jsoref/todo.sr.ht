@@ -648,7 +648,27 @@ func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[st
 }
 
 func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Label, error) {
-	panic(fmt.Errorf("not implemented"))
+	var label model.Label
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM label
+			USING tracker
+			WHERE
+				label.tracker_id = tracker.id AND
+				tracker.owner_id = $1 AND
+				label.id = $2
+			 RETURNING label.id, label.created, label.name, label.color,
+				 label.text_color, label.tracker_id;
+		`, auth.ForContext(ctx).UserID, id)
+		return row.Scan(&label.ID, &label.Created, &label.Name,
+			&label.BackgroundColor, &label.ForegroundColor, &label.TrackerID)
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+	return &label, nil
 }
 
 func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error) {
