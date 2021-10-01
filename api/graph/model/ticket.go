@@ -27,9 +27,9 @@ type Ticket struct {
 	OwnerName    string
 	SubmitterID  int
 
-	authenticity int
-	status       int
-	resolution   int
+	RawAuthenticity int
+	RawStatus       int
+	RawResolution   int
 
 	alias  string
 	fields *database.ModelFields
@@ -53,15 +53,15 @@ func (t *Ticket) Ref() string {
 }
 
 func (t *Ticket) Status() TicketStatus {
-	return intToStatus(t.status)
+	return intToStatus(t.RawStatus)
 }
 
 func (t *Ticket) Resolution() TicketResolution {
-	return intToResolution(t.resolution)
+	return intToResolution(t.RawResolution)
 }
 
 func (t *Ticket) Authenticity() Authenticity {
-	return intToAuthenticity(t.authenticity)
+	return intToAuthenticity(t.RawAuthenticity)
 }
 
 func (t *Ticket) Fields() *database.ModelFields {
@@ -74,9 +74,9 @@ func (t *Ticket) Fields() *database.ModelFields {
 			{ "updated", "updated", &t.Updated },
 			{ "title", "subject", &t.Subject },
 			{ "description", "body", &t.Body },
-			{ "authenticity", "authenticity", &t.authenticity },
-			{ "status", "status", &t.status },
-			{ "resolution", "resolution", &t.resolution },
+			{ "authenticity", "authenticity", &t.RawAuthenticity },
+			{ "status", "status", &t.RawStatus },
+			{ "resolution", "resolution", &t.RawResolution },
 			{ "tracker.name", "ref", &t.TrackerName },
 			{ `"user".username`, "ref", &t.OwnerName },
 

@@ -672,7 +672,130 @@ func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Labe
 }
 
 func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error) {
-	panic(fmt.Errorf("not implemented"))
+	valid := valid.New(ctx)
+	valid.Expect(len(input.Subject) <= 2048,
+		"Ticket subject must be fewer than to 2049 characters.").
+		WithField("subject")
+	if input.Body != nil {
+		valid.Expect(len(*input.Body) <= 16384,
+			"Ticket body must be less than 16 KiB in size").
+			WithField("body")
+	}
+	valid.Expect((input.ExternalID == nil) == (input.ExternalURL == nil),
+		"Must specify both externalId and externalUrl, or neither, but not one")
+	if !valid.Ok() {
+		return nil, nil
+	}
+
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil || tracker == nil {
+		return nil, err
+	}
+
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
+	if err != nil || owner == nil {
+		return nil, err
+	}
+
+	if !tracker.CanSubmit() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	user := auth.ForContext(ctx)
+	if input.ExternalID != nil {
+		valid.Expect(tracker.OwnerID == user.UserID,
+			"Cannot configure external user import unless you are the owner of this tracker")
+		valid.Expect(strings.ContainsRune(*input.ExternalID, ':'),
+			"Format of externalId field is '<third-party>:<name>', .e.g 'example.org:jbloe'").
+			WithField("externalId")
+	}
+	if input.Created != nil {
+		valid.Expect(tracker.OwnerID == user.UserID,
+			"Cannot configure creation time unless you are the owner of this tracker").
+			WithField("created")
+	}
+
+	var ticket model.Ticket
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		var participantID int
+		if input.ExternalID != nil {
+			row := tx.QueryRowContext(ctx, `
+				INSERT INTO participant (
+					created, participant_type, external_id, external_url
+				) VALUES (
+					NOW() at time zone 'utc',
+					'external', $1, $2
+				)
+				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				DO UPDATE SET created = participant.created
+				RETURNING id
+			`, *input.ExternalID, *input.ExternalURL)
+			if err := row.Scan(&participantID); err != nil {
+				return err
+			}
+		} else {
+			row := tx.QueryRowContext(ctx, `
+				INSERT INTO participant (
+					created, participant_type, user_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					'user', $1
+				)
+				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				DO UPDATE SET created = participant.created
+				RETURNING id
+			`, user.UserID)
+			if err := row.Scan(&participantID); err != nil {
+				return err
+			}
+		}
+
+		row := tx.QueryRowContext(ctx, `
+			WITH tr AS (
+				UPDATE tracker
+				SET next_ticket_id = next_ticket_id + 1
+				WHERE id = $1
+				RETURNING id, next_ticket_id, name
+			) INSERT INTO ticket (
+				created, updated,
+				tracker_id, scoped_id,
+				submitter_id, title, description
+			) VALUES (
+				COALESCE($2, NOW() at time zone 'utc'),
+				NOW() at time zone 'utc',
+				(SELECT id FROM tr),
+				(SELECT next_ticket_id - 1 FROM tr),
+				$3, $4, $5
+			)
+			RETURNING
+				id, scoped_id, submitter_id, tracker_id, created, updated,
+				title, description, authenticity, status, resolution;`,
+			trackerID, input.Created, participantID, input.Subject, input.Body)
+		if err := row.Scan(&ticket.PKID, &ticket.ID, &ticket.SubmitterID,
+			&ticket.TrackerID, &ticket.Created, &ticket.Updated, &ticket.Subject,
+			&ticket.Body, &ticket.RawAuthenticity, &ticket.RawStatus,
+			&ticket.RawResolution); err != nil {
+			return err
+		}
+
+		ticket.OwnerName = owner.Username
+		ticket.TrackerName = tracker.Name
+
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO event (
+				created, event_type, participant_id, ticket_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			);
+		`, model.EVENT_CREATED, participantID, ticket.PKID)
+
+		// TODO: Send notifications
+		return err
+	}); err != nil {
+		return nil, err
+	}
+	return &ticket, nil
 }
 
 func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, input map[string]interface{}) (*model.Event, error) {
