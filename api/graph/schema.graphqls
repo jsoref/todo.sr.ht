@@ -426,6 +426,13 @@ input TrackerInput {
   visibility: Visibility
 }
 
+# You may omit any fields to leave them unchanged.
+input UpdateLabelInput {
+  name: String
+  foregroundColor: String
+  backgroundColor: String
+}
+
 input ACLInput {
   # Permission to view tickets
   browse: Boolean!
@@ -525,10 +532,8 @@ type Mutation {
   createLabel(trackerId: Int!, name: String!,
     foreground: String!, background: String!): Label @access(scope: TRACKERS, kind: RW)
 
-  # Changes the name or color of a label. Either may be omitted to continue
-  # using the current name or color.
-  updateLabel(id: Int!,
-    name: String, color: String): Label @access(scope: TRACKERS, kind: RW)
+  # Changes the name or colors for a label.
+  updateLabel(id: Int!, input: UpdateLabelInput!): Label @access(scope: TRACKERS, kind: RW)
 
   # Deletes a label, removing it from any tickets which currently have it
   # applied.

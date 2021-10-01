@@ -216,7 +216,7 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 	}
 
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(id)
-	if err != nil {
+	if err != nil || tracker == nil {
 		return nil, err
 	}
 	if tracker.OwnerID != auth.ForContext(ctx).UserID {
@@ -225,7 +225,6 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		var err error
-
 		if len(input) != 0 {
 			_, err = database.Apply(tracker, input).
 				Where(database.WithAlias(tracker.Alias(), `id`)+"= ?", tracker.ID).
@@ -233,11 +232,8 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 					sq.Expr(`now() at time zone 'utc'`)).
 				RunWith(tx).
 				ExecContext(ctx)
-			if err != nil {
-				return err
-			}
 		}
-		return nil
+		return err
 	}); err != nil {
 		return nil, err
 	}
@@ -591,8 +587,64 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 	return &label, nil
 }
 
-func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, name *string, color *string) (*model.Label, error) {
-	panic(fmt.Errorf("not implemented"))
+func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[string]interface{}) (*model.Label, error) {
+	valid := valid.New(ctx).WithInput(input)
+	var (
+		fgb [3]byte
+		bgb [3]byte
+	)
+	valid.OptionalString("foregroundColor", func(foreground string) {
+		valid.Expect(strings.HasPrefix(foreground, "#"),
+			"Invalid foreground color format").
+			WithField("foregroundColor").
+			And((func() bool {
+				n, err := hex.Decode(fgb[:], []byte(foreground[1:]))
+				return err == nil && n == 3
+			})(), "Invalid foreground color").
+			WithField("foregroundColor")
+	})
+	valid.OptionalString("backgroundColor", func(background string) {
+		valid.Expect(strings.HasPrefix(background, "#"),
+			"Invalid background color format").
+			WithField("backgroundColor").
+			And((func() bool {
+				n, err := hex.Decode(bgb[:], []byte(background[1:]))
+				return err == nil && n == 3
+			})(), "Invalid background color").
+			WithField("backgroundColor")
+	})
+	valid.OptionalString("name", func(name string) {
+		valid.Expect(len(name) != 0, "Name cannot be empty").WithField(name)
+	})
+	if !valid.Ok() {
+		return nil, nil
+	}
+
+	label, err := loaders.ForContext(ctx).LabelsByID.Load(id)
+	if err != nil || label == nil {
+		return nil, err
+	}
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(label.TrackerID)
+	if err != nil {
+		return nil, err
+	}
+	if tracker.OwnerID != auth.ForContext(ctx).UserID {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		var err error
+		if len(input) != 0 {
+			_, err = database.Apply(label, input).
+				Where(database.WithAlias(label.Alias(), `id`)+"= ?", id).
+				RunWith(tx).
+				ExecContext(ctx)
+		}
+		return err
+	}); err != nil {
+		return nil, err
+	}
+	return label, nil
 }
 
 func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Label, error) {
