@@ -1,6 +1,7 @@
+from flask import abort
 from srht.oauth import current_user
-from todosrht.types import User, Tracker, Ticket, Visibility
 from todosrht.types import TicketAccess, UserAccess, Participant
+from todosrht.types import User, Tracker, Ticket, Visibility
 
 # TODO: get_access for any participant
 def get_access(tracker, ticket, user=None):
@@ -48,7 +49,10 @@ def get_tracker(owner, name, with_for_update=False, user=None):
     tracker = tracker.one_or_none()
     if not tracker:
         return None, None
-    return tracker, get_access(tracker, None, user=user)
+    access = get_access(tracker, None, user=user)
+    if access == TicketAccess.none and tracker.visibility == Visibility.PRIVATE:
+        abort(401)
+    return tracker, access
 
 def get_ticket(tracker, ticket_id, user=None):
     user = user or current_user

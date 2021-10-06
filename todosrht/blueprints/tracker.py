@@ -1,8 +1,12 @@
-from urllib.parse import quote
 from flask import Blueprint, render_template, request, url_for, abort, redirect
+from srht.config import cfg
+from srht.database import db
+from srht.flask import paginate_query, session
+from srht.oauth import current_user, loginrequired
+from srht.validation import Validation
+from todosrht.access import get_tracker
 from todosrht.color import color_from_hex, color_to_hex, get_text_color
 from todosrht.color import valid_hex_color_code
-from todosrht.access import get_tracker
 from todosrht.filters import render_markup
 from todosrht.search import apply_search
 from todosrht.tickets import get_last_seen_times
@@ -12,11 +16,7 @@ from todosrht.types import TicketSubscription, Participant
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.urls import tracker_url, ticket_url
 from todosrht.webhooks import TrackerWebhook, UserWebhook
-from srht.config import cfg
-from srht.database import db
-from srht.flask import paginate_query, session
-from srht.oauth import current_user, loginrequired
-from srht.validation import Validation
+from urllib.parse import quote
 
 tracker = Blueprint("tracker", __name__)
 
@@ -93,7 +93,7 @@ def return_tracker(tracker, access, **kwargs):
                 .filter(Ticket.tracker_id == tracker.id)
                 .filter(Ticket.submitter_id == Participant.id))
     else:
-        tickets = Ticket.query.filter("false")
+        tickets = Ticket.query.filter(False)
 
     try:
         terms = request.args.get("search")
