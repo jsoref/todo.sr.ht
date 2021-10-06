@@ -10,19 +10,16 @@ import (
 	"errors"
 	"fmt"
 	"strings"
-	"text/template"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
-	"git.sr.ht/~sircmpwn/core-go/email"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 	"github.com/99designs/gqlgen/graphql"
-	"github.com/emersion/go-message/mail"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
 )
@@ -797,119 +794,31 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			return err
 		}
 
-		var (
-			rcpts []mail.Address
-			notifySelf, copiedSelf bool
-		)
-		row = tx.QueryRowContext(ctx, `
-			SELECT notify_self FROM "user" WHERE id = $1
-		`, user.UserID)
-		if err := row.Scan(&notifySelf); err != nil {
-			panic(err)
-		}
-
-		rows, err := tx.QueryContext(ctx, `
-			SELECT
-				part.participant_type,
-				part.email, part.email_name,
-				"user".username, "user".email
-			FROM ticket_subscription sub
-			JOIN participant part ON sub.participant_id = part.id
-			LEFT JOIN "user" ON "user".id = part.user_id
-			WHERE tracker_id = $1;
-		`, tracker.ID)
-		if err != nil && err != sql.ErrNoRows {
-			panic(err)
-		}
-
-		for rows.Next() {
-			var (
-				participantType string
-				emailAddress    *string
-				emailName       *string
-				username        *string
-				userEmail       *string
-			)
-			if err := row.Scan(&participantType, &emailAddress,
-				&emailName, &username, &userEmail); err != nil {
-				if err == sql.ErrNoRows {
-					break
-				}
-				return err
-			}
-			switch participantType {
-			case "user":
-				if *userEmail == user.Email {
-					if notifySelf {
-						copiedSelf = true
-					} else {
-						break
-					}
-				}
-				rcpts = append(rcpts, mail.Address{
-					Name: "~" + *username,
-					Address: *userEmail,
-				})
-			case "email":
-				if *userEmail == user.Email {
-					if notifySelf {
-						copiedSelf = true
-					} else {
-						break
-					}
-				}
-				rcpts = append(rcpts, mail.Address{
-					Name: *emailName,
-					Address: *emailAddress,
-				})
-			default:
-				panic("Invariant broken: non-user, non-email participant subscribed to tracker")
-			}
-		}
-		if notifySelf && !copiedSelf {
-			rcpts = append(rcpts, mail.Address{
-				Name: "~" + user.Username,
-				Address: user.Email,
-			})
-		}
-
 		conf := config.ForContext(ctx)
-		type TemplateContext struct {
-			Body      *string
-			Root      string
-			TicketURL string
-		}
-		tctx := TemplateContext{
+		details := NewTicketDetails{
 			Body:      ticket.Body,
 			Root:      config.GetOrigin(conf, "todo.sr.ht", true),
 			TicketURL: fmt.Sprintf("/%s/%s/%d",
 				owner.CanonicalName(), tracker.Name, ticket.ID),
 		}
-
-		tmpl := template.Must(template.New("new-ticket").Parse(`{{.Body}}
-
--- 
-View on the web: {{.Root}}{{.TicketURL}}`))
-
-		var body strings.Builder
-		err = tmpl.Execute(&body, tctx)
-		if err != nil {
-			panic(err)
-		}
-
-		for _, rcpt := range rcpts {
-			var header mail.Header
-			header.SetAddressList("To", []*mail.Address{&rcpt})
-			header.SetSubject(fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject))
-
-			// TODO: Fetch user PGP key (or send via meta.sr.ht API?)
-			err = email.EnqueueStd(ctx, header,
-				strings.NewReader(body.String()), nil)
-			if err != nil {
-				panic(err)
-			}
-		}
-
+		subs := sq.Select(`
+				CASE part.participant_type
+				WHEN 'user' THEN '~' || "user".username
+				WHEN 'email' THEN part.email_name
+				ELSE null END
+			`, `
+				CASE part.participant_type
+				WHEN 'user' THEN "user".email
+				WHEN 'email' THEN part.email
+				ELSE null END
+			`).
+			From("ticket_subscription sub").
+			Join("participant part ON sub.participant_id = part.id").
+			LeftJoin(`"user" ON "user".id = part.user_id`).
+			Where("tracker_id = ?", tracker.ID)
+		queueNotifications(ctx, tx,
+			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
+			newTicketTemplate, &details, subs)
 		// TODO:
 		// - Identify ticket and user mentions
 		// - Subscribe submitter to notifications
