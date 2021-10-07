@@ -8,6 +8,7 @@ import (
 	"text/template"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/email"
 	"github.com/emersion/go-message/mail"
 	sq "github.com/Masterminds/squirrel"
@@ -113,9 +114,29 @@ func queueNotifications(ctx context.Context, tx *sql.Tx, subject string,
 		panic(err)
 	}
 
+	conf := config.ForContext(ctx)
+	var notifyFrom string
+	if addr, ok := conf.Get("todo.sr.ht", "notify-from"); ok {
+		notifyFrom = addr
+	} else if addr, ok := conf.Get("mail", "smtp-from"); ok {
+		notifyFrom = addr
+	} else {
+		panic("Invalid mail configuratiojn")
+	}
+
+	from := mail.Address{
+		Name: "~" + user.Username,
+		Address: notifyFrom,
+	}
 	for _, rcpt := range rcpts {
 		var header mail.Header
+		// TODO: Add these headers:
+		// - In-Reply-To
+		// - Reply-To
+		// - Sender
+		// - List-Unsubscribe
 		header.SetAddressList("To", []*mail.Address{&rcpt})
+		header.SetAddressList("From", []*mail.Address{&from})
 		header.SetSubject(subject)
 
 		// TODO: Fetch user PGP key (or send via meta.sr.ht API?)
