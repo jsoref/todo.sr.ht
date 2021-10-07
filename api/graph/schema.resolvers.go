@@ -794,6 +794,19 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			return err
 		}
 
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO ticket_subscription (
+				created, updated, ticket_id, participant_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2
+			);
+		`, ticket.PKID, participantID)
+		if err != nil {
+			return err
+		}
+
 		conf := config.ForContext(ctx)
 		details := NewTicketDetails{
 			Body:      ticket.Body,
@@ -821,7 +834,6 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			newTicketTemplate, &details, subs)
 		// TODO:
 		// - Identify ticket and user mentions
-		// - Subscribe submitter to notifications
 		return nil
 	}); err != nil {
 		return nil, err
