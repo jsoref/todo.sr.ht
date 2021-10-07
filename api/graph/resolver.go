@@ -80,10 +80,7 @@ func queueNotifications(ctx context.Context, tx *sql.Tx, subject string,
 
 	for rows.Next() {
 		var name, address string
-		if err := row.Scan(&name, &address); err != nil {
-			if err == sql.ErrNoRows {
-				break
-			}
+		if err := rows.Scan(&name, &address); err != nil {
 			panic(err)
 		}
 		if address == user.Email {
