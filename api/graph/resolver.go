@@ -22,7 +22,10 @@ type Resolver struct{}
 
 var (
 	trackerNameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+	userMentionRE = regexp.MustCompile(`[^\s(]?~(\w+)\b[^/]?`)
+)
 
+var (
 	newTicketTemplate = template.Must(template.New("new-ticket").Parse(`{{.Body}}
 
 -- 
