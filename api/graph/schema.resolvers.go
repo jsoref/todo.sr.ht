@@ -782,6 +782,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		ticket.OwnerName = owner.Username
 		ticket.TrackerName = tracker.Name
 
+		// TODO: Insert into event_notification as well
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO event (
 				created, event_type, participant_id, ticket_id
@@ -791,7 +792,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			);
 		`, model.EVENT_CREATED, participantID, ticket.PKID)
 		if err != nil {
-			return err
+			panic(err)
 		}
 
 		_, err = tx.ExecContext(ctx, `
@@ -804,7 +805,49 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			);
 		`, ticket.PKID, participantID)
 		if err != nil {
-			return err
+			panic(err)
+		}
+
+		// TODO: Generalize mentions logic for re-use with comments
+		// TODO: Ticket mentions
+		var mentionedUsers []string
+		if ticket.Body != nil {
+			matches := userMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
+			for _, match := range matches {
+				if len(match) != 2 {
+					panic("Invalid regex match")
+				}
+				mentionedUsers = append(mentionedUsers, match[1])
+			}
+		}
+		// XXX: Could use CopyIn with a temp table for better performance, but
+		// probably doesn't matter as anyone mentioning a bunch of users is
+		// probably just a spammer who deserves the extra wait
+		for _, user := range mentionedUsers {
+			_, err = tx.ExecContext(ctx, `
+				WITH part AS (
+					WITH target AS (
+						SELECT id FROM "user" WHERE username = $1
+					) INSERT INTO participant (
+						created, participant_type, user_id
+					) VALUES (
+						NOW() at time zone 'utc',
+						'user', (SELECT id FROM target)
+					)
+					ON CONFLICT ON CONSTRAINT participant_user_id_key
+					DO UPDATE SET created = participant.created
+					RETURNING id
+				) INSERT INTO ticket_subscription (
+					created, updated, ticket_id, participant_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					NOW() at time zone 'utc',
+					$2, (SELECT id FROM part)
+				);
+			`, user, ticket.PKID)
+			if err != nil {
+				panic(err)
+			}
 		}
 
 		conf := config.ForContext(ctx)
@@ -825,15 +868,17 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				WHEN 'email' THEN part.email
 				ELSE null END
 			`).
-			From("ticket_subscription sub").
-			Join("participant part ON sub.participant_id = part.id").
+			From("participant part").
+			LeftJoin(`ticket_subscription sub on sub.participant_id = part.id`).
 			LeftJoin(`"user" ON "user".id = part.user_id`).
-			Where("tracker_id = ?", tracker.ID)
+			Where(sq.Or{
+				sq.Expr("sub.tracker_id = ?", tracker.ID),
+				sq.Expr(`"user".username = ANY(?)`, pq.Array(mentionedUsers)),
+			})
 		queueNotifications(ctx, tx,
 			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
 			newTicketTemplate, &details, subs)
-		// TODO:
-		// - Identify ticket and user mentions
+		// TODO: Don't notify users for trackers they cannot browse
 		return nil
 	}); err != nil {
 		return nil, err
