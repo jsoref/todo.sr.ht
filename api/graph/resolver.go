@@ -78,6 +78,7 @@ func queueNotifications(ctx context.Context, tx *sql.Tx, subject string,
 		panic(err)
 	}
 
+	set := make(map[string]interface{})
 	for rows.Next() {
 		var name, address string
 		if err := rows.Scan(&name, &address); err != nil {
@@ -90,6 +91,10 @@ func queueNotifications(ctx context.Context, tx *sql.Tx, subject string,
 				break
 			}
 		}
+		if _, ok := set[address]; ok {
+			continue
+		}
+		set[address] = nil
 		rcpts = append(rcpts, mail.Address{
 			Name: name,
 			Address: address,
