@@ -785,22 +785,16 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		// Create a temporary table of all participants affected by this
 		// submission. This includes everyone who will be notified about it.
 		_, err = tx.ExecContext(ctx, `
-			CREATE TEMP TABLE event_participant (
+			CREATE TEMP TABLE event_participant
+			ON COMMIT DROP
+			AS (SELECT
 				-- The affected participant:
-				participant_id INTEGER NOT NULL,
+				$1::INTEGER AS participant_id,
 				-- Events they should be notified of:
-				event_type INTEGER NOT NULL,
+				$2::INTEGER AS event_type,
 				-- Should they be subscribed to this ticket?
-				subscribe BOOLEAN NOT NULL
-			) ON COMMIT DROP;
-		`)
-		if err != nil {
-			panic(err)
-		}
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO event_participant (
-				participant_id, event_type, subscribe
-			) VALUES ($1, $2, true);
+				true AS subscribe
+			);
 		`, participantID, model.EVENT_CREATED)
 		if err != nil {
 			panic(err)
