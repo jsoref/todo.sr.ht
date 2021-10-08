@@ -782,35 +782,34 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		ticket.OwnerName = owner.Username
 		ticket.TrackerName = tracker.Name
 
-		// TODO: Insert into event_notification as well
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO event (
-				created, event_type, participant_id, ticket_id
-			) VALUES (
-				NOW() at time zone 'utc',
-				$1, $2, $3
-			);
-		`, model.EVENT_CREATED, participantID, ticket.PKID)
+		// Create a temporary table of all participants affected by this
+		// submission. This includes everyone who will be notified about it.
+		_, err = tx.ExecContext(ctx, `
+			CREATE TEMP TABLE event_participant (
+				-- The affected participant:
+				participant_id INTEGER NOT NULL,
+				-- Events they should be notified of:
+				event_type INTEGER NOT NULL
+			) ON COMMIT DROP;
+		`)
 		if err != nil {
 			panic(err)
 		}
-
 		_, err = tx.ExecContext(ctx, `
-			INSERT INTO ticket_subscription (
-				created, updated, ticket_id, participant_id
-			) VALUES (
-				NOW() at time zone 'utc',
-				NOW() at time zone 'utc',
-				$1, $2
-			);
-		`, ticket.PKID, participantID)
+			INSERT INTO event_participant (
+				participant_id, event_type
+			) VALUES ($1, $2);
+		`, participantID, model.EVENT_CREATED)
 		if err != nil {
 			panic(err)
 		}
 
 		// TODO: Generalize mentions logic for re-use with comments
 		// TODO: Ticket mentions
-		var mentionedUsers []string
+		var (
+			mentionedUsers        []string
+			mentionedParticipants []int
+		)
 		if ticket.Body != nil {
 			matches := userMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
 			for _, match := range matches {
@@ -820,11 +819,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				mentionedUsers = append(mentionedUsers, match[1])
 			}
 		}
-		// XXX: Could use CopyIn with a temp table for better performance, but
-		// probably doesn't matter as anyone mentioning a bunch of users is
-		// probably just a spammer who deserves the extra wait
 		for _, user := range mentionedUsers {
-			_, err = tx.ExecContext(ctx, `
+			// TODO: Handle case where mentioned user is not in local database
+			rows, err := tx.QueryContext(ctx, `
 				WITH part AS (
 					WITH target AS (
 						SELECT id FROM "user" WHERE username = $1
@@ -837,19 +834,110 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					ON CONFLICT ON CONSTRAINT participant_user_id_key
 					DO UPDATE SET created = participant.created
 					RETURNING id
-				) INSERT INTO ticket_subscription (
-					created, updated, ticket_id, participant_id
+				) INSERT INTO event_participant (
+					participant_id, event_type
+				) VALUES (
+					(SELECT id FROM part), $2
+				) RETURNING participant_id;
+			`, user, model.EVENT_USER_MENTIONED)
+			if err != nil {
+				panic(err)
+			}
+
+			for rows.Next() {
+				var id int
+				if err := rows.Scan(&id); err != nil {
+					panic(err)
+				}
+				mentionedParticipants = append(mentionedParticipants, id)
+			}
+		}
+
+		// Implicate all subscribers for this tracker
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO event_participant (
+				participant_id, event_type
+			)
+			SELECT
+				sub.participant_id,
+				$1
+			FROM ticket_subscription sub
+			WHERE sub.tracker_id = $2
+		`, model.EVENT_CREATED, tracker.ID)
+		if err != nil {
+			panic(err)
+		}
+
+		// Create subscriptions for all affected users
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO ticket_subscription (
+				created, updated, ticket_id, participant_id
+			)
+			SELECT
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, participant_id
+			FROM event_participant
+			ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
+			DO NOTHING;
+		`, ticket.PKID)
+		if err != nil {
+			panic(err)
+		}
+
+		// Create events and event notifications
+		var eventID int
+		row = tx.QueryRowContext(ctx, `
+			INSERT INTO event (
+				created, event_type, participant_id, ticket_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			) RETURNING id;
+		`, model.EVENT_CREATED, participantID, ticket.PKID)
+		if err := row.Scan(&eventID); err != nil {
+			panic(err)
+		}
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO event_notification (created, event_id, user_id)
+			SELECT
+				NOW() at time zone 'utc',
+				$1, part.user_id
+			FROM event_participant ev
+			JOIN participant part ON part.id = ev.participant_id
+			WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
+		`, eventID, model.EVENT_CREATED)
+		if err != nil {
+			panic(err)
+		}
+		for _, id := range mentionedParticipants {
+			row := tx.QueryRowContext(ctx, `
+				INSERT INTO event (
+					created, event_type, participant_id, by_participant_id,
+					ticket_id, from_ticket_id
 				) VALUES (
 					NOW() at time zone 'utc',
+					$1, $2, $3, $4, $4
+				) RETURNING id;
+			`, model.EVENT_USER_MENTIONED, id, participantID, ticket.PKID)
+			if err := row.Scan(&eventID); err != nil {
+				panic(err)
+			}
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO event_notification (created, event_id, user_id)
+				SELECT
 					NOW() at time zone 'utc',
-					$2, (SELECT id FROM part)
-				);
-			`, user, ticket.PKID)
+					$1, part.user_id
+				FROM event_participant ev
+				JOIN participant part ON part.id = ev.participant_id
+				WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
+			`, eventID, model.EVENT_USER_MENTIONED)
 			if err != nil {
 				panic(err)
 			}
 		}
 
+		// Send notification emails
 		conf := config.ForContext(ctx)
 		details := NewTicketDetails{
 			Body:      ticket.Body,
@@ -868,13 +956,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				WHEN 'email' THEN part.email
 				ELSE null END
 			`).
-			From("participant part").
-			LeftJoin(`ticket_subscription sub on sub.participant_id = part.id`).
-			LeftJoin(`"user" ON "user".id = part.user_id`).
-			Where(sq.Or{
-				sq.Expr("sub.tracker_id = ?", tracker.ID),
-				sq.Expr(`"user".username = ANY(?)`, pq.Array(mentionedUsers)),
-			})
+			From(`event_participant evpart`).
+			Join(`participant part ON evpart.participant_id = part.id`).
+			LeftJoin(`"user" ON "user".id = part.user_id`)
 		queueNotifications(ctx, tx,
 			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
 			newTicketTemplate, &details, subs)
