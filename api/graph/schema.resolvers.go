@@ -789,7 +789,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				-- The affected participant:
 				participant_id INTEGER NOT NULL,
 				-- Events they should be notified of:
-				event_type INTEGER NOT NULL
+				event_type INTEGER NOT NULL,
+				-- Should they be subscribed to this ticket?
+				subscribe BOOLEAN NOT NULL
 			) ON COMMIT DROP;
 		`)
 		if err != nil {
@@ -797,8 +799,8 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		}
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO event_participant (
-				participant_id, event_type
-			) VALUES ($1, $2);
+				participant_id, event_type, subscribe
+			) VALUES ($1, $2, true);
 		`, participantID, model.EVENT_CREATED)
 		if err != nil {
 			panic(err)
@@ -835,9 +837,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					DO UPDATE SET created = participant.created
 					RETURNING id
 				) INSERT INTO event_participant (
-					participant_id, event_type
+					participant_id, event_type, subscribe
 				) VALUES (
-					(SELECT id FROM part), $2
+					(SELECT id FROM part), $2, true
 				) RETURNING participant_id;
 			`, user, model.EVENT_USER_MENTIONED)
 			if err != nil {
@@ -856,11 +858,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		// Implicate all subscribers for this tracker
 		_, err = tx.ExecContext(ctx, `
 			INSERT INTO event_participant (
-				participant_id, event_type
+				participant_id, event_type, subscribe
 			)
-			SELECT
-				sub.participant_id,
-				$1
+			SELECT sub.participant_id, $1, false
 			FROM ticket_subscription sub
 			WHERE sub.tracker_id = $2
 		`, model.EVENT_CREATED, tracker.ID)
@@ -878,6 +878,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				NOW() at time zone 'utc',
 				$1, participant_id
 			FROM event_participant
+			WHERE subscribe = true
 			ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
 			DO NOTHING;
 		`, ticket.PKID)
