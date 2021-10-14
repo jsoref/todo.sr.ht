@@ -783,6 +783,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		ticket.OwnerName = owner.Username
 		ticket.TrackerName = tracker.Name
 
+		conf := config.ForContext(ctx)
+		origin := config.GetOrigin(conf, "todo.sr.ht", true)
+
 		// Create a temporary table of all participants affected by this
 		// submission. This includes everyone who will be notified about it.
 		_, err = tx.ExecContext(ctx, `
@@ -818,7 +821,6 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				mentionedUsers[match[2]] = nil
 			}
 
-			// TODO: Match on ticket URLs
 			matches = ticketMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
 			for _, match := range matches {
 				var (
@@ -840,6 +842,27 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					trackerName = tracker.Name
 				}
 				ticketID, _ = strconv.Atoi(match[5])
+				mentionedTickets[ticket.Ref()] = model.Ticket{
+					ID:          ticketID,
+					TrackerName: trackerName,
+					OwnerName:   username,
+				}
+			}
+
+			matches = ticketURLRE.FindAllStringSubmatch(*ticket.Body, -1)
+			for _, match := range matches {
+				if len(match) != 7 {
+					panic("Invalid regex match")
+				}
+				var (
+					root        string = match[2]
+					username    string = match[4]
+					trackerName string = match[5]
+				)
+				if root != origin {
+					continue
+				}
+				ticketID, _ := strconv.Atoi(match[6])
 				mentionedTickets[ticket.Ref()] = model.Ticket{
 					ID:          ticketID,
 					TrackerName: trackerName,
@@ -944,7 +967,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					$4, $5, (SELECT id FROM target), $6
 				)`,
 				target.OwnerName, target.TrackerName, target.ID,
-				model.EVENT_TICKET_MENTIONED, participantID, ticket.ID)
+				model.EVENT_TICKET_MENTIONED, participantID, ticket.PKID)
 			if err != nil {
 				panic(err)
 			}
@@ -990,10 +1013,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		}
 
 		// Send notification emails
-		conf := config.ForContext(ctx)
 		details := NewTicketDetails{
 			Body:      ticket.Body,
-			Root:      config.GetOrigin(conf, "todo.sr.ht", true),
+			Root:      origin,
 			TicketURL: fmt.Sprintf("/%s/%s/%d",
 				owner.CanonicalName(), tracker.Name, ticket.ID),
 		}
