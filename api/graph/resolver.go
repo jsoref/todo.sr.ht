@@ -28,7 +28,8 @@ var (
 	// tracker-name#id
 	// #id
 	ticketMentionRE = regexp.MustCompile(`(^|[\s(]?)(~(\w+)/)?([A-Za-z0-9_.-]+)?\#(\d+)\b`)
-	// TODO: Ticket URL mentions
+	// https://todo.example.org/~username/trackername/id
+	ticketURLRE = regexp.MustCompile(`(^|[\s(]?)(https?://[A-Za-z0-9.]+)/(~(\w+)/)([A-Za-z0-9_.-]+)/(\d+)\b`)
 )
 
 var (
