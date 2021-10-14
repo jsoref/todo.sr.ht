@@ -21,8 +21,14 @@ import (
 type Resolver struct{}
 
 var (
-	trackerNameRE = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
-	userMentionRE = regexp.MustCompile(`[^\s(]?~(\w+)\b[^/]?`)
+	trackerNameRE   = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
+	// ~username
+	userMentionRE   = regexp.MustCompile(`(^|[\s(]?)?~(\w+)\b([^/]|$)`)
+	// ~username/tracker-name#id
+	// tracker-name#id
+	// #id
+	ticketMentionRE = regexp.MustCompile(`(^|[\s(]?)(~(\w+)/)?([A-Za-z0-9_.-]+)?\#(\d+)\b`)
+	// TODO: Ticket URL mentions
 )
 
 var (
