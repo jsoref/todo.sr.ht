@@ -802,21 +802,23 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		}
 
 		// TODO: Generalize mentions logic for re-use with comments
-		// TODO: Dedupe user/ticket mentions
 		var (
-			mentionedUsers        []string
+			mentionedUsers        map[string]interface{}
 			mentionedParticipants []int
-			mentionedTickets      []model.Ticket // Only partially filled in
+			mentionedTickets      map[string]model.Ticket // Partially filled in
 		)
+		mentionedUsers = make(map[string]interface{})
+		mentionedTickets = make(map[string]model.Ticket)
 		if ticket.Body != nil {
 			matches := userMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
 			for _, match := range matches {
 				if len(match) != 4 {
 					panic("Invalid regex match")
 				}
-				mentionedUsers = append(mentionedUsers, match[2])
+				mentionedUsers[match[2]] = nil
 			}
 
+			// TODO: Match on ticket URLs
 			matches = ticketMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
 			for _, match := range matches {
 				var (
@@ -838,14 +840,14 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					trackerName = tracker.Name
 				}
 				ticketID, _ = strconv.Atoi(match[5])
-				mentionedTickets = append(mentionedTickets, model.Ticket{
+				mentionedTickets[ticket.Ref()] = model.Ticket{
 					ID:          ticketID,
 					TrackerName: trackerName,
 					OwnerName:   username,
-				})
+				}
 			}
 		}
-		for _, user := range mentionedUsers {
+		for user, _ := range mentionedUsers {
 			// TODO: Handle case where mentioned user is not in local database
 			rows, err := tx.QueryContext(ctx, `
 				WITH part AS (
