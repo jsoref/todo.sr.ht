@@ -957,7 +957,6 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		queueNotifications(ctx, tx,
 			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
 			newTicketTemplate, &details, subs)
-		// TODO: Don't notify users for trackers they cannot browse
 		return nil
 	}); err != nil {
 		return nil, err
