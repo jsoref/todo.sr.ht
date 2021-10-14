@@ -9,6 +9,7 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -707,7 +708,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		valid.Expect(tracker.OwnerID == user.UserID,
 			"Cannot configure external user import unless you are the owner of this tracker")
 		valid.Expect(strings.ContainsRune(*input.ExternalID, ':'),
-			"Format of externalId field is '<third-party>:<name>', .e.g 'example.org:jbloe'").
+			"Format of externalId field is '<third-party>:<name>', .e.g 'example.org:jdoe'").
 			WithField("externalId")
 	}
 	if input.Created != nil {
@@ -801,18 +802,47 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		}
 
 		// TODO: Generalize mentions logic for re-use with comments
-		// TODO: Ticket mentions
+		// TODO: Dedupe user/ticket mentions
 		var (
 			mentionedUsers        []string
 			mentionedParticipants []int
+			mentionedTickets      []model.Ticket // Only partially filled in
 		)
 		if ticket.Body != nil {
 			matches := userMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
 			for _, match := range matches {
-				if len(match) != 2 {
+				if len(match) != 4 {
 					panic("Invalid regex match")
 				}
-				mentionedUsers = append(mentionedUsers, match[1])
+				mentionedUsers = append(mentionedUsers, match[2])
+			}
+
+			matches = ticketMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
+			for _, match := range matches {
+				var (
+					username    string
+					trackerName string
+					ticketID    int
+				)
+				if len(match) != 6 {
+					panic("Invalid regex match")
+				}
+				if match[3] != "" {
+					username = match[3]
+				} else {
+					username = user.Username
+				}
+				if match[4] != "" {
+					trackerName = match[4]
+				} else {
+					trackerName = tracker.Name
+				}
+				ticketID, _ = strconv.Atoi(match[5])
+				mentionedTickets = append(mentionedTickets, model.Ticket{
+					ID:          ticketID,
+					TrackerName: trackerName,
+					OwnerName:   username,
+				})
 			}
 		}
 		for _, user := range mentionedUsers {
@@ -893,6 +923,31 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		if err := row.Scan(&eventID); err != nil {
 			panic(err)
 		}
+
+		// Ticket mention events
+		for _, target := range mentionedTickets {
+			_, err := tx.ExecContext(ctx, `
+				WITH target AS (
+					SELECT tk.id
+					FROM ticket tk
+					JOIN tracker tr ON tk.tracker_id = tr.id
+					JOIN "user" u ON u.id = tr.owner_id
+					WHERE u.username = $1 AND tr.name = $2 AND tk.scoped_id = $3
+				)
+				INSERT INTO event (
+					created, event_type, by_participant_id, ticket_id,
+					from_ticket_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					$4, $5, (SELECT id FROM target), $6
+				)`,
+				target.OwnerName, target.TrackerName, target.ID,
+				model.EVENT_TICKET_MENTIONED, participantID, ticket.ID)
+			if err != nil {
+				panic(err)
+			}
+		}
+
 		_, err := tx.ExecContext(ctx, `
 			INSERT INTO event_notification (created, event_id, user_id)
 			SELECT
