@@ -71,6 +71,11 @@ type TrackerCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type UpdateStatusInput struct {
+	Status     TicketStatus     `json:"status"`
+	Resolution TicketResolution `json:"resolution"`
+}
+
 type Version struct {
 	Major           int        `json:"major"`
 	Minor           int        `json:"minor"`
@@ -263,106 +268,6 @@ func (e *EventType) UnmarshalGQL(v interface{}) error {
 }
 
 func (e EventType) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type TicketResolution string
-
-const (
-	TicketResolutionUnresolved  TicketResolution = "UNRESOLVED"
-	TicketResolutionFixed       TicketResolution = "FIXED"
-	TicketResolutionImplemented TicketResolution = "IMPLEMENTED"
-	TicketResolutionWontFix     TicketResolution = "WONT_FIX"
-	TicketResolutionByDesign    TicketResolution = "BY_DESIGN"
-	TicketResolutionInvalid     TicketResolution = "INVALID"
-	TicketResolutionDuplicate   TicketResolution = "DUPLICATE"
-	TicketResolutionNotOurBug   TicketResolution = "NOT_OUR_BUG"
-)
-
-var AllTicketResolution = []TicketResolution{
-	TicketResolutionUnresolved,
-	TicketResolutionFixed,
-	TicketResolutionImplemented,
-	TicketResolutionWontFix,
-	TicketResolutionByDesign,
-	TicketResolutionInvalid,
-	TicketResolutionDuplicate,
-	TicketResolutionNotOurBug,
-}
-
-func (e TicketResolution) IsValid() bool {
-	switch e {
-	case TicketResolutionUnresolved, TicketResolutionFixed, TicketResolutionImplemented, TicketResolutionWontFix, TicketResolutionByDesign, TicketResolutionInvalid, TicketResolutionDuplicate, TicketResolutionNotOurBug:
-		return true
-	}
-	return false
-}
-
-func (e TicketResolution) String() string {
-	return string(e)
-}
-
-func (e *TicketResolution) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = TicketResolution(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid TicketResolution", str)
-	}
-	return nil
-}
-
-func (e TicketResolution) MarshalGQL(w io.Writer) {
-	fmt.Fprint(w, strconv.Quote(e.String()))
-}
-
-type TicketStatus string
-
-const (
-	TicketStatusReported   TicketStatus = "REPORTED"
-	TicketStatusConfirmed  TicketStatus = "CONFIRMED"
-	TicketStatusInProgress TicketStatus = "IN_PROGRESS"
-	TicketStatusPending    TicketStatus = "PENDING"
-	TicketStatusResolved   TicketStatus = "RESOLVED"
-)
-
-var AllTicketStatus = []TicketStatus{
-	TicketStatusReported,
-	TicketStatusConfirmed,
-	TicketStatusInProgress,
-	TicketStatusPending,
-	TicketStatusResolved,
-}
-
-func (e TicketStatus) IsValid() bool {
-	switch e {
-	case TicketStatusReported, TicketStatusConfirmed, TicketStatusInProgress, TicketStatusPending, TicketStatusResolved:
-		return true
-	}
-	return false
-}
-
-func (e TicketStatus) String() string {
-	return string(e)
-}
-
-func (e *TicketStatus) UnmarshalGQL(v interface{}) error {
-	str, ok := v.(string)
-	if !ok {
-		return fmt.Errorf("enums must be strings")
-	}
-
-	*e = TicketStatus(str)
-	if !e.IsValid() {
-		return fmt.Errorf("%s is not a valid TicketStatus", str)
-	}
-	return nil
-}
-
-func (e TicketStatus) MarshalGQL(w io.Writer) {
 	fmt.Fprint(w, strconv.Quote(e.String()))
 }
 

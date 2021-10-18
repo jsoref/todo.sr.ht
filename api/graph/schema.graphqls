@@ -463,13 +463,11 @@ input SubmitTicketInput {
   externalUrl: String
 }
 
-# You may omit any fields to leave them unchanged, or set them to null to clear
-# them.
+# You may omit any fields to leave them unchanged. To remove the ticket body,
+# set it to null.
 input UpdateTicketInput {
   subject: String
   body: String
-  status: TicketStatus
-  resolution: TicketResolution
 }
 
 # You may omit the status or resolution fields to leave them unchanged (or if
@@ -478,6 +476,11 @@ input SubmitCommentInput {
   text: String!
   status: TicketStatus
   resolution: TicketResolution
+}
+
+input UpdateStatusInput {
+  status: TicketStatus!
+  resolution: TicketResolution!
 }
 
 type Mutation {
@@ -557,9 +560,17 @@ type Mutation {
   submitTicket(trackerId: Int!,
     input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
 
-  # Updates a ticket
+  # Updates a ticket's subject or body
   updateTicket(trackerId: Int!, ticketId: Int!,
-    input: UpdateTicketInput!): Event @access(scope: TICKETS, kind: RW)
+    input: UpdateTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
+
+  # Updates the status or resolution of a ticket
+  updateTicketStatus(trackerId: Int!, ticketId: Int!,
+    input: UpdateStatusInput!): Event @access(scope: TICKETS, kind: RW)
+
+  # Submits a comment for a ticket
+  submitComment(trackerId: Int!, ticketId: Int!,
+    input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
 
   # Adds a user to the list of assigned users for a ticket
   assignUser(trackerId: Int!, ticketId: Int!,
@@ -576,8 +587,4 @@ type Mutation {
   # Removes a list from the list of labels for a ticket
   unlabelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
-
-  # Submits a comment for a ticket
-  submitComment(trackerId: Int!, ticketId: Int!,
-    input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
 }

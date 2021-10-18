@@ -414,24 +414,73 @@ func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []e
 func fetchTicketsByTrackerID(ctx context.Context) func(ids [][2]int) ([]*model.Ticket, []error) {
 	return func(ids [][2]int) ([]*model.Ticket, []error) {
 		tickets := make([]*model.Ticket, len(ids))
-		if err := database.WithTx(ctx, &sql.TxOptions{
-			Isolation: 0,
-			ReadOnly:  true,
-		}, func (tx *sql.Tx) error {
+		if err := database.WithTx(ctx, nil, func (tx *sql.Tx) error {
 			var (
-				err  error
-				rows *sql.Rows
+				err        error
+				rows       *sql.Rows
+				trackerIDs []int = make([]int, len(ids))
+				scopedIDs  []int = make([]int, len(ids))
 			)
-			// TODO: Finish this
+			for i, items := range ids {
+				trackerIDs[i] = items[0]
+				scopedIDs[i] = items[1]
+			}
+
+			tx.ExecContext(ctx, `
+				CREATE TEMP TABLE lut
+				ON COMMIT DROP
+				AS (SELECT
+					unnest($1::int[]) AS tracker_id,
+					unnest($2::int[]) AS scoped_id);
+			`, pq.Array(trackerIDs), pq.Array(scopedIDs))
+
+			auser := auth.ForContext(ctx)
 			query := database.
 				Select(ctx, (&model.Ticket{}).As(`tk`)).
+				Columns(`tk.tracker_id`, `tk.scoped_id`).
 				From(`"ticket" tk`).
-				Where(sq.Expr(`u.id = ANY(?)`, pq.Array(ids)))
+				Join(`"tracker" tr ON tr.id = tk.tracker_id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				Where(sq.And{
+					sq.Expr(`(tk.tracker_id, tk.scoped_id) IN (SELECT * FROM lut)`),
+					sq.Or{
+						sq.Expr(`tr.owner_id = ?`, auser.UserID),
+						sq.Expr(`tr.visibility != 'PRIVATE'`),
+						sq.And{
+							sq.Expr(`ua.user_id = ?`, auser.UserID),
+							sq.Expr(`ua.permissions > 0`),
+						},
+					},
+				})
+
+			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			ticketsByTrackerID := make(map[[2]int]*model.Ticket)
+			for rows.Next() {
+				var (
+					ticket    model.Ticket
+					trackerID int
+					scopedID  int
+				)
+				if err := rows.Scan(append(database.Scan(ctx, &ticket),
+					&trackerID, &scopedID)...); err != nil {
+					return err
+				}
+				ticketsByTrackerID[[2]int{trackerID, scopedID}] = &ticket
+			}
+
+			for i, items := range ids {
+				tickets[i] = ticketsByTrackerID[[2]int{items[0], items[1]}]
+			}
 
 			return nil
 		}); err != nil {
 			panic(err)
 		}
+
 		return tickets, nil
 	}
 }
