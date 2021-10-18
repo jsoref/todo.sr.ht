@@ -103,7 +103,7 @@ def find_mentioned_users(text):
 def find_mentioned_tickets(tracker, text):
     if text is None:
         return set()
-    filters = or_()
+    filters = []
     matches = chain(
         re.finditer(TICKET_MENTION_PATTERN, text),
         re.finditer(TICKET_URL_PATTERN, text),
@@ -126,7 +126,7 @@ def find_mentioned_tickets(tracker, text):
 
     return set(Ticket.query
         .join(Tracker, User)
-        .filter(filters)
+        .filter(or_(*filters))
         .all())
 
 def _create_comment(ticket, participant, text):
