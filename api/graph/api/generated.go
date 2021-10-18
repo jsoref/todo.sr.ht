@@ -162,6 +162,7 @@ type ComplexityRoot struct {
 		UnlabelTicket      func(childComplexity int, trackerID int, ticketID int, labelID int) int
 		UpdateLabel        func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateTicket       func(childComplexity int, trackerID int, ticketID int, input map[string]interface{}) int
+		UpdateTicketStatus func(childComplexity int, trackerID int, ticketID int, input model.UpdateStatusInput) int
 		UpdateTracker      func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateTrackerACL   func(childComplexity int, trackerID int, input model.ACLInput) int
 		UpdateUserACL      func(childComplexity int, trackerID int, userID int, input model.ACLInput) int
@@ -341,12 +342,13 @@ type MutationResolver interface {
 	UpdateLabel(ctx context.Context, id int, input map[string]interface{}) (*model.Label, error)
 	DeleteLabel(ctx context.Context, id int) (*model.Label, error)
 	SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error)
-	UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Event, error)
+	UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Ticket, error)
+	UpdateTicketStatus(ctx context.Context, trackerID int, ticketID int, input model.UpdateStatusInput) (*model.Event, error)
+	SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error)
 	AssignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error)
 	UnassignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error)
 	LabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error)
 	UnlabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error)
-	SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
@@ -944,6 +946,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 		}
 
 		return e.complexity.Mutation.UpdateTicket(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["input"].(map[string]interface{})), true
+
+	case "Mutation.updateTicketStatus":
+		if e.complexity.Mutation.UpdateTicketStatus == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_updateTicketStatus_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Mutation.UpdateTicketStatus(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["input"].(model.UpdateStatusInput)), true
 
 	case "Mutation.updateTracker":
 		if e.complexity.Mutation.UpdateTracker == nil {
@@ -2184,8 +2198,6 @@ input SubmitTicketInput {
 input UpdateTicketInput {
   subject: String
   body: String
-  status: TicketStatus
-  resolution: TicketResolution
 }
 
 # You may omit the status or resolution fields to leave them unchanged (or if
@@ -2194,6 +2206,11 @@ input SubmitCommentInput {
   text: String!
   status: TicketStatus
   resolution: TicketResolution
+}
+
+input UpdateStatusInput {
+  status: TicketStatus!
+  resolution: TicketResolution!
 }
 
 type Mutation {
@@ -2273,9 +2290,17 @@ type Mutation {
   submitTicket(trackerId: Int!,
     input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
 
-  # Updates a ticket
+  # Updates a ticket's subject or body
   updateTicket(trackerId: Int!, ticketId: Int!,
-    input: UpdateTicketInput!): Event @access(scope: TICKETS, kind: RW)
+    input: UpdateTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
+
+  # Updates the status or resolution of a ticket
+  updateTicketStatus(trackerId: Int!, ticketId: Int!,
+    input: UpdateStatusInput!): Event @access(scope: TICKETS, kind: RW)
+
+  # Submits a comment for a ticket
+  submitComment(trackerId: Int!, ticketId: Int!,
+    input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
 
   # Adds a user to the list of assigned users for a ticket
   assignUser(trackerId: Int!, ticketId: Int!,
@@ -2292,10 +2317,6 @@ type Mutation {
   # Removes a list from the list of labels for a ticket
   unlabelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
-
-  # Submits a comment for a ticket
-  submitComment(trackerId: Int!, ticketId: Int!,
-    input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
 }
 `, BuiltIn: false},
 }
@@ -2785,6 +2806,39 @@ func (ec *executionContext) field_Mutation_updateLabel_args(ctx context.Context,
 		}
 	}
 	args["input"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_updateTicketStatus_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["trackerId"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["ticketId"] = arg1
+	var arg2 model.UpdateStatusInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg2, err = ec.unmarshalNUpdateStatusInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUpdateStatusInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg2
 	return args, nil
 }
 
@@ -6032,6 +6086,140 @@ func (ec *executionContext) _Mutation_updateTicket(ctx context.Context, field gr
 		if tmp == nil {
 			return nil, nil
 		}
+		if data, ok := tmp.(*model.Ticket); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Ticket`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalOTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_updateTicketStatus(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_updateTicketStatus_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().UpdateTicketStatus(rctx, args["trackerId"].(int), args["ticketId"].(int), args["input"].(model.UpdateStatusInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Event); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Event`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		return graphql.Null
+	}
+	res := resTmp.(*model.Event)
+	fc.Result = res
+	return ec.marshalOEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx, field.Selections, res)
+}
+
+func (ec *executionContext) _Mutation_submitComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Mutation_submitComment_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Mutation().SubmitComment(rctx, args["trackerId"].(int), args["ticketId"].(int), args["input"].(model.SubmitCommentInput))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, nil, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
 		if data, ok := tmp.(*model.Event); ok {
 			return data, nil
 		}
@@ -6277,73 +6465,6 @@ func (ec *executionContext) _Mutation_unlabelTicket(ctx context.Context, field g
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
 			return ec.resolvers.Mutation().UnlabelTicket(rctx, args["trackerId"].(int), args["ticketId"].(int), args["labelId"].(int))
-		}
-		directive1 := func(ctx context.Context) (interface{}, error) {
-			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
-			if err != nil {
-				return nil, err
-			}
-			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RW")
-			if err != nil {
-				return nil, err
-			}
-			if ec.directives.Access == nil {
-				return nil, errors.New("directive access is not implemented")
-			}
-			return ec.directives.Access(ctx, nil, directive0, scope, kind)
-		}
-
-		tmp, err := directive1(rctx)
-		if err != nil {
-			return nil, graphql.ErrorOnPath(ctx, err)
-		}
-		if tmp == nil {
-			return nil, nil
-		}
-		if data, ok := tmp.(*model.Event); ok {
-			return data, nil
-		}
-		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Event`, tmp)
-	})
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	if resTmp == nil {
-		return graphql.Null
-	}
-	res := resTmp.(*model.Event)
-	fc.Result = res
-	return ec.marshalOEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx, field.Selections, res)
-}
-
-func (ec *executionContext) _Mutation_submitComment(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
-	defer func() {
-		if r := recover(); r != nil {
-			ec.Error(ctx, ec.Recover(ctx, r))
-			ret = graphql.Null
-		}
-	}()
-	fc := &graphql.FieldContext{
-		Object:     "Mutation",
-		Field:      field,
-		Args:       nil,
-		IsMethod:   true,
-		IsResolver: true,
-	}
-
-	ctx = graphql.WithFieldContext(ctx, fc)
-	rawArgs := field.ArgumentMap(ec.Variables)
-	args, err := ec.field_Mutation_submitComment_args(ctx, rawArgs)
-	if err != nil {
-		ec.Error(ctx, err)
-		return graphql.Null
-	}
-	fc.Args = args
-	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
-		directive0 := func(rctx context.Context) (interface{}, error) {
-			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().SubmitComment(rctx, args["trackerId"].(int), args["ticketId"].(int), args["input"].(model.SubmitCommentInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -11594,6 +11715,34 @@ func (ec *executionContext) unmarshalInputSubmitTicketInput(ctx context.Context,
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputUpdateStatusInput(ctx context.Context, obj interface{}) (model.UpdateStatusInput, error) {
+	var it model.UpdateStatusInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "status":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			it.Status, err = ec.unmarshalNTicketStatus2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "resolution":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resolution"))
+			it.Resolution, err = ec.unmarshalNTicketResolution2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketResolution(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 // endregion **************************** input.gotpl *****************************
 
 // region    ************************** interface.gotpl ***************************
@@ -12396,6 +12545,10 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_submitTicket(ctx, field)
 		case "updateTicket":
 			out.Values[i] = ec._Mutation_updateTicket(ctx, field)
+		case "updateTicketStatus":
+			out.Values[i] = ec._Mutation_updateTicketStatus(ctx, field)
+		case "submitComment":
+			out.Values[i] = ec._Mutation_submitComment(ctx, field)
 		case "assignUser":
 			out.Values[i] = ec._Mutation_assignUser(ctx, field)
 		case "unassignUser":
@@ -12404,8 +12557,6 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			out.Values[i] = ec._Mutation_labelTicket(ctx, field)
 		case "unlabelTicket":
 			out.Values[i] = ec._Mutation_unlabelTicket(ctx, field)
-		case "submitComment":
-			out.Values[i] = ec._Mutation_submitComment(ctx, field)
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -14312,6 +14463,11 @@ func (ec *executionContext) marshalNURL2string(ctx context.Context, sel ast.Sele
 
 func (ec *executionContext) unmarshalNUpdateLabelInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {
 	return v.(map[string]interface{}), nil
+}
+
+func (ec *executionContext) unmarshalNUpdateStatusInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐUpdateStatusInput(ctx context.Context, v interface{}) (model.UpdateStatusInput, error) {
+	res, err := ec.unmarshalInputUpdateStatusInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNUpdateTicketInput2map(ctx context.Context, v interface{}) (map[string]interface{}, error) {

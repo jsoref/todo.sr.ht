@@ -145,10 +145,10 @@ func (ev *Event) Changes() []EventDetail {
 			TicketID:      ev.TicketID,
 			ParticipantID: ev.ParticipantID,
 
-			OldStatus:     intToStatus(ev.OldStatus),
-			NewStatus:     intToStatus(ev.NewStatus),
-			OldResolution: intToResolution(ev.OldResolution),
-			NewResolution: intToResolution(ev.NewResolution),
+			OldStatus:     TicketStatusFromInt(ev.OldStatus),
+			NewStatus:     TicketStatusFromInt(ev.NewStatus),
+			OldResolution: TicketResolutionFromInt(ev.OldResolution),
+			NewResolution: TicketResolutionFromInt(ev.NewResolution),
 		})
 	}
 

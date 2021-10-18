@@ -53,11 +53,11 @@ func (t *Ticket) Ref() string {
 }
 
 func (t *Ticket) Status() TicketStatus {
-	return intToStatus(t.RawStatus)
+	return TicketStatusFromInt(t.RawStatus)
 }
 
 func (t *Ticket) Resolution() TicketResolution {
-	return intToResolution(t.RawResolution)
+	return TicketResolutionFromInt(t.RawResolution)
 }
 
 func (t *Ticket) Authenticity() Authenticity {
@@ -137,65 +137,6 @@ func (t *Ticket) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 	}
 
 	return tickets, cur
-}
-
-const (
-    STATUS_REPORTED = 0
-    STATUS_CONFIRMED = 1
-    STATUS_IN_PROGRESS = 2
-    STATUS_PENDING = 4
-    STATUS_RESOLVED = 8
-)
-
-func intToStatus(status int) TicketStatus {
-	switch (status) {
-	case STATUS_REPORTED:
-		return TicketStatusReported
-	case STATUS_CONFIRMED:
-		return TicketStatusConfirmed
-	case STATUS_IN_PROGRESS:
-		return TicketStatusInProgress
-	case STATUS_PENDING:
-		return TicketStatusPending
-	case STATUS_RESOLVED:
-		return TicketStatusResolved
-	default:
-		panic(errors.New("database invariant broken"))
-	}
-}
-
-const (
-    RESOLVED_UNRESOLVED = 0
-    RESOLVED_FIXED = 1
-    RESOLVED_IMPLEMENTED = 2
-    RESOLVED_WONT_FIX = 4
-    RESOLVED_BY_DESIGN = 8
-    RESOLVED_INVALID = 16
-    RESOLVED_DUPLICATE = 32
-    RESOLVED_NOT_OUR_BUG = 64
-)
-
-func intToResolution(resolution int) TicketResolution {
-	switch (resolution) {
-	case RESOLVED_UNRESOLVED:
-		return TicketResolutionUnresolved
-	case RESOLVED_FIXED:
-		return TicketResolutionFixed
-	case RESOLVED_IMPLEMENTED:
-		return TicketResolutionImplemented
-	case RESOLVED_WONT_FIX:
-		return TicketResolutionWontFix
-	case RESOLVED_BY_DESIGN:
-		return TicketResolutionByDesign
-	case RESOLVED_INVALID:
-		return TicketResolutionInvalid
-	case RESOLVED_DUPLICATE:
-		return TicketResolutionDuplicate
-	case RESOLVED_NOT_OUR_BUG:
-		return TicketResolutionNotOurBug
-	default:
-		panic(errors.New("database invariant broken"))
-	}
 }
 
 const (

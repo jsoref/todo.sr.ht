@@ -1002,7 +1002,70 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	return &ticket, nil
 }
 
-func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Event, error) {
+func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Ticket, error) {
+	update := sq.Update("ticket").
+		PlaceholderFormat(sq.Dollar)
+
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, nil
+	}
+	if !tracker.CanEdit() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, nil
+	}
+
+	valid := valid.New(ctx).WithInput(input)
+	// TODO: Rename database columns title => subject; description => body
+	valid.OptionalString("subject", func(subject string) {
+		valid.Expect(len(subject) <= 2048,
+			"Ticket subject must be fewer than to 2049 characters.").
+			WithField("subject")
+		ticket.Subject = subject
+		update = update.Set("title", subject)
+	})
+	if body, ok := input["body"]; ok {
+		if ptr, ok := body.(*string); ok {
+			if ptr != nil {
+				valid.Expect(len(*ptr) <= 16384,
+					"Ticket body must be less than 16 KiB in size").
+					WithField("body")
+			}
+			ticket.Body = ptr
+			update = update.Set("description", ptr)
+		}
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := update.
+			Where(`ticket.id = ?`, ticket.PKID).
+			RunWith(tx).
+			ExecContext(ctx)
+		if err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return ticket, nil
+}
+
+func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int, ticketID int, input model.UpdateStatusInput) (*model.Event, error) {
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
@@ -1019,10 +1082,6 @@ func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticke
 }
 
 func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
-	panic(fmt.Errorf("not implemented"))
-}
-
-func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
