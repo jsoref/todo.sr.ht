@@ -1,5 +1,6 @@
 package loaders
 
+//go:generate go run github.com/vektah/dataloaden EntitiesByParticipantIDLoader int git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Entity
 //go:generate ./gen UsersByIDLoader int api/graph/model.User
 //go:generate ./gen UsersByNameLoader string api/graph/model.User
 //go:generate ./gen TrackersByIDLoader int api/graph/model.Tracker
@@ -7,7 +8,6 @@ package loaders
 //go:generate ./gen TrackersByOwnerNameLoader [2]string api/graph/model.Tracker
 //go:generate ./gen TicketsByIDLoader int api/graph/model.Ticket
 //go:generate ./gen CommentsByIDLoader int api/graph/model.Comment
-//go:generate go run github.com/vektah/dataloaden ParticipantsByIDLoader int git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Entity
 //go:generate ./gen LabelsByIDLoader int api/graph/model.Label
 //go:generate ./gen SubsByTicketIDLoader int api/graph/model.TicketSubscription
 //go:generate ./gen SubsByTrackerIDLoader int api/graph/model.TrackerSubscription
@@ -35,13 +35,14 @@ type contextKey struct {
 }
 
 type Loaders struct {
+	EntitiesByParticipantID EntitiesByParticipantIDLoader
+
 	UsersByID           UsersByIDLoader
 	UsersByName         UsersByNameLoader
 	TrackersByID        TrackersByIDLoader
 	TrackersByName      TrackersByNameLoader
 	TrackersByOwnerName TrackersByOwnerNameLoader
 	TicketsByID         TicketsByIDLoader
-	ParticipantsByID    ParticipantsByIDLoader
 	LabelsByID          LabelsByIDLoader
 
 	CommentsByIDUnsafe    CommentsByIDLoader
@@ -453,7 +454,7 @@ func fetchCommentsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Comm
 	}
 }
 
-func fetchParticipantsByID(ctx context.Context) func(ids []int) ([]model.Entity, []error) {
+func fetchEntitiesByParticipantID(ctx context.Context) func(ids []int) ([]model.Entity, []error) {
 	return func(ids []int) ([]model.Entity, []error) {
 		entities := make([]model.Entity, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
@@ -753,10 +754,10 @@ func Middleware(next http.Handler) http.Handler {
 				wait:     1 * time.Millisecond,
 				fetch:    fetchCommentsByIDUnsafe(r.Context()),
 			},
-			ParticipantsByID: ParticipantsByIDLoader{
+			EntitiesByParticipantID: EntitiesByParticipantIDLoader{
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
-				fetch:    fetchParticipantsByID(r.Context()),
+				fetch:    fetchEntitiesByParticipantID(r.Context()),
 			},
 			LabelsByID: LabelsByIDLoader{
 				maxBatch: 100,

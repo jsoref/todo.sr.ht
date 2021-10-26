@@ -2173,8 +2173,8 @@ input SubmitTicketInput {
   externalUrl: String
 }
 
-# You may omit any fields to leave them unchanged, or set them to null to clear
-# them.
+# You may omit any fields to leave them unchanged. To remove the ticket body,
+# set it to null.
 input UpdateTicketInput {
   subject: String
   body: String

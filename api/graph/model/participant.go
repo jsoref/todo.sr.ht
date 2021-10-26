@@ -2,6 +2,17 @@ package model
 
 import "fmt"
 
+// Used internally
+type Participant struct {
+	ID          int
+	Type        string
+	UserID      *int
+	Mailbox     *string
+	Name        *string
+	ExternalID  *string
+	ExternalURL *string
+}
+
 type EmailAddress struct {
 	Mailbox string  `json:"mailbox"`
 	Name    *string `json:"name"`

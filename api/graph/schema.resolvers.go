@@ -30,11 +30,11 @@ func (r *assignmentResolver) Ticket(ctx context.Context, obj *model.Assignment) 
 }
 
 func (r *assignmentResolver) Assigner(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.AssignerID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.AssignerID)
 }
 
 func (r *assignmentResolver) Assignee(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.AssigneeID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.AssigneeID)
 }
 
 func (r *commentResolver) Ticket(ctx context.Context, obj *model.Comment) (*model.Ticket, error) {
@@ -42,7 +42,7 @@ func (r *commentResolver) Ticket(ctx context.Context, obj *model.Comment) (*mode
 }
 
 func (r *commentResolver) Author(ctx context.Context, obj *model.Comment) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
 func (r *commentResolver) Text(ctx context.Context, obj *model.Comment) (string, error) {
@@ -76,7 +76,7 @@ func (r *createdResolver) Ticket(ctx context.Context, obj *model.Created) (*mode
 }
 
 func (r *createdResolver) Author(ctx context.Context, obj *model.Created) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
 func (r *eventResolver) Ticket(ctx context.Context, obj *model.Event) (*model.Ticket, error) {
@@ -119,7 +119,7 @@ func (r *labelUpdateResolver) Ticket(ctx context.Context, obj *model.LabelUpdate
 }
 
 func (r *labelUpdateResolver) Labeler(ctx context.Context, obj *model.LabelUpdate) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
 func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error) {
@@ -1014,8 +1014,8 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 
 		// Send notification emails
 		details := NewTicketDetails{
-			Body:      ticket.Body,
-			Root:      origin,
+			Body: ticket.Body,
+			Root: origin,
 			TicketURL: fmt.Sprintf("/%s/%s/%d",
 				owner.CanonicalName(), tracker.Name, ticket.ID),
 		}
@@ -1184,11 +1184,11 @@ func (r *statusChangeResolver) Ticket(ctx context.Context, obj *model.StatusChan
 }
 
 func (r *statusChangeResolver) Editor(ctx context.Context, obj *model.StatusChange) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
 func (r *ticketResolver) Submitter(ctx context.Context, obj *model.Ticket) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.SubmitterID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.SubmitterID)
 }
 
 func (r *ticketResolver) Tracker(ctx context.Context, obj *model.Ticket) (*model.Tracker, error) {
@@ -1299,7 +1299,7 @@ func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMen
 }
 
 func (r *ticketMentionResolver) Author(ctx context.Context, obj *model.TicketMention) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
 func (r *ticketMentionResolver) Mentioned(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
@@ -1506,11 +1506,11 @@ func (r *userMentionResolver) Ticket(ctx context.Context, obj *model.UserMention
 }
 
 func (r *userMentionResolver) Author(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.ParticipantID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
 func (r *userMentionResolver) Mentioned(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
-	return loaders.ForContext(ctx).ParticipantsByID.Load(obj.MentionedID)
+	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.MentionedID)
 }
 
 // Assignment returns api.AssignmentResolver implementation.
