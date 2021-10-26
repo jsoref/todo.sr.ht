@@ -142,9 +142,14 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		return nil, nil
 	}
 
+	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
 	var tracker model.Tracker
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		user := auth.ForContext(ctx)
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO tracker (
 				created, updated,
@@ -173,24 +178,14 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		tracker.Access = model.ACCESS_ALL
 
 		_, err := tx.ExecContext(ctx, `
-			WITH part AS (
-				INSERT INTO participant (
-					created, participant_type, user_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					'user', $1
-				)
-				ON CONFLICT ON CONSTRAINT participant_user_id_key
-				DO UPDATE SET created = participant.created
-				RETURNING id
-			) INSERT INTO ticket_subscription (
+			INSERT INTO ticket_subscription (
 				created, updated, tracker_id, participant_id
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
-				$2, (SELECT id FROM part)
+				$1, $2
 			);
-		`, user.UserID, tracker.ID)
+		`, tracker.ID, part.ID)
 		return err
 	}); err != nil {
 		if !valid.Ok() {
@@ -372,40 +367,32 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Tracke
 
 func (r *mutationResolver) TrackerSubscribe(ctx context.Context, trackerID int) (*model.TrackerSubscription, error) {
 	var sub model.TrackerSubscription
+
 	user := auth.ForContext(ctx)
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, fmt.Errorf("Access denied")
+	}
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
-			WITH part AS (
-				INSERT INTO participant (
-					created, participant_type, user_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					'user', $1
-				)
-				ON CONFLICT ON CONSTRAINT participant_user_id_key
-				DO UPDATE SET created = participant.created
-				RETURNING id
-			), tk AS (
-				SELECT tracker.id
-				FROM tracker
-				LEFT JOIN user_access ua ON ua.tracker_id = tracker.id
-				WHERE tracker.id = $2 AND (
-					owner_id = $1 OR
-					visibility != 'PRIVATE' OR
-					(ua.user_id = $1 AND ua.permissions > 0)
-				)
-			) INSERT INTO ticket_subscription (
+			INSERT INTO ticket_subscription (
 				created, updated, tracker_id, participant_id
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
-				(SELECT id FROM tk),
-				(SELECT id FROM part)
+				$1, $2
 			)
 			ON CONFLICT ON CONSTRAINT subscription_tracker_participant_uq
 			DO UPDATE SET updated = NOW() at time zone 'utc'
 			RETURNING id, created, tracker_id;
-		`, user.UserID, trackerID)
+		`, tracker.ID, part.ID)
 		return row.Scan(&sub.ID, &sub.Created, &sub.TrackerID)
 	}); err != nil {
 		return nil, err
@@ -415,27 +402,23 @@ func (r *mutationResolver) TrackerSubscribe(ctx context.Context, trackerID int) 
 
 func (r *mutationResolver) TrackerUnsubscribe(ctx context.Context, trackerID int, tickets bool) (*model.TrackerSubscription, error) {
 	var sub model.TrackerSubscription
+
 	user := auth.ForContext(ctx)
-	if tickets {
-		panic("not implemented")
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
 	}
+
+	if tickets {
+		panic("not implemented") // TODO
+	}
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
-			WITH part AS (
-				INSERT INTO participant (
-					created, participant_type, user_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					'user', $1
-				)
-				ON CONFLICT ON CONSTRAINT participant_user_id_key
-				DO UPDATE SET created = participant.created
-				RETURNING id
-			)
 			DELETE FROM ticket_subscription
-			WHERE tracker_id = $2 AND participant_id = (SELECT id FROM part)
+			WHERE tracker_id = $1 AND participant_id = $2
 			RETURNING id, created, tracker_id;
-		`, user.UserID, trackerID)
+		`, trackerID, part.ID)
 		return row.Scan(&sub.ID, &sub.Created, &sub.TrackerID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -448,20 +431,17 @@ func (r *mutationResolver) TrackerUnsubscribe(ctx context.Context, trackerID int
 
 func (r *mutationResolver) TicketSubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error) {
 	var sub model.TicketSubscription
+
 	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO: Create a TicketsByScopedID loader and simplify this
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
-			WITH part AS (
-				INSERT INTO participant (
-					created, participant_type, user_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					'user', $1
-				)
-				ON CONFLICT ON CONSTRAINT participant_user_id_key
-				DO UPDATE SET created = participant.created
-				RETURNING id
-			), tk AS (
+			WITH tk AS (
 				SELECT ticket.id
 				FROM ticket
 				JOIN tracker ON tracker.id = ticket.tracker_id
@@ -477,12 +457,12 @@ func (r *mutationResolver) TicketSubscribe(ctx context.Context, trackerID int, t
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
 				(SELECT id FROM tk),
-				(SELECT id FROM part)
+				$4
 			)
 			ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
 			DO UPDATE SET updated = NOW() at time zone 'utc'
 			RETURNING id, created, ticket_id;
-		`, user.UserID, trackerID, ticketID)
+		`, user.UserID, trackerID, ticketID, part.ID)
 		return row.Scan(&sub.ID, &sub.Created, &sub.TicketID)
 	}); err != nil {
 		return nil, err
@@ -492,31 +472,28 @@ func (r *mutationResolver) TicketSubscribe(ctx context.Context, trackerID int, t
 
 func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error) {
 	var sub model.TicketSubscription
+
 	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
+	// TODO: Create a TicketsByScopedID loader and simplify this
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
-			WITH part AS (
-				INSERT INTO participant (
-					created, participant_type, user_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					'user', $1
-				)
-				ON CONFLICT ON CONSTRAINT participant_user_id_key
-				DO UPDATE SET created = participant.created
-				RETURNING id
-			), tk AS (
+			WITH tk AS (
 				SELECT ticket.id
 				FROM ticket
 				JOIN tracker ON tracker.id = ticket.tracker_id
-				WHERE tracker.id = $2 AND ticket.scoped_id = $3
+				WHERE tracker.id = $1 AND ticket.scoped_id = $2
 			)
 			DELETE FROM ticket_subscription
 			WHERE
 				ticket_id = (SELECT id FROM tk) AND
-				participant_id = (SELECT id FROM part)
+				participant_id = $3
 			RETURNING id, created, ticket_id;
-		`, user.UserID, trackerID, ticketID)
+		`, trackerID, ticketID, part.ID)
 		return row.Scan(&sub.ID, &sub.Created, &sub.TicketID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -719,7 +696,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 
 	var ticket model.Ticket
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		var participantID int
+		var participant *model.Participant
 		if input.ExternalID != nil {
 			row := tx.QueryRowContext(ctx, `
 				INSERT INTO participant (
@@ -732,23 +709,16 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				DO UPDATE SET created = participant.created
 				RETURNING id
 			`, *input.ExternalID, *input.ExternalURL)
-			if err := row.Scan(&participantID); err != nil {
+			participant := &model.Participant{}
+			if err := row.Scan(&participant.ID); err != nil {
 				return err
 			}
 		} else {
-			row := tx.QueryRowContext(ctx, `
-				INSERT INTO participant (
-					created, participant_type, user_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					'user', $1
-				)
-				ON CONFLICT ON CONSTRAINT participant_user_id_key
-				DO UPDATE SET created = participant.created
-				RETURNING id
-			`, user.UserID)
-			if err := row.Scan(&participantID); err != nil {
-				return err
+			var err error
+			participant, err = loaders.ForContext(ctx).
+				ParticipantsByUserID.Load(user.UserID)
+			if err != nil {
+				panic(err)
 			}
 		}
 
@@ -772,7 +742,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			RETURNING
 				id, scoped_id, submitter_id, tracker_id, created, updated,
 				title, description, authenticity, status, resolution;`,
-			trackerID, input.Created, participantID, input.Subject, input.Body)
+			trackerID, input.Created, participant.ID, input.Subject, input.Body)
 		if err := row.Scan(&ticket.PKID, &ticket.ID, &ticket.SubmitterID,
 			&ticket.TrackerID, &ticket.Created, &ticket.Updated, &ticket.Subject,
 			&ticket.Body, &ticket.RawAuthenticity, &ticket.RawStatus,
@@ -799,7 +769,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				-- Should they be subscribed to this ticket?
 				true AS subscribe
 			);
-		`, participantID, model.EVENT_CREATED)
+		`, participant.ID, model.EVENT_CREATED)
 		if err != nil {
 			panic(err)
 		}
@@ -944,7 +914,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				NOW() at time zone 'utc',
 				$1, $2, $3
 			) RETURNING id;
-		`, model.EVENT_CREATED, participantID, ticket.PKID)
+		`, model.EVENT_CREATED, participant.ID, ticket.PKID)
 		if err := row.Scan(&eventID); err != nil {
 			panic(err)
 		}
@@ -967,7 +937,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					$4, $5, (SELECT id FROM target), $6
 				)`,
 				target.OwnerName, target.TrackerName, target.ID,
-				model.EVENT_TICKET_MENTIONED, participantID, ticket.PKID)
+				model.EVENT_TICKET_MENTIONED, participant.ID, ticket.PKID)
 			if err != nil {
 				panic(err)
 			}
@@ -994,7 +964,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					NOW() at time zone 'utc',
 					$1, $2, $3, $4, $4
 				) RETURNING id;
-			`, model.EVENT_USER_MENTIONED, id, participantID, ticket.PKID)
+			`, model.EVENT_USER_MENTIONED, id, participant.ID, ticket.PKID)
 			if err := row.Scan(&eventID); err != nil {
 				panic(err)
 			}
