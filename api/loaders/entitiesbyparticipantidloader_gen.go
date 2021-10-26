@@ -9,8 +9,8 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
 
-// ParticipantsByIDLoaderConfig captures the config to create a new ParticipantsByIDLoader
-type ParticipantsByIDLoaderConfig struct {
+// EntitiesByParticipantIDLoaderConfig captures the config to create a new EntitiesByParticipantIDLoader
+type EntitiesByParticipantIDLoaderConfig struct {
 	// Fetch is a method that provides the data for the loader
 	Fetch func(keys []int) ([]model.Entity, []error)
 
@@ -21,17 +21,17 @@ type ParticipantsByIDLoaderConfig struct {
 	MaxBatch int
 }
 
-// NewParticipantsByIDLoader creates a new ParticipantsByIDLoader given a fetch, wait, and maxBatch
-func NewParticipantsByIDLoader(config ParticipantsByIDLoaderConfig) *ParticipantsByIDLoader {
-	return &ParticipantsByIDLoader{
+// NewEntitiesByParticipantIDLoader creates a new EntitiesByParticipantIDLoader given a fetch, wait, and maxBatch
+func NewEntitiesByParticipantIDLoader(config EntitiesByParticipantIDLoaderConfig) *EntitiesByParticipantIDLoader {
+	return &EntitiesByParticipantIDLoader{
 		fetch:    config.Fetch,
 		wait:     config.Wait,
 		maxBatch: config.MaxBatch,
 	}
 }
 
-// ParticipantsByIDLoader batches and caches requests
-type ParticipantsByIDLoader struct {
+// EntitiesByParticipantIDLoader batches and caches requests
+type EntitiesByParticipantIDLoader struct {
 	// this method provides the data for the loader
 	fetch func(keys []int) ([]model.Entity, []error)
 
@@ -48,13 +48,13 @@ type ParticipantsByIDLoader struct {
 
 	// the current batch. keys will continue to be collected until timeout is hit,
 	// then everything will be sent to the fetch method and out to the listeners
-	batch *participantsByIDLoaderBatch
+	batch *entitiesByParticipantIDLoaderBatch
 
 	// mutex to prevent races
 	mu sync.Mutex
 }
 
-type participantsByIDLoaderBatch struct {
+type entitiesByParticipantIDLoaderBatch struct {
 	keys    []int
 	data    []model.Entity
 	error   []error
@@ -63,14 +63,14 @@ type participantsByIDLoaderBatch struct {
 }
 
 // Load a Entity by key, batching and caching will be applied automatically
-func (l *ParticipantsByIDLoader) Load(key int) (model.Entity, error) {
+func (l *EntitiesByParticipantIDLoader) Load(key int) (model.Entity, error) {
 	return l.LoadThunk(key)()
 }
 
 // LoadThunk returns a function that when called will block waiting for a Entity.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *ParticipantsByIDLoader) LoadThunk(key int) func() (model.Entity, error) {
+func (l *EntitiesByParticipantIDLoader) LoadThunk(key int) func() (model.Entity, error) {
 	l.mu.Lock()
 	if it, ok := l.cache[key]; ok {
 		l.mu.Unlock()
@@ -79,7 +79,7 @@ func (l *ParticipantsByIDLoader) LoadThunk(key int) func() (model.Entity, error)
 		}
 	}
 	if l.batch == nil {
-		l.batch = &participantsByIDLoaderBatch{done: make(chan struct{})}
+		l.batch = &entitiesByParticipantIDLoaderBatch{done: make(chan struct{})}
 	}
 	batch := l.batch
 	pos := batch.keyIndex(l, key)
@@ -113,7 +113,7 @@ func (l *ParticipantsByIDLoader) LoadThunk(key int) func() (model.Entity, error)
 
 // LoadAll fetches many keys at once. It will be broken into appropriate sized
 // sub batches depending on how the loader is configured
-func (l *ParticipantsByIDLoader) LoadAll(keys []int) ([]model.Entity, []error) {
+func (l *EntitiesByParticipantIDLoader) LoadAll(keys []int) ([]model.Entity, []error) {
 	results := make([]func() (model.Entity, error), len(keys))
 
 	for i, key := range keys {
@@ -131,7 +131,7 @@ func (l *ParticipantsByIDLoader) LoadAll(keys []int) ([]model.Entity, []error) {
 // LoadAllThunk returns a function that when called will block waiting for a Entitys.
 // This method should be used if you want one goroutine to make requests to many
 // different data loaders without blocking until the thunk is called.
-func (l *ParticipantsByIDLoader) LoadAllThunk(keys []int) func() ([]model.Entity, []error) {
+func (l *EntitiesByParticipantIDLoader) LoadAllThunk(keys []int) func() ([]model.Entity, []error) {
 	results := make([]func() (model.Entity, error), len(keys))
 	for i, key := range keys {
 		results[i] = l.LoadThunk(key)
@@ -149,7 +149,7 @@ func (l *ParticipantsByIDLoader) LoadAllThunk(keys []int) func() ([]model.Entity
 // Prime the cache with the provided key and value. If the key already exists, no change is made
 // and false is returned.
 // (To forcefully prime the cache, clear the key first with loader.clear(key).prime(key, value).)
-func (l *ParticipantsByIDLoader) Prime(key int, value model.Entity) bool {
+func (l *EntitiesByParticipantIDLoader) Prime(key int, value model.Entity) bool {
 	l.mu.Lock()
 	var found bool
 	if _, found = l.cache[key]; !found {
@@ -160,13 +160,13 @@ func (l *ParticipantsByIDLoader) Prime(key int, value model.Entity) bool {
 }
 
 // Clear the value at key from the cache, if it exists
-func (l *ParticipantsByIDLoader) Clear(key int) {
+func (l *EntitiesByParticipantIDLoader) Clear(key int) {
 	l.mu.Lock()
 	delete(l.cache, key)
 	l.mu.Unlock()
 }
 
-func (l *ParticipantsByIDLoader) unsafeSet(key int, value model.Entity) {
+func (l *EntitiesByParticipantIDLoader) unsafeSet(key int, value model.Entity) {
 	if l.cache == nil {
 		l.cache = map[int]model.Entity{}
 	}
@@ -175,7 +175,7 @@ func (l *ParticipantsByIDLoader) unsafeSet(key int, value model.Entity) {
 
 // keyIndex will return the location of the key in the batch, if its not found
 // it will add the key to the batch
-func (b *participantsByIDLoaderBatch) keyIndex(l *ParticipantsByIDLoader, key int) int {
+func (b *entitiesByParticipantIDLoaderBatch) keyIndex(l *EntitiesByParticipantIDLoader, key int) int {
 	for i, existingKey := range b.keys {
 		if key == existingKey {
 			return i
@@ -199,7 +199,7 @@ func (b *participantsByIDLoaderBatch) keyIndex(l *ParticipantsByIDLoader, key in
 	return pos
 }
 
-func (b *participantsByIDLoaderBatch) startTimer(l *ParticipantsByIDLoader) {
+func (b *entitiesByParticipantIDLoaderBatch) startTimer(l *EntitiesByParticipantIDLoader) {
 	time.Sleep(l.wait)
 	l.mu.Lock()
 
@@ -215,7 +215,7 @@ func (b *participantsByIDLoaderBatch) startTimer(l *ParticipantsByIDLoader) {
 	b.end(l)
 }
 
-func (b *participantsByIDLoaderBatch) end(l *ParticipantsByIDLoader) {
+func (b *entitiesByParticipantIDLoaderBatch) end(l *EntitiesByParticipantIDLoader) {
 	b.data, b.error = l.fetch(b.keys)
 	close(b.done)
 }
