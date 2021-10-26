@@ -4,13 +4,8 @@ import "fmt"
 
 // Used internally
 type Participant struct {
-	ID          int
-	Type        string
-	UserID      *int
-	Mailbox     *string
-	Name        *string
-	ExternalID  *string
-	ExternalURL *string
+	ID int
+	// Note: Right now we don't need any other fields
 }
 
 type EmailAddress struct {

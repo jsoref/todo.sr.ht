@@ -11,6 +11,8 @@ package loaders
 //go:generate ./gen LabelsByIDLoader int api/graph/model.Label
 //go:generate ./gen SubsByTicketIDLoader int api/graph/model.TicketSubscription
 //go:generate ./gen SubsByTrackerIDLoader int api/graph/model.TrackerSubscription
+//go:generate ./gen ParticipantsByUserIDLoader int api/graph/model.Participant
+//go:generate ./gen ParticipantsByUsernameLoader string api/graph/model.Participant
 
 import (
 	"context"
@@ -37,13 +39,18 @@ type contextKey struct {
 type Loaders struct {
 	EntitiesByParticipantID EntitiesByParticipantIDLoader
 
-	UsersByID           UsersByIDLoader
-	UsersByName         UsersByNameLoader
-	TrackersByID        TrackersByIDLoader
-	TrackersByName      TrackersByNameLoader
-	TrackersByOwnerName TrackersByOwnerNameLoader
-	TicketsByID         TicketsByIDLoader
-	LabelsByID          LabelsByIDLoader
+	UsersByID            UsersByIDLoader
+	UsersByName          UsersByNameLoader
+	TrackersByID         TrackersByIDLoader
+	TrackersByName       TrackersByNameLoader
+	TrackersByOwnerName  TrackersByOwnerNameLoader
+	TicketsByID          TicketsByIDLoader
+	LabelsByID           LabelsByIDLoader
+
+	// Upserts
+	ParticipantsByUserID   ParticipantsByUserIDLoader
+	// Upserts & fetches from meta.sr.ht
+	ParticipantsByUsername ParticipantsByUsernameLoader
 
 	CommentsByIDUnsafe    CommentsByIDLoader
 	SubsByTicketIDUnsafe  SubsByTicketIDLoader
@@ -606,6 +613,89 @@ func fetchLabelsByID(ctx context.Context) func(ids []int) ([]*model.Label, []err
 	}
 }
 
+func fetchParticipantsByUserID(ctx context.Context) func(ids []int) ([]*model.Participant, []error) {
+	return func(ids []int) ([]*model.Participant, []error) {
+		parts := make([]*model.Participant, len(ids))
+
+		if err := database.WithTx(ctx, nil, func (tx *sql.Tx) error {
+			// XXX: This is optimized for working with many user IDs at once,
+			// for a low number of IDs it might be faster to do it differently
+			_, err := tx.ExecContext(ctx, `
+				CREATE TEMP TABLE participant_users (user_id int)
+				ON COMMIT DROP;
+			`)
+			if err != nil {
+				return err
+			}
+			stmt, err := tx.Prepare(pq.CopyIn("participant_users", "user_id"))
+			if err != nil {
+				return err
+			}
+
+			for _, id := range ids {
+				_, err := stmt.Exec(id)
+				if err != nil {
+					return err
+				}
+			}
+
+			_, err = stmt.Exec()
+			if err != nil {
+				return err
+			}
+
+			rows, err := tx.QueryContext(ctx, `
+				INSERT INTO participant (
+					created, participant_type, user_id
+				) SELECT
+					NOW() at time zone 'utc',
+					'user',
+					user_id
+				FROM participant_users
+				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				DO UPDATE SET created = participant.created
+				RETURNING id, user_id
+			`)
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			partsByUserID := make(map[int]*model.Participant)
+			for rows.Next() {
+				var (
+					userID int
+					part model.Participant
+				)
+				if err := rows.Scan(&part.ID, &userID); err != nil {
+					return err
+				}
+				partsByUserID[userID] = &part
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			for i, id := range ids {
+				parts[i] = partsByUserID[id]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return parts, nil
+	}
+}
+
+func fetchParticipantsByUsername(ctx context.Context) func(names []string) ([]*model.Participant, []error) {
+	return func(names []string) ([]*model.Participant, []error) {
+		// TODO
+		return nil, nil
+	}
+}
+
 func fetchSubsByTicketIDUnsafe(ctx context.Context) func(ids []int) ([]*model.TicketSubscription, []error) {
 	return func(ids []int) ([]*model.TicketSubscription, []error) {
 		subs := make([]*model.TicketSubscription, len(ids))
@@ -763,6 +853,16 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchLabelsByID(r.Context()),
+			},
+			ParticipantsByUserID: ParticipantsByUserIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchParticipantsByUserID(r.Context()),
+			},
+			ParticipantsByUsername: ParticipantsByUsernameLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchParticipantsByUsername(r.Context()),
 			},
 			SubsByTicketIDUnsafe: SubsByTicketIDLoader{
 				maxBatch: 100,
