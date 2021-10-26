@@ -725,7 +725,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		row := tx.QueryRowContext(ctx, `
 			WITH tr AS (
 				UPDATE tracker
-				SET next_ticket_id = next_ticket_id + 1
+				SET
+					next_ticket_id = next_ticket_id + 1,
+					updated = NOW() at time zone 'utc'
 				WHERE id = $1
 				RETURNING id, next_ticket_id, name
 			) INSERT INTO ticket (
