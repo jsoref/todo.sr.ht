@@ -411,6 +411,8 @@ type Query {
   # "~sircmpwn").
   trackerByOwner(owner: String!, tracker: String!): Tracker @access(scope: TRACKERS, kind: RO)
 
+  # TODO: Add ticket by tracker ID and ticket ID
+
   # List of events which the authenticated user is subscribed to or implicated
   # in, ordered by the event date (recent events first).
   events(cursor: Cursor): EventCursor @access(scope: EVENTS, kind: RO)

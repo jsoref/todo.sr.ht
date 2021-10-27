@@ -15,17 +15,22 @@ package loaders
 //go:generate ./gen ParticipantsByUsernameLoader string api/graph/model.Participant
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"database/sql"
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
+	"text/template"
 	"time"
 
 	"github.com/lib/pq"
 	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/client"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
@@ -665,7 +670,7 @@ func fetchParticipantsByUserID(ctx context.Context) func(ids []int) ([]*model.Pa
 			for rows.Next() {
 				var (
 					userID int
-					part model.Participant
+					part   model.Participant
 				)
 				if err := rows.Scan(&part.ID, &userID); err != nil {
 					return err
@@ -689,10 +694,209 @@ func fetchParticipantsByUserID(ctx context.Context) func(ids []int) ([]*model.Pa
 	}
 }
 
+// TODO: All of these user-fetching-from-meta bits could go in core-go
+var (
+	fetchUserTemplate = template.Must(template.New("FetchUser").
+		Funcs(map[string]interface{}{
+			"escape": escapeUsername,
+		}).Parse(`
+			query FetchUsers {
+				{{range .}}
+				{{. | escape}}: userByName(username: "{{.}}") {
+					...userDetails
+				}
+				{{end}}
+			}
+
+			fragment userDetails on User {
+				created, updated
+				username, email
+				url, location, bio
+				userType, suspensionNotice
+			}
+		`))
+)
+
+func escapeUsername(name string) string {
+	h := sha256.New()
+	h.Write([]byte(name))
+	return fmt.Sprintf("_%x", h.Sum(nil))
+}
+
+type UserInfo struct {
+	Created          time.Time `json:"created"`
+	Updated          time.Time `json:"updated"`
+	Username         string    `json:"username"`
+	Email            string    `json:"email"`
+	Url              *string   `json:"url"`
+	Location         *string   `json:"location"`
+	Bio              *string   `json:"bio"`
+	UserType         string    `json:"userType"`
+	SuspensionNotice *string   `json:"suspensionNotice"`
+}
+
+type UserResponse struct {
+	Data map[string]*UserInfo `json:"data"`
+}
+
 func fetchParticipantsByUsername(ctx context.Context) func(names []string) ([]*model.Participant, []error) {
 	return func(names []string) ([]*model.Participant, []error) {
-		// TODO
-		return nil, nil
+		parts := make([]*model.Participant, len(names))
+
+		if err := database.WithTx(ctx, nil, func (tx *sql.Tx) error {
+			_, err := tx.ExecContext(ctx, `
+				CREATE TEMP TABLE participant_users (
+					username varchar NOT NULL
+				) ON COMMIT DROP;
+			`)
+			if err != nil {
+				return err
+			}
+			stmt, err := tx.Prepare(pq.CopyIn("participant_users", "username"))
+			if err != nil {
+				return err
+			}
+
+			for _, username := range names {
+				_, err := stmt.Exec(username)
+				if err != nil {
+					return err
+				}
+			}
+
+			_, err = stmt.Exec()
+			if err != nil {
+				return err
+			}
+
+			// Find a list of usernames we need to retrieve from meta.sr.ht
+			rows, err := tx.QueryContext(ctx, `
+				SELECT pu.username
+				FROM participant_users pu
+				LEFT JOIN "user" ON "user".username = pu.username
+				WHERE "user".id IS NULL;
+			`)
+			if err != nil {
+				return err
+			}
+
+			var toFetch []string
+			for rows.Next() {
+				var username string
+				if err := rows.Scan(&username); err != nil {
+					return err
+				}
+				toFetch = append(toFetch, username)
+			}
+			stmt, err = tx.Prepare(pq.CopyIn(`user`,
+				"created", "updated", "username", "email",
+				"user_type", "url", "location", "bio",
+				"suspension_notice"))
+			if err != nil {
+				return err
+			}
+
+			var (
+				resp UserResponse
+				gql  bytes.Buffer
+			)
+			err = fetchUserTemplate.Execute(&gql, toFetch)
+			if err != nil {
+				panic(err)
+			}
+			query := client.GraphQLQuery{gql.String(), nil}
+			err = client.Execute(ctx, auth.ForContext(ctx).Username,
+				"meta.sr.ht", query, &resp)
+			if err != nil {
+				return err
+			}
+
+			for _, user := range toFetch {
+				details := resp.Data[escapeUsername(user)]
+				if details == nil {
+					continue
+				}
+				_, err = stmt.Exec(details.Created, details.Updated,
+					details.Username, details.Email,
+					// TODO: canonicalize user type case
+					strings.ToLower(details.UserType),
+					details.Url, details.Location, details.Bio,
+					details.SuspensionNotice)
+				if err != nil {
+					return err
+				}
+			}
+
+			_, err = stmt.Exec()
+			if err != nil {
+				return err
+			}
+
+			rows, err = tx.QueryContext(ctx, `
+				INSERT INTO participant (
+					created, participant_type, user_id
+				) SELECT
+					NOW() at time zone 'utc',
+					'user',
+					"user".id
+				FROM participant_users pu
+				JOIN "user" ON "user".username = pu.username
+				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				DO UPDATE SET created = participant.created
+				RETURNING id, user_id
+			`)
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			partsByUserID := make(map[int]*model.Participant)
+			for rows.Next() {
+				var (
+					userID int
+					part   model.Participant
+				)
+				if err := rows.Scan(&part.ID, &userID); err != nil {
+					return err
+				}
+				partsByUserID[userID] = &part
+			}
+			if err = rows.Err(); err != nil {
+				return err
+			}
+
+			rows, err = tx.QueryContext(ctx, `
+				SELECT "user".id, "user".username
+				FROM participant_users pu
+				JOIN "user" ON "user".username = pu.username
+			`)
+			if err != nil {
+				return err
+			}
+			defer rows.Close()
+
+			userIDsByUsername := make(map[string]int)
+			for rows.Next() {
+				var (
+					id       int
+					username string
+				)
+				if err := rows.Scan(&id, &username); err != nil {
+					return err
+				}
+				userIDsByUsername[username] = id
+			}
+
+			for i, name := range names {
+				parts[i] = partsByUserID[userIDsByUsername[name]]
+			}
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
+
+		return parts, nil
 	}
 }
 
