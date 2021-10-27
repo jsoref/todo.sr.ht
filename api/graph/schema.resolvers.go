@@ -843,37 +843,24 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			}
 		}
 		for user, _ := range mentionedUsers {
-			// TODO: Handle case where mentioned user is not in local database
-			rows, err := tx.QueryContext(ctx, `
-				WITH part AS (
-					WITH target AS (
-						SELECT id FROM "user" WHERE username = $1
-					) INSERT INTO participant (
-						created, participant_type, user_id
-					) VALUES (
-						NOW() at time zone 'utc',
-						'user', (SELECT id FROM target)
-					)
-					ON CONFLICT ON CONSTRAINT participant_user_id_key
-					DO UPDATE SET created = participant.created
-					RETURNING id
-				) INSERT INTO event_participant (
-					participant_id, event_type, subscribe
-				) VALUES (
-					(SELECT id FROM part), $2, true
-				) RETURNING participant_id;
-			`, user, model.EVENT_USER_MENTIONED)
+			part, err := loaders.ForContext(ctx).ParticipantsByUsername.Load(user)
 			if err != nil {
 				panic(err)
 			}
-
-			for rows.Next() {
-				var id int
-				if err := rows.Scan(&id); err != nil {
-					panic(err)
-				}
-				mentionedParticipants = append(mentionedParticipants, id)
+			if part == nil {
+				continue
 			}
+			_, err = tx.ExecContext(ctx, `
+				INSERT INTO event_participant (
+					participant_id, event_type, subscribe
+				) VALUES (
+					$1, $2, true
+				);
+			`, part.ID, model.EVENT_USER_MENTIONED)
+			if err != nil {
+				panic(err)
+			}
+			mentionedParticipants = append(mentionedParticipants, part.ID)
 		}
 
 		// Implicate all subscribers for this tracker
