@@ -19,6 +19,7 @@ import (
 	"context"
 	"crypto/sha256"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
@@ -31,6 +32,8 @@ import (
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/client"
+	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
@@ -824,6 +827,52 @@ func fetchParticipantsByUsername(ctx context.Context) func(names []string) ([]*m
 					details.SuspensionNotice)
 				if err != nil {
 					return err
+				}
+
+				// Configure webhooks for new users
+				// TODO: Deprecate legacy webhooks
+				type WebhookConfig struct {
+					Url    string   `json:"url"`
+					Events []string `json:"events"`
+				}
+				conf := config.ForContext(ctx)
+				whconf := WebhookConfig{
+					Url: fmt.Sprintf("%s/oauth/webhook/profile-update",
+						config.GetOrigin(conf, "todo.sr.ht", false)),
+					Events: []string{"profile:update"},
+				}
+				body, err := json.Marshal(&whconf)
+				if err != nil {
+					panic(err)
+				}
+				reader := bytes.NewBuffer(body)
+				meta := config.GetOrigin(conf, "meta.sr.ht", false)
+				req, err := http.NewRequestWithContext(ctx, "POST",
+					fmt.Sprintf("%s/api/user/webhooks", meta), reader)
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Add("Content-Type", "application/json")
+				auth := client.InternalAuth{
+					Name:     user,
+					ClientID: config.ServiceName(ctx),
+					NodeID:   "GraphQL", // TODO
+				}
+				authBlob, err := json.Marshal(&auth)
+				if err != nil {
+					panic(err)
+				}
+				req.Header.Add("Authorization", fmt.Sprintf("Internal %s",
+					crypto.Encrypt(authBlob)))
+				resp, err := http.DefaultClient.Do(req)
+				if err != nil {
+					panic(err)
+				}
+
+				resp.Body.Close()
+				if resp.StatusCode != 201 {
+					panic(fmt.Errorf("meta.sr.ht webhooks returned status %d",
+						resp.StatusCode))
 				}
 			}
 
