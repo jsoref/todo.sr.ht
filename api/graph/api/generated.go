@@ -145,23 +145,23 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
-		AssignUser         func(childComplexity int, ticketID int, userID int) int
+		AssignUser         func(childComplexity int, trackerID int, ticketID int, userID int) int
 		CreateLabel        func(childComplexity int, trackerID int, name string, foreground string, background string) int
 		CreateTracker      func(childComplexity int, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) int
 		DeleteACL          func(childComplexity int, id int) int
 		DeleteLabel        func(childComplexity int, id int) int
 		DeleteTracker      func(childComplexity int, id int) int
-		LabelTicket        func(childComplexity int, ticketID int, labelID int) int
-		SubmitComment      func(childComplexity int, ticketID int, text string) int
+		LabelTicket        func(childComplexity int, trackerID int, ticketID int, labelID int) int
+		SubmitComment      func(childComplexity int, trackerID int, ticketID int, input model.SubmitCommentInput) int
 		SubmitTicket       func(childComplexity int, trackerID int, input model.SubmitTicketInput) int
 		TicketSubscribe    func(childComplexity int, trackerID int, ticketID int) int
 		TicketUnsubscribe  func(childComplexity int, trackerID int, ticketID int) int
 		TrackerSubscribe   func(childComplexity int, trackerID int) int
 		TrackerUnsubscribe func(childComplexity int, trackerID int, tickets bool) int
-		UnassignUser       func(childComplexity int, ticketID int, userID int) int
-		UnlabelTicket      func(childComplexity int, ticketID int, labelID int) int
+		UnassignUser       func(childComplexity int, trackerID int, ticketID int, userID int) int
+		UnlabelTicket      func(childComplexity int, trackerID int, ticketID int, labelID int) int
 		UpdateLabel        func(childComplexity int, id int, input map[string]interface{}) int
-		UpdateTicket       func(childComplexity int, trackerID int, input map[string]interface{}) int
+		UpdateTicket       func(childComplexity int, trackerID int, ticketID int, input map[string]interface{}) int
 		UpdateTracker      func(childComplexity int, id int, input map[string]interface{}) int
 		UpdateTrackerACL   func(childComplexity int, trackerID int, input model.ACLInput) int
 		UpdateUserACL      func(childComplexity int, trackerID int, userID int, input model.ACLInput) int
@@ -341,12 +341,12 @@ type MutationResolver interface {
 	UpdateLabel(ctx context.Context, id int, input map[string]interface{}) (*model.Label, error)
 	DeleteLabel(ctx context.Context, id int) (*model.Label, error)
 	SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error)
-	UpdateTicket(ctx context.Context, trackerID int, input map[string]interface{}) (*model.Event, error)
-	AssignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error)
-	UnassignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error)
-	LabelTicket(ctx context.Context, ticketID int, labelID int) (*model.Event, error)
-	UnlabelTicket(ctx context.Context, ticketID int, labelID int) (*model.Event, error)
-	SubmitComment(ctx context.Context, ticketID int, text string) (*model.Event, error)
+	UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Event, error)
+	AssignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error)
+	UnassignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error)
+	LabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error)
+	UnlabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error)
+	SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error)
 }
 type QueryResolver interface {
 	Version(ctx context.Context) (*model.Version, error)
@@ -751,7 +751,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.AssignUser(childComplexity, args["ticketId"].(int), args["userId"].(int)), true
+		return e.complexity.Mutation.AssignUser(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["userId"].(int)), true
 
 	case "Mutation.createLabel":
 		if e.complexity.Mutation.CreateLabel == nil {
@@ -823,7 +823,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.LabelTicket(childComplexity, args["ticketId"].(int), args["labelId"].(int)), true
+		return e.complexity.Mutation.LabelTicket(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["labelId"].(int)), true
 
 	case "Mutation.submitComment":
 		if e.complexity.Mutation.SubmitComment == nil {
@@ -835,7 +835,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.SubmitComment(childComplexity, args["ticketId"].(int), args["text"].(string)), true
+		return e.complexity.Mutation.SubmitComment(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["input"].(model.SubmitCommentInput)), true
 
 	case "Mutation.submitTicket":
 		if e.complexity.Mutation.SubmitTicket == nil {
@@ -907,7 +907,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UnassignUser(childComplexity, args["ticketId"].(int), args["userId"].(int)), true
+		return e.complexity.Mutation.UnassignUser(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["userId"].(int)), true
 
 	case "Mutation.unlabelTicket":
 		if e.complexity.Mutation.UnlabelTicket == nil {
@@ -919,7 +919,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UnlabelTicket(childComplexity, args["ticketId"].(int), args["labelId"].(int)), true
+		return e.complexity.Mutation.UnlabelTicket(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["labelId"].(int)), true
 
 	case "Mutation.updateLabel":
 		if e.complexity.Mutation.UpdateLabel == nil {
@@ -943,7 +943,7 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 			return 0, false
 		}
 
-		return e.complexity.Mutation.UpdateTicket(childComplexity, args["trackerId"].(int), args["input"].(map[string]interface{})), true
+		return e.complexity.Mutation.UpdateTicket(childComplexity, args["trackerId"].(int), args["ticketId"].(int), args["input"].(map[string]interface{})), true
 
 	case "Mutation.updateTracker":
 		if e.complexity.Mutation.UpdateTracker == nil {
@@ -1857,7 +1857,11 @@ enum Authenticity {
 }
 
 type Ticket {
+  # The ticket ID is unique within each tracker, but is not globally unique.
+  # The first ticket opened on a given tracker will have ID 1, then 2, and so
+  # on.
   id: Int!
+
   created: Time!
   updated: Time!
   submitter: Entity! @access(scope: PROFILE, kind: RO)
@@ -2127,6 +2131,8 @@ type Query {
   # "~sircmpwn").
   trackerByOwner(owner: String!, tracker: String!): Tracker @access(scope: TRACKERS, kind: RO)
 
+  # TODO: Add ticket by tracker ID and ticket ID
+
   # List of events which the authenticated user is subscribed to or implicated
   # in, ordered by the event date (recent events first).
   events(cursor: Cursor): EventCursor @access(scope: EVENTS, kind: RO)
@@ -2178,6 +2184,14 @@ input SubmitTicketInput {
 input UpdateTicketInput {
   subject: String
   body: String
+  status: TicketStatus
+  resolution: TicketResolution
+}
+
+# You may omit the status or resolution fields to leave them unchanged (or if
+# you do not have permission to change them).
+input SubmitCommentInput {
+  text: String!
   status: TicketStatus
   resolution: TicketResolution
 }
@@ -2260,28 +2274,28 @@ type Mutation {
     input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
 
   # Updates a ticket
-  updateTicket(trackerId: Int!,
+  updateTicket(trackerId: Int!, ticketId: Int!,
     input: UpdateTicketInput!): Event @access(scope: TICKETS, kind: RW)
 
   # Adds a user to the list of assigned users for a ticket
-  assignUser(ticketId: Int!,
+  assignUser(trackerId: Int!, ticketId: Int!,
     userId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Removes a user from the list of assigned users for a ticket
-  unassignUser(ticketId: Int!,
+  unassignUser(trackerId: Int!, ticketId: Int!,
     userId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Adds a label to the list of labels for a ticket
-  labelTicket(ticketId: Int!,
+  labelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Removes a list from the list of labels for a ticket
-  unlabelTicket(ticketId: Int!,
+  unlabelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Submits a comment for a ticket
-  submitComment(ticketId: Int!,
-    text: String!): Event @access(scope: TICKETS, kind: RW)
+  submitComment(trackerId: Int!, ticketId: Int!,
+    input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
 }
 `, BuiltIn: false},
 }
@@ -2349,23 +2363,32 @@ func (ec *executionContext) field_Mutation_assignUser_args(ctx context.Context, 
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["ticketId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["ticketId"] = arg0
+	args["trackerId"] = arg0
 	var arg1 int
-	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
 		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["userId"] = arg1
+	args["ticketId"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg2
 	return args, nil
 }
 
@@ -2502,23 +2525,32 @@ func (ec *executionContext) field_Mutation_labelTicket_args(ctx context.Context,
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["ticketId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["ticketId"] = arg0
+	args["trackerId"] = arg0
 	var arg1 int
-	if tmp, ok := rawArgs["labelId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("labelId"))
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
 		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["labelId"] = arg1
+	args["ticketId"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["labelId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("labelId"))
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["labelId"] = arg2
 	return args, nil
 }
 
@@ -2526,23 +2558,32 @@ func (ec *executionContext) field_Mutation_submitComment_args(ctx context.Contex
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["ticketId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["ticketId"] = arg0
-	var arg1 string
-	if tmp, ok := rawArgs["text"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
-		arg1, err = ec.unmarshalNString2string(ctx, tmp)
+	args["trackerId"] = arg0
+	var arg1 int
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["text"] = arg1
+	args["ticketId"] = arg1
+	var arg2 model.SubmitCommentInput
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg2, err = ec.unmarshalNSubmitCommentInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubmitCommentInput(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg2
 	return args, nil
 }
 
@@ -2661,23 +2702,32 @@ func (ec *executionContext) field_Mutation_unassignUser_args(ctx context.Context
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["ticketId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["ticketId"] = arg0
+	args["trackerId"] = arg0
 	var arg1 int
-	if tmp, ok := rawArgs["userId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
 		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["userId"] = arg1
+	args["ticketId"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["userId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("userId"))
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["userId"] = arg2
 	return args, nil
 }
 
@@ -2685,23 +2735,32 @@ func (ec *executionContext) field_Mutation_unlabelTicket_args(ctx context.Contex
 	var err error
 	args := map[string]interface{}{}
 	var arg0 int
-	if tmp, ok := rawArgs["ticketId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+	if tmp, ok := rawArgs["trackerId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("trackerId"))
 		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["ticketId"] = arg0
+	args["trackerId"] = arg0
 	var arg1 int
-	if tmp, ok := rawArgs["labelId"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("labelId"))
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
 		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["labelId"] = arg1
+	args["ticketId"] = arg1
+	var arg2 int
+	if tmp, ok := rawArgs["labelId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("labelId"))
+		arg2, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["labelId"] = arg2
 	return args, nil
 }
 
@@ -2741,15 +2800,24 @@ func (ec *executionContext) field_Mutation_updateTicket_args(ctx context.Context
 		}
 	}
 	args["trackerId"] = arg0
-	var arg1 map[string]interface{}
-	if tmp, ok := rawArgs["input"]; ok {
-		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
-		arg1, err = ec.unmarshalNUpdateTicketInput2map(ctx, tmp)
+	var arg1 int
+	if tmp, ok := rawArgs["ticketId"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("ticketId"))
+		arg1, err = ec.unmarshalNInt2int(ctx, tmp)
 		if err != nil {
 			return nil, err
 		}
 	}
-	args["input"] = arg1
+	args["ticketId"] = arg1
+	var arg2 map[string]interface{}
+	if tmp, ok := rawArgs["input"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("input"))
+		arg2, err = ec.unmarshalNUpdateTicketInput2map(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["input"] = arg2
 	return args, nil
 }
 
@@ -5940,7 +6008,7 @@ func (ec *executionContext) _Mutation_updateTicket(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UpdateTicket(rctx, args["trackerId"].(int), args["input"].(map[string]interface{}))
+			return ec.resolvers.Mutation().UpdateTicket(rctx, args["trackerId"].(int), args["ticketId"].(int), args["input"].(map[string]interface{}))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -6007,7 +6075,7 @@ func (ec *executionContext) _Mutation_assignUser(ctx context.Context, field grap
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().AssignUser(rctx, args["ticketId"].(int), args["userId"].(int))
+			return ec.resolvers.Mutation().AssignUser(rctx, args["trackerId"].(int), args["ticketId"].(int), args["userId"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -6074,7 +6142,7 @@ func (ec *executionContext) _Mutation_unassignUser(ctx context.Context, field gr
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UnassignUser(rctx, args["ticketId"].(int), args["userId"].(int))
+			return ec.resolvers.Mutation().UnassignUser(rctx, args["trackerId"].(int), args["ticketId"].(int), args["userId"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -6141,7 +6209,7 @@ func (ec *executionContext) _Mutation_labelTicket(ctx context.Context, field gra
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().LabelTicket(rctx, args["ticketId"].(int), args["labelId"].(int))
+			return ec.resolvers.Mutation().LabelTicket(rctx, args["trackerId"].(int), args["ticketId"].(int), args["labelId"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -6208,7 +6276,7 @@ func (ec *executionContext) _Mutation_unlabelTicket(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().UnlabelTicket(rctx, args["ticketId"].(int), args["labelId"].(int))
+			return ec.resolvers.Mutation().UnlabelTicket(rctx, args["trackerId"].(int), args["ticketId"].(int), args["labelId"].(int))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -6275,7 +6343,7 @@ func (ec *executionContext) _Mutation_submitComment(ctx context.Context, field g
 	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
 		directive0 := func(rctx context.Context) (interface{}, error) {
 			ctx = rctx // use context from middleware stack in children
-			return ec.resolvers.Mutation().SubmitComment(rctx, args["ticketId"].(int), args["text"].(string))
+			return ec.resolvers.Mutation().SubmitComment(rctx, args["trackerId"].(int), args["ticketId"].(int), args["input"].(model.SubmitCommentInput))
 		}
 		directive1 := func(ctx context.Context) (interface{}, error) {
 			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
@@ -11438,6 +11506,42 @@ func (ec *executionContext) unmarshalInputACLInput(ctx context.Context, obj inte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputSubmitCommentInput(ctx context.Context, obj interface{}) (model.SubmitCommentInput, error) {
+	var it model.SubmitCommentInput
+	var asMap = obj.(map[string]interface{})
+
+	for k, v := range asMap {
+		switch k {
+		case "text":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("text"))
+			it.Text, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "status":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("status"))
+			it.Status, err = ec.unmarshalOTicketStatus2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketStatus(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "resolution":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resolution"))
+			it.Resolution, err = ec.unmarshalOTicketResolution2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketResolution(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSubmitTicketInput(ctx context.Context, obj interface{}) (model.SubmitTicketInput, error) {
 	var it model.SubmitTicketInput
 	var asMap = obj.(map[string]interface{})
@@ -13916,6 +14020,11 @@ func (ec *executionContext) marshalNString2string(ctx context.Context, sel ast.S
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) unmarshalNSubmitCommentInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubmitCommentInput(ctx context.Context, v interface{}) (model.SubmitCommentInput, error) {
+	res, err := ec.unmarshalInputSubmitCommentInput(ctx, v)
+	return res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) unmarshalNSubmitTicketInput2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐSubmitTicketInput(ctx context.Context, v interface{}) (model.SubmitTicketInput, error) {
