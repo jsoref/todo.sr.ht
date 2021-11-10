@@ -7,6 +7,7 @@ package loaders
 //go:generate ./gen TrackersByNameLoader string api/graph/model.Tracker
 //go:generate ./gen TrackersByOwnerNameLoader [2]string api/graph/model.Tracker
 //go:generate ./gen TicketsByIDLoader int api/graph/model.Ticket
+//go:generate ./gen TicketsByTrackerIDLoader [2]int api/graph/model.Ticket
 //go:generate ./gen CommentsByIDLoader int api/graph/model.Comment
 //go:generate ./gen LabelsByIDLoader int api/graph/model.Label
 //go:generate ./gen SubsByTicketIDLoader int api/graph/model.TicketSubscription
@@ -53,6 +54,7 @@ type Loaders struct {
 	TrackersByName       TrackersByNameLoader
 	TrackersByOwnerName  TrackersByOwnerNameLoader
 	TicketsByID          TicketsByIDLoader
+	TicketsByTrackerID   TicketsByTrackerIDLoader
 	LabelsByID           LabelsByIDLoader
 
 	// Upserts
@@ -405,6 +407,31 @@ func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []e
 			panic(err)
 		}
 
+		return tickets, nil
+	}
+}
+
+func fetchTicketsByTrackerID(ctx context.Context) func(ids [][2]int) ([]*model.Ticket, []error) {
+	return func(ids [][2]int) ([]*model.Ticket, []error) {
+		tickets := make([]*model.Ticket, len(ids))
+		if err := database.WithTx(ctx, &sql.TxOptions{
+			Isolation: 0,
+			ReadOnly:  true,
+		}, func (tx *sql.Tx) error {
+			var (
+				err  error
+				rows *sql.Rows
+			)
+			// TODO: Finish this
+			query := database.
+				Select(ctx, (&model.Ticket{}).As(`tk`)).
+				From(`"ticket" tk`).
+				Where(sq.Expr(`u.id = ANY(?)`, pq.Array(ids)))
+
+			return nil
+		}); err != nil {
+			panic(err)
+		}
 		return tickets, nil
 	}
 }
@@ -1091,6 +1118,11 @@ func Middleware(next http.Handler) http.Handler {
 				maxBatch: 100,
 				wait:     1 * time.Millisecond,
 				fetch:    fetchTicketsByID(r.Context()),
+			},
+			TicketsByTrackerID: TicketsByTrackerIDLoader{
+				maxBatch: 100,
+				wait:     1 * time.Millisecond,
+				fetch:    fetchTicketsByTrackerID(r.Context()),
 			},
 			CommentsByIDUnsafe: CommentsByIDLoader{
 				maxBatch: 100,

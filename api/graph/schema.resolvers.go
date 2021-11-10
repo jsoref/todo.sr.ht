@@ -1002,27 +1002,27 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	return &ticket, nil
 }
 
-func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, input map[string]interface{}) (*model.Event, error) {
+func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) AssignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error) {
+func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UnassignUser(ctx context.Context, ticketID int, userID int) (*model.Event, error) {
+func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) LabelTicket(ctx context.Context, ticketID int, labelID int) (*model.Event, error) {
+func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) UnlabelTicket(ctx context.Context, ticketID int, labelID int) (*model.Event, error) {
+func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 
-func (r *mutationResolver) SubmitComment(ctx context.Context, ticketID int, text string) (*model.Event, error) {
+func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
 	panic(fmt.Errorf("not implemented"))
 }
 

@@ -141,7 +141,11 @@ enum Authenticity {
 }
 
 type Ticket {
+  # The ticket ID is unique within each tracker, but is not globally unique.
+  # The first ticket opened on a given tracker will have ID 1, then 2, and so
+  # on.
   id: Int!
+
   created: Time!
   updated: Time!
   submitter: Entity! @access(scope: PROFILE, kind: RO)
@@ -468,6 +472,14 @@ input UpdateTicketInput {
   resolution: TicketResolution
 }
 
+# You may omit the status or resolution fields to leave them unchanged (or if
+# you do not have permission to change them).
+input SubmitCommentInput {
+  text: String!
+  status: TicketStatus
+  resolution: TicketResolution
+}
+
 type Mutation {
   # Creates a new bug tracker. If specified, the 'import' field specifies a
   # gzipped dump of a tracker to populate tickets from; see Tracker.export.
@@ -546,26 +558,26 @@ type Mutation {
     input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
 
   # Updates a ticket
-  updateTicket(trackerId: Int!,
+  updateTicket(trackerId: Int!, ticketId: Int!,
     input: UpdateTicketInput!): Event @access(scope: TICKETS, kind: RW)
 
   # Adds a user to the list of assigned users for a ticket
-  assignUser(ticketId: Int!,
+  assignUser(trackerId: Int!, ticketId: Int!,
     userId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Removes a user from the list of assigned users for a ticket
-  unassignUser(ticketId: Int!,
+  unassignUser(trackerId: Int!, ticketId: Int!,
     userId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Adds a label to the list of labels for a ticket
-  labelTicket(ticketId: Int!,
+  labelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Removes a list from the list of labels for a ticket
-  unlabelTicket(ticketId: Int!,
+  unlabelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
 
   # Submits a comment for a ticket
-  submitComment(ticketId: Int!,
-    text: String!): Event @access(scope: TICKETS, kind: RW)
+  submitComment(trackerId: Int!, ticketId: Int!,
+    input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
 }

@@ -42,6 +42,12 @@ type LabelCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type SubmitCommentInput struct {
+	Text       string            `json:"text"`
+	Status     *TicketStatus     `json:"status"`
+	Resolution *TicketResolution `json:"resolution"`
+}
+
 type SubmitTicketInput struct {
 	Subject     string     `json:"subject"`
 	Body        *string    `json:"body"`
