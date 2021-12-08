@@ -13,7 +13,7 @@ import sqlalchemy as sa
 
 webhooks_broker = cfg("todo.sr.ht", "webhooks")
 worker = make_worker(broker=webhooks_broker)
-webhook_metrics_collector = RedisQueueCollector(webhook_broker, "srht_webhooks", "Webhook queue length")
+webhook_metrics_collector = RedisQueueCollector(webhooks_broker, "srht_webhooks", "Webhook queue length")
 
 import todosrht.tracker_import
 
