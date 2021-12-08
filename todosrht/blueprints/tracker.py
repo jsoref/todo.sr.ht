@@ -17,6 +17,8 @@ from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.urls import tracker_url, ticket_url
 from todosrht.webhooks import TrackerWebhook, UserWebhook
 from urllib.parse import quote
+import sqlalchemy as sa
+
 
 tracker = Blueprint("tracker", __name__)
 
@@ -100,6 +102,8 @@ def return_tracker(tracker, access, **kwargs):
         tickets = apply_search(tickets, terms, current_user)
     except ValueError as e:
         kwargs["search_error"] = str(e)
+
+    tickets = tickets.options(sa.orm.joinedload(Ticket.submitter))
 
     tickets, pagination = paginate_query(tickets, results_per_page=25)
 
