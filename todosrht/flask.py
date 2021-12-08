@@ -43,6 +43,9 @@ class TodoApp(SrhtFlask):
         self.add_template_filter(urls.tracker_url)
         self.add_template_filter(urls.user_url)
 
+        from todosrht.webhooks import webhook_metrics_collector
+        self.metrics_registry.register(webhook_metrics_collector)
+
         @self.context_processor
         def inject():
             return {
