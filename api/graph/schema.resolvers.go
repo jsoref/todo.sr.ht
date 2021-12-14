@@ -439,31 +439,27 @@ func (r *mutationResolver) TicketSubscribe(ctx context.Context, trackerID int, t
 		panic(err)
 	}
 
-	// TODO: Create a TicketsByScopedID loader and simplify this
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, nil
+	}
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
-			WITH tk AS (
-				SELECT ticket.id
-				FROM ticket
-				JOIN tracker ON tracker.id = ticket.tracker_id
-				LEFT JOIN user_access ua ON ua.tracker_id = tracker.id
-				WHERE ticket.tracker_id = $2 AND ticket.scoped_id = $3 AND (
-					owner_id = $1 OR
-					visibility != 'PRIVATE' OR
-					(ua.user_id = $1 AND ua.permissions > 0)
-				)
-			) INSERT INTO ticket_subscription (
+			INSERT INTO ticket_subscription (
 				created, updated, ticket_id, participant_id
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
-				(SELECT id FROM tk),
-				$4
+				$1, $2
 			)
 			ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
 			DO UPDATE SET updated = NOW() at time zone 'utc'
 			RETURNING id, created, ticket_id;
-		`, user.UserID, trackerID, ticketID, part.ID)
+		`, ticket.PKID, part.ID)
 		return row.Scan(&sub.ID, &sub.Created, &sub.TicketID)
 	}); err != nil {
 		return nil, err
@@ -480,21 +476,20 @@ func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int,
 		panic(err)
 	}
 
-	// TODO: Create a TicketsByScopedID loader and simplify this
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, nil
+	}
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
-			WITH tk AS (
-				SELECT ticket.id
-				FROM ticket
-				JOIN tracker ON tracker.id = ticket.tracker_id
-				WHERE tracker.id = $1 AND ticket.scoped_id = $2
-			)
 			DELETE FROM ticket_subscription
-			WHERE
-				ticket_id = (SELECT id FROM tk) AND
-				participant_id = $3
+			WHERE ticket_id = $1 AND participant_id = $2
 			RETURNING id, created, ticket_id;
-		`, trackerID, ticketID, part.ID)
+		`, ticket.PKID, part.ID)
 		return row.Scan(&sub.ID, &sub.Created, &sub.TicketID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
