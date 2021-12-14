@@ -2208,9 +2208,10 @@ input SubmitCommentInput {
   resolution: TicketResolution
 }
 
+# "resolution" is required if status is RESOLVED.
 input UpdateStatusInput {
   status: TicketStatus!
-  resolution: TicketResolution!
+  resolution: TicketResolution
 }
 
 type Mutation {
@@ -11733,7 +11734,7 @@ func (ec *executionContext) unmarshalInputUpdateStatusInput(ctx context.Context,
 			var err error
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resolution"))
-			it.Resolution, err = ec.unmarshalNTicketResolution2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketResolution(ctx, v)
+			it.Resolution, err = ec.unmarshalOTicketResolution2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketResolution(ctx, v)
 			if err != nil {
 				return it, err
 			}

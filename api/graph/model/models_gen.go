@@ -72,8 +72,8 @@ type TrackerCursor struct {
 }
 
 type UpdateStatusInput struct {
-	Status     TicketStatus     `json:"status"`
-	Resolution TicketResolution `json:"resolution"`
+	Status     TicketStatus      `json:"status"`
+	Resolution *TicketResolution `json:"resolution"`
 }
 
 type Version struct {

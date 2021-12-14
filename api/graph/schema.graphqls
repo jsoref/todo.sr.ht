@@ -478,9 +478,10 @@ input SubmitCommentInput {
   resolution: TicketResolution
 }
 
+# "resolution" is required if status is RESOLVED.
 input UpdateStatusInput {
   status: TicketStatus!
-  resolution: TicketResolution!
+  resolution: TicketResolution
 }
 
 type Mutation {

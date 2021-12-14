@@ -193,7 +193,7 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		}
 		return nil, err
 	}
-
+	// TODO: Fire webhooks
 	return &tracker, nil
 }
 
@@ -234,7 +234,7 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 	}); err != nil {
 		return nil, err
 	}
-
+	// TODO: Fire webhooks
 	return tracker, nil
 }
 
@@ -262,6 +262,7 @@ func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tr
 		}
 		return nil, err
 	}
+	// TODO: Fire webhooks
 	return &tracker, nil
 }
 
@@ -995,6 +996,9 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		queueNotifications(ctx, tx,
 			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
 			newTicketTemplate, &details, subs)
+
+		// TODO: Fire webhooks
+
 		return nil
 	}); err != nil {
 		return nil, err
@@ -1034,6 +1038,7 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 		update = update.Set("title", subject)
 	})
 	if body, ok := input["body"]; ok {
+		// TODO: Should we re-scan for new mentions? Probably yes
 		if ptr, ok := body.(*string); ok {
 			if ptr != nil {
 				valid.Expect(len(*ptr) <= 16384,
@@ -1058,11 +1063,81 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 		return nil, err
 	}
 
+	// TODO: Fire webhooks
+
 	return ticket, nil
 }
 
 func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int, ticketID int, input model.UpdateStatusInput) (*model.Event, error) {
-	panic(fmt.Errorf("not implemented"))
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, nil
+	}
+	if !tracker.CanTriage() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, nil
+	}
+
+	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
+	update := sq.Update("ticket").
+		PlaceholderFormat(sq.Dollar).
+		Set("status", input.Status.ToInt())
+	insert := sq.Insert("event").
+		PlaceholderFormat(sq.Dollar).
+		Columns("created", "event_type",
+			"ticket_id", "participant_id",
+			"old_status", "new_status",
+			"old_resolution", "new_resolution")
+
+	resolution := ticket.Resolution()
+	if input.Resolution != nil {
+		resolution = *input.Resolution
+		update = update.Set("resolution", resolution.ToInt())
+	} else if input.Status.ToInt() == model.STATUS_RESOLVED {
+		return nil, fmt.Errorf("resolution is required when status is RESOLVED")
+	}
+
+	var event model.Event
+	insert = insert.Values(sq.Expr("now() at time zone 'utc'"),
+		model.EVENT_STATUS_CHANGE, ticket.PKID, part.ID,
+		ticket.Status().ToInt(), input.Status.ToInt(),
+		ticket.Resolution().ToInt(), input.Resolution.ToInt())
+	columns := database.Columns(ctx, &event)
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := update.
+			Where(`ticket.id = ?`, ticket.PKID).
+			RunWith(tx).
+			ExecContext(ctx)
+		if err != nil {
+			return err
+		}
+		return insert.
+			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+			RunWith(tx).
+			QueryRowContext(ctx).
+			Scan(database.Scan(ctx, &event)...)
+	}); err != nil {
+		return nil, err
+	}
+
+	// TODO: Send notifications and fire webhooks
+
+	return &event, nil
 }
 
 func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
