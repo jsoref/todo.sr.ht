@@ -668,8 +668,8 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	}
 
 	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
-	if err != nil || owner == nil {
-		return nil, err
+	if err != nil {
+		panic(err)
 	}
 
 	if !tracker.CanSubmit() {
@@ -1082,6 +1082,11 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 		return nil, nil
 	}
 
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
+	if err != nil {
+		panic(err)
+	}
+
 	user := auth.ForContext(ctx)
 	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
 	if err != nil {
@@ -1114,6 +1119,28 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 	columns := database.Columns(ctx, &event)
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		// Create a temporary table of all participants who will receive a
+		// notification. The columns are the participant ID, name, email
+		// address, and user ID (nullable).
+		_, err = tx.ExecContext(ctx, `
+			CREATE TEMP TABLE notify_participants
+			ON COMMIT DROP
+			AS (
+				SELECT
+					DISTINCT sub.participant_id,
+					COALESCE(part.email_name, CONCAT('~', "user".username)) name,
+					COALESCE(part.email, "user".email) address,
+					part.user_id
+				FROM ticket_subscription sub
+				JOIN participant part ON part.id = sub.participant_id
+				LEFT JOIN "user" ON "user".id = part.user_id
+				WHERE sub.tracker_id = $1 OR sub.ticket_id = $2
+			);
+		`, tracker.ID, ticket.PKID)
+		if err != nil {
+			panic(err)
+		}
+
 		_, err := update.
 			Where(`ticket.id = ?`, ticket.PKID).
 			RunWith(tx).
@@ -1121,17 +1148,50 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 		if err != nil {
 			return err
 		}
-		return insert.
+
+		err = insert.
 			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
 			RunWith(tx).
 			QueryRowContext(ctx).
 			Scan(database.Scan(ctx, &event)...)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO event_notification (
+				created, event_id, user_id
+			) SELECT
+				now() at time zone 'utc',
+				$1, user_id
+			FROM notify_participants;
+		`, event.ID)
+		if err != nil {
+			return err
+		}
+
+		// Send notification emails
+		conf := config.ForContext(ctx)
+		origin := config.GetOrigin(conf, "todo.sr.ht", true)
+		details := TicketStatusDetails{
+			Root: origin,
+			TicketURL: fmt.Sprintf("/%s/%s/%d",
+				owner.CanonicalName(), tracker.Name, ticket.ID),
+			EventID: event.ID,
+			Status: input.Status.String(),
+			Resolution: resolution.String(),
+		}
+		queueNotifications(ctx, tx,
+			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
+			ticketStatusTemplate, &details,
+				sq.Select("name", "address").
+					From(`notify_participants`))
+
+		return nil
 	}); err != nil {
 		return nil, err
 	}
-
-	// TODO: Send notifications and fire webhooks
-
+	// TODO: Fire webhooks
 	return &event, nil
 }
 

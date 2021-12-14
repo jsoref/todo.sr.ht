@@ -37,12 +37,24 @@ var (
 
 -- 
 View on the web: {{.Root}}{{.TicketURL}}`))
+	ticketStatusTemplate = template.Must(template.New("ticket-status").Parse(`{{if eq .Status "RESOLVED"}}Ticket resolved: {{.Resolution}}{{end}}
+
+-- 
+View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))
 )
 
 type NewTicketDetails struct {
 	Body      *string
 	Root      string
 	TicketURL string
+}
+
+type TicketStatusDetails struct {
+	Root       string
+	TicketURL  string
+	EventID    int
+	Status     string
+	Resolution string
 }
 
 func aclBits(input model.ACLInput) uint {
