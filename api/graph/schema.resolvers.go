@@ -1137,7 +1137,266 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 }
 
 func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
-	panic(fmt.Errorf("not implemented"))
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, nil
+	}
+	if !tracker.CanComment() {
+		return nil, fmt.Errorf("Access denied")
+	}
+	if (input.Status != nil || input.Resolution != nil) && !tracker.CanTriage() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, nil
+	}
+
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
+	if err != nil {
+		panic(err)
+	}
+
+	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
+	updateTicket := sq.Update("ticket").
+		PlaceholderFormat(sq.Dollar)
+	insertEvent := sq.Insert("event").
+		PlaceholderFormat(sq.Dollar).
+		Columns("created", "event_type",
+			"ticket_id", "participant_id", "comment_id",
+			"old_status", "new_status", "old_resolution", "new_resolution")
+
+	var (
+		oldStatus      *int
+		_oldStatus     int
+		newStatus      *int
+		_newStatus     int
+		oldResolution  *int
+		_oldResolution int
+		newResolution  *int
+		_newResolution int
+		eventType      int = model.EVENT_COMMENT
+	)
+	if input.Status != nil {
+		eventType |= model.EVENT_STATUS_CHANGE
+		oldStatus = &_oldStatus
+		newStatus = &_newStatus
+		oldResolution = &_oldResolution
+		newResolution = &_newResolution
+		*oldStatus = ticket.Status().ToInt()
+		*oldResolution = ticket.Resolution().ToInt()
+		*newStatus = input.Status.ToInt()
+		*newResolution = ticket.Resolution().ToInt()
+		updateTicket = updateTicket.Set("status", *newStatus)
+		if input.Resolution != nil {
+			*newResolution = input.Resolution.ToInt()
+			updateTicket = updateTicket.Set("resolution", *newResolution)
+		} else if input.Status.ToInt() == model.STATUS_RESOLVED {
+			return nil, fmt.Errorf("resolution is required when status is RESOLVED")
+		}
+	}
+
+	var event model.Event
+	columns := database.Columns(ctx, &event)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		// TODO: This is mostly copypasta from submitTicket, try to generalize
+		var mentionedParticipants []int
+		mentions := ScanMentions(ctx, tracker, ticket, input.Text)
+
+		// Create a temporary table of all participants affected by this
+		// submission. This includes everyone who will be notified about it.
+		_, err = tx.ExecContext(ctx, `
+			CREATE TEMP TABLE event_participant
+			ON COMMIT DROP
+			AS (SELECT
+				-- The affected participant:
+				$1::INTEGER AS participant_id,
+				-- Events they should be notified of:
+				$2::INTEGER AS event_type,
+				-- Should they be subscribed to this ticket?
+				true AS subscribe
+			);
+		`, part.ID, model.EVENT_COMMENT)
+		if err != nil {
+			panic(err)
+		}
+		for user, _ := range mentions.Users {
+			part, err := loaders.ForContext(ctx).ParticipantsByUsername.Load(user)
+			if err != nil {
+				panic(err)
+			}
+			if part == nil {
+				continue
+			}
+			_, err = tx.ExecContext(ctx, `
+				INSERT INTO event_participant (
+					participant_id, event_type, subscribe
+				) VALUES (
+					$1, $2, true
+				);
+			`, part.ID, model.EVENT_USER_MENTIONED)
+			if err != nil {
+				panic(err)
+			}
+			mentionedParticipants = append(mentionedParticipants, part.ID)
+		}
+
+		// Implicate all subscribers for this tracker/ticket
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO event_participant (
+				participant_id, event_type, subscribe
+			)
+			SELECT sub.participant_id, $1, false
+			FROM ticket_subscription sub
+			WHERE sub.tracker_id = $2 OR sub.ticket_id = $3
+		`, model.EVENT_COMMENT, tracker.ID, ticket.PKID)
+		if err != nil {
+			panic(err)
+		}
+
+		// Create subscriptions for all affected users
+		_, err = tx.ExecContext(ctx, `
+			INSERT INTO ticket_subscription (
+				created, updated, ticket_id, participant_id
+			)
+			SELECT
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, participant_id
+			FROM event_participant
+			WHERE subscribe = true
+			ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
+			DO NOTHING;
+		`, ticket.PKID)
+		if err != nil {
+			panic(err)
+		}
+
+		// Update ticket status, if appropriate
+		if input.Status != nil {
+			_, err := updateTicket.
+				RunWith(tx).
+				ExecContext(ctx)
+			if err != nil {
+				return err
+			}
+		}
+
+		// Insert ticket comment
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO ticket_comment (
+				created, updated, submitter_id, ticket_id, text
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			) RETURNING id;
+		`, part.ID, ticket.PKID, input.Text)
+
+		var commentID int
+		if err := row.Scan(&commentID); err != nil {
+			return err
+		}
+
+		// Comment event & event_notifications
+		eventRow := insertEvent.Values(sq.Expr("now() at time zone 'utc'"),
+				eventType, ticket.PKID, part.ID, commentID,
+				oldStatus, newStatus, oldResolution, newResolution).
+			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := eventRow.Scan(database.Scan(ctx, &event)...); err != nil {
+			return err
+		}
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO event_notification (created, event_id, user_id)
+			SELECT
+				NOW() at time zone 'utc',
+				$1, part.user_id
+			FROM event_participant ev
+			JOIN participant part ON part.id = ev.participant_id
+			WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
+		`, event.ID, model.EVENT_COMMENT)
+		if err != nil {
+			panic(err)
+		}
+
+		// User mention events & event_notifications
+		for _, id := range mentionedParticipants {
+			var eventID int
+			row := tx.QueryRowContext(ctx, `
+				INSERT INTO event (
+					created, event_type, participant_id, by_participant_id,
+					ticket_id, from_ticket_id, comment_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					$1, $2, $3, $4, $4, $5
+				) RETURNING id;`,
+				model.EVENT_USER_MENTIONED, id, part.ID,
+				ticket.PKID, commentID)
+			if err := row.Scan(&eventID); err != nil {
+				panic(err)
+			}
+			_, err := tx.ExecContext(ctx, `
+				INSERT INTO event_notification (created, event_id, user_id)
+				SELECT
+					NOW() at time zone 'utc',
+					$1, part.user_id
+				FROM event_participant ev
+				JOIN participant part ON part.id = ev.participant_id
+				WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
+			`, eventID, model.EVENT_USER_MENTIONED)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		// Ticket mention events
+		for _, target := range mentions.Tickets {
+			_, err := tx.ExecContext(ctx, `
+				WITH target AS (
+					SELECT tk.id
+					FROM ticket tk
+					JOIN tracker tr ON tk.tracker_id = tr.id
+					JOIN "user" u ON u.id = tr.owner_id
+					WHERE u.username = $1 AND tr.name = $2 AND tk.scoped_id = $3
+				)
+				INSERT INTO event (
+					created, event_type, by_participant_id, ticket_id,
+					from_ticket_id, comment_id
+				) VALUES (
+					NOW() at time zone 'utc',
+					$4, $5, (SELECT id FROM target), $6, $7
+				)`,
+				target.OwnerName, target.TrackerName, target.ID,
+				model.EVENT_TICKET_MENTIONED, part.ID, ticket.PKID,
+				commentID)
+			if err != nil {
+				panic(err)
+			}
+		}
+
+		// TODO:
+		// - Send email notifications
+		// - Fire webhooks
+		_ = owner // XXX: TEMP
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &event, nil
 }
 
 func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error) {
