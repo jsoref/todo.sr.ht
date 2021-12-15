@@ -25,10 +25,10 @@ type Event struct {
 	LabelID         *int
 	FromTicketID    *int
 
-	OldStatus     int
-	OldResolution int
-	NewStatus     int
-	NewResolution int
+	OldStatus     *int
+	OldResolution *int
+	NewStatus     *int
+	NewResolution *int
 
 	alias  string
 	fields *database.ModelFields
@@ -145,10 +145,10 @@ func (ev *Event) Changes() []EventDetail {
 			TicketID:      ev.TicketID,
 			ParticipantID: ev.ParticipantID,
 
-			OldStatus:     TicketStatusFromInt(ev.OldStatus),
-			NewStatus:     TicketStatusFromInt(ev.NewStatus),
-			OldResolution: TicketResolutionFromInt(ev.OldResolution),
-			NewResolution: TicketResolutionFromInt(ev.NewResolution),
+			OldStatus:     TicketStatusFromInt(*ev.OldStatus),
+			NewStatus:     TicketStatusFromInt(*ev.NewStatus),
+			OldResolution: TicketResolutionFromInt(*ev.OldResolution),
+			NewResolution: TicketResolutionFromInt(*ev.NewResolution),
 		})
 	}
 

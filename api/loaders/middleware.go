@@ -867,94 +867,97 @@ func fetchParticipantsByUsername(ctx context.Context) func(names []string) ([]*m
 				}
 				toFetch = append(toFetch, username)
 			}
-			stmt, err = tx.Prepare(pq.CopyIn(`user`,
-				"created", "updated", "username", "email",
-				"user_type", "url", "location", "bio",
-				"suspension_notice"))
-			if err != nil {
-				return err
-			}
 
-			var (
-				resp UserResponse
-				gql  bytes.Buffer
-			)
-			err = fetchUserTemplate.Execute(&gql, toFetch)
-			if err != nil {
-				panic(err)
-			}
-			query := client.GraphQLQuery{gql.String(), nil}
-			err = client.Execute(ctx, auth.ForContext(ctx).Username,
-				"meta.sr.ht", query, &resp)
-			if err != nil {
-				return err
-			}
-
-			for _, user := range toFetch {
-				details := resp.Data[escapeUsername(user)]
-				if details == nil {
-					continue
-				}
-				_, err = stmt.Exec(details.Created, details.Updated,
-					details.Username, details.Email,
-					// TODO: canonicalize user type case
-					strings.ToLower(details.UserType),
-					details.Url, details.Location, details.Bio,
-					details.SuspensionNotice)
+			if len(toFetch) != 0 {
+				stmt, err = tx.Prepare(pq.CopyIn(`user`,
+					"created", "updated", "username", "email",
+					"user_type", "url", "location", "bio",
+					"suspension_notice"))
 				if err != nil {
 					return err
 				}
 
-				// Configure webhooks for new users
-				// TODO: Deprecate legacy webhooks
-				type WebhookConfig struct {
-					Url    string   `json:"url"`
-					Events []string `json:"events"`
-				}
-				conf := config.ForContext(ctx)
-				whconf := WebhookConfig{
-					Url: fmt.Sprintf("%s/oauth/webhook/profile-update",
-						config.GetOrigin(conf, "todo.sr.ht", false)),
-					Events: []string{"profile:update"},
-				}
-				body, err := json.Marshal(&whconf)
+				var (
+					resp UserResponse
+					gql  bytes.Buffer
+				)
+				err = fetchUserTemplate.Execute(&gql, toFetch)
 				if err != nil {
 					panic(err)
 				}
-				reader := bytes.NewBuffer(body)
-				meta := config.GetOrigin(conf, "meta.sr.ht", false)
-				req, err := http.NewRequestWithContext(ctx, "POST",
-					fmt.Sprintf("%s/api/user/webhooks", meta), reader)
+				query := client.GraphQLQuery{gql.String(), nil}
+				err = client.Execute(ctx, auth.ForContext(ctx).Username,
+					"meta.sr.ht", query, &resp)
 				if err != nil {
-					panic(err)
-				}
-				req.Header.Add("Content-Type", "application/json")
-				auth := client.InternalAuth{
-					Name:     user,
-					ClientID: config.ServiceName(ctx),
-					NodeID:   "GraphQL", // TODO
-				}
-				authBlob, err := json.Marshal(&auth)
-				if err != nil {
-					panic(err)
-				}
-				req.Header.Add("Authorization", fmt.Sprintf("Internal %s",
-					crypto.Encrypt(authBlob)))
-				resp, err := http.DefaultClient.Do(req)
-				if err != nil {
-					panic(err)
+					return err
 				}
 
-				resp.Body.Close()
-				if resp.StatusCode != 201 {
-					panic(fmt.Errorf("meta.sr.ht webhooks returned status %d",
-						resp.StatusCode))
-				}
-			}
+				for _, user := range toFetch {
+					details := resp.Data[escapeUsername(user)]
+					if details == nil {
+						continue
+					}
+					_, err = stmt.Exec(details.Created, details.Updated,
+						details.Username, details.Email,
+						// TODO: canonicalize user type case
+						strings.ToLower(details.UserType),
+						details.Url, details.Location, details.Bio,
+						details.SuspensionNotice)
+					if err != nil {
+						return err
+					}
 
-			_, err = stmt.Exec()
-			if err != nil {
-				return err
+					// Configure webhooks for new users
+					// TODO: Deprecate legacy webhooks
+					type WebhookConfig struct {
+						Url    string   `json:"url"`
+						Events []string `json:"events"`
+					}
+					conf := config.ForContext(ctx)
+					whconf := WebhookConfig{
+						Url: fmt.Sprintf("%s/oauth/webhook/profile-update",
+							config.GetOrigin(conf, "todo.sr.ht", false)),
+						Events: []string{"profile:update"},
+					}
+					body, err := json.Marshal(&whconf)
+					if err != nil {
+						panic(err)
+					}
+					reader := bytes.NewBuffer(body)
+					meta := config.GetOrigin(conf, "meta.sr.ht", false)
+					req, err := http.NewRequestWithContext(ctx, "POST",
+						fmt.Sprintf("%s/api/user/webhooks", meta), reader)
+					if err != nil {
+						panic(err)
+					}
+					req.Header.Add("Content-Type", "application/json")
+					auth := client.InternalAuth{
+						Name:     user,
+						ClientID: config.ServiceName(ctx),
+						NodeID:   "GraphQL", // TODO
+					}
+					authBlob, err := json.Marshal(&auth)
+					if err != nil {
+						panic(err)
+					}
+					req.Header.Add("Authorization", fmt.Sprintf("Internal %s",
+						crypto.Encrypt(authBlob)))
+					resp, err := http.DefaultClient.Do(req)
+					if err != nil {
+						panic(err)
+					}
+
+					resp.Body.Close()
+					if resp.StatusCode != 201 {
+						panic(fmt.Errorf("meta.sr.ht webhooks returned status %d",
+							resp.StatusCode))
+					}
+				}
+
+				_, err = stmt.Exec()
+				if err != nil {
+					return err
+				}
 			}
 
 			rows, err = tx.QueryContext(ctx, `

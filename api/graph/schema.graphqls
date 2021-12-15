@@ -471,7 +471,8 @@ input UpdateTicketInput {
 }
 
 # You may omit the status or resolution fields to leave them unchanged (or if
-# you do not have permission to change them).
+# you do not have permission to change them). "resolution" is required if
+# status is RESOLVED.
 input SubmitCommentInput {
   text: String!
   status: TicketStatus
