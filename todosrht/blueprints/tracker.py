@@ -9,7 +9,6 @@ from todosrht.color import color_from_hex, color_to_hex, get_text_color
 from todosrht.color import valid_hex_color_code
 from todosrht.filters import render_markup
 from todosrht.search import apply_search
-from todosrht.tickets import get_last_seen_times
 from todosrht.tickets import get_participant_for_user, submit_ticket
 from todosrht.types import Event, Label, TicketLabel
 from todosrht.types import TicketSubscription, Participant
@@ -107,13 +106,6 @@ def return_tracker(tracker, access, **kwargs):
 
     tickets, pagination = paginate_query(tickets, results_per_page=25)
 
-    # Find which tickets were seen by the user since last update
-    seen_ticket_ids = []
-    if current_user:
-        seen_times = get_last_seen_times(current_user, tickets)
-        seen_ticket_ids = [t.id for t in tickets
-            if t.id in seen_times and seen_times[t.id] >= t.updated]
-
     if "another" in kwargs:
         another = kwargs["another"]
         del kwargs["another"]
@@ -121,7 +113,6 @@ def return_tracker(tracker, access, **kwargs):
     return render_template("tracker.html",
             tracker=tracker, another=another, tickets=tickets,
             access=access, is_subscribed=is_subscribed, search=terms,
-            seen_ticket_ids=seen_ticket_ids,
             tracker_subscribe=tracker_subscribe, **pagination, **kwargs)
 
 @tracker.route("/<owner>/<name>")

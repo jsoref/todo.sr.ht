@@ -46,7 +46,6 @@ class Ticket(Base):
             nullable=False,
             default=TicketResolution.unresolved)
 
-    view_list = sa.orm.relationship("TicketSeen", viewonly=True)
 
     labels = sa.orm.relationship("Label",
         secondary="ticket_label", order_by="Label.name",

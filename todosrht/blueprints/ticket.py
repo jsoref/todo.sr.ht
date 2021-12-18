@@ -8,7 +8,7 @@ from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
 from todosrht.filters import render_markup
 from todosrht.search import find_usernames
-from todosrht.tickets import add_comment, mark_seen, assign, unassign
+from todosrht.tickets import add_comment, assign, unassign
 from todosrht.tickets import get_participant_for_user
 from todosrht.trackers import get_recent_users
 from todosrht.types import Event, EventType, Label, TicketLabel
@@ -86,10 +86,6 @@ def ticket_GET(owner, name, ticket_id):
     ticket, access = get_ticket(tracker, ticket_id)
     if not ticket:
         abort(404)
-
-    if current_user:
-        mark_seen(ticket, current_user)
-        db.session.commit()
 
     ctx = get_ticket_context(ticket, tracker, access)
     return render_template("ticket.html", **ctx)

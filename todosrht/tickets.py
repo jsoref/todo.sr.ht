@@ -7,7 +7,7 @@ from srht.database import db
 from todosrht.email import notify, format_lines
 from todosrht.types import Event, EventType, EventNotification
 from todosrht.types import TicketComment, TicketStatus, TicketSubscription
-from todosrht.types import TicketSeen, TicketAssignee, User, Ticket, Tracker
+from todosrht.types import TicketAssignee, User, Ticket, Tracker
 from todosrht.types import Participant, ParticipantType
 from todosrht.urls import ticket_url
 from sqlalchemy import func, or_, and_
@@ -335,17 +335,6 @@ def add_comment(submitter, ticket,
 
     return event
 
-def mark_seen(ticket, user):
-    """Mark the ticket as seen by user."""
-    seen = TicketSeen.query.filter_by(user=user, ticket=ticket).one_or_none()
-    if seen:
-        seen.update()  # Updates last_view time
-    else:
-        seen = TicketSeen(user_id=user.id, ticket_id=ticket.id)
-        db.session.add(seen)
-
-    return seen
-
 def get_or_create_subscription(ticket, participant):
     """
     If participant is subscribed to ticket or tracker, returns that
@@ -444,12 +433,6 @@ def unassign(ticket, assignee, assigner):
     event.ticket_id = ticket.id
     event.by_participant_id = assigner_participant.id
     db.session.add(event)
-
-def get_last_seen_times(user, tickets):
-    """Fetches last times the user has seen each of the given tickets."""
-    return dict(db.session.query(TicketSeen.ticket_id, TicketSeen.last_view)
-        .filter(TicketSeen.ticket_id.in_([t.id for t in tickets]))
-        .filter(TicketSeen.user == user))
 
 def get_comment_count(ticket_id):
     """Returns the number of comments on a given ticket."""

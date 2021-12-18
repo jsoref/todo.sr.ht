@@ -241,11 +241,7 @@
         </div>
         <div class="comments" aria-label="Comments">
           <span class="icon_count">
-            {% if ticket.id in seen_ticket_ids or ticket.comment_count == 0 %}
             {{icon("comments-o")}}
-            {% else %}
-            {{icon("comments")}}
-            {% endif %}
             {{ ticket.comment_count }}
           </span>
           <span class="commentlabel">
