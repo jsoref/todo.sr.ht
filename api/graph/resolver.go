@@ -22,17 +22,6 @@ type Resolver struct{}
 
 var (
 	trackerNameRE   = regexp.MustCompile(`^[A-Za-z0-9._-]+$`)
-	// ~username
-	userMentionRE   = regexp.MustCompile(`(^|[\s(]?)?~(\w+)\b([^/]|$)`)
-	// ~username/tracker-name#id
-	// tracker-name#id
-	// #id
-	ticketMentionRE = regexp.MustCompile(`(^|[\s(]?)(~(\w+)/)?([A-Za-z0-9_.-]+)?\#(\d+)\b`)
-	// https://todo.example.org/~username/trackername/id
-	ticketURLRE = regexp.MustCompile(`(^|[\s(]?)(https?://[A-Za-z0-9.]+)/(~(\w+)/)([A-Za-z0-9_.-]+)/(\d+)\b`)
-)
-
-var (
 	newTicketTemplate = template.Must(template.New("new-ticket").Parse(`{{.Body}}
 
 -- 

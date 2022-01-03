@@ -9,7 +9,6 @@ import (
 	"encoding/hex"
 	"errors"
 	"fmt"
-	"strconv"
 	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -772,91 +771,33 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			panic(err)
 		}
 
-		// TODO: Generalize mentions logic for re-use with comments
 		var (
-			mentionedUsers        map[string]interface{}
+			mentions              Mentions
 			mentionedParticipants []int
-			mentionedTickets      map[string]model.Ticket // Partially filled in
 		)
-		mentionedUsers = make(map[string]interface{})
-		mentionedTickets = make(map[string]model.Ticket)
 		if ticket.Body != nil {
-			matches := userMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
-			for _, match := range matches {
-				if len(match) != 4 {
-					panic("Invalid regex match")
-				}
-				mentionedUsers[match[2]] = nil
-			}
+			mentions = ScanMentions(ctx, tracker, &ticket, *ticket.Body)
 
-			matches = ticketMentionRE.FindAllStringSubmatch(*ticket.Body, -1)
-			for _, match := range matches {
-				var (
-					username    string
-					trackerName string
-					ticketID    int
-				)
-				if len(match) != 6 {
-					panic("Invalid regex match")
+			for user, _ := range mentions.Users {
+				part, err := loaders.ForContext(ctx).ParticipantsByUsername.Load(user)
+				if err != nil {
+					panic(err)
 				}
-				if match[3] != "" {
-					username = match[3]
-				} else {
-					username = user.Username
-				}
-				if match[4] != "" {
-					trackerName = match[4]
-				} else {
-					trackerName = tracker.Name
-				}
-				ticketID, _ = strconv.Atoi(match[5])
-				mentionedTickets[ticket.Ref()] = model.Ticket{
-					ID:          ticketID,
-					TrackerName: trackerName,
-					OwnerName:   username,
-				}
-			}
-
-			matches = ticketURLRE.FindAllStringSubmatch(*ticket.Body, -1)
-			for _, match := range matches {
-				if len(match) != 7 {
-					panic("Invalid regex match")
-				}
-				var (
-					root        string = match[2]
-					username    string = match[4]
-					trackerName string = match[5]
-				)
-				if root != origin {
+				if part == nil {
 					continue
 				}
-				ticketID, _ := strconv.Atoi(match[6])
-				mentionedTickets[ticket.Ref()] = model.Ticket{
-					ID:          ticketID,
-					TrackerName: trackerName,
-					OwnerName:   username,
+				_, err = tx.ExecContext(ctx, `
+					INSERT INTO event_participant (
+						participant_id, event_type, subscribe
+					) VALUES (
+						$1, $2, true
+					);
+				`, part.ID, model.EVENT_USER_MENTIONED)
+				if err != nil {
+					panic(err)
 				}
+				mentionedParticipants = append(mentionedParticipants, part.ID)
 			}
-		}
-		for user, _ := range mentionedUsers {
-			part, err := loaders.ForContext(ctx).ParticipantsByUsername.Load(user)
-			if err != nil {
-				panic(err)
-			}
-			if part == nil {
-				continue
-			}
-			_, err = tx.ExecContext(ctx, `
-				INSERT INTO event_participant (
-					participant_id, event_type, subscribe
-				) VALUES (
-					$1, $2, true
-				);
-			`, part.ID, model.EVENT_USER_MENTIONED)
-			if err != nil {
-				panic(err)
-			}
-			mentionedParticipants = append(mentionedParticipants, part.ID)
 		}
 
 		// Implicate all subscribers for this tracker
@@ -905,7 +846,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		}
 
 		// Ticket mention events
-		for _, target := range mentionedTickets {
+		for _, target := range mentions.Tickets {
 			_, err := tx.ExecContext(ctx, `
 				WITH target AS (
 					SELECT tk.id
