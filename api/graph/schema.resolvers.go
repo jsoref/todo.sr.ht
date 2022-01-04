@@ -926,32 +926,10 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 	insert = insert.Values(sq.Expr("now() at time zone 'utc'"),
 		model.EVENT_STATUS_CHANGE, ticket.PKID, part.ID,
 		ticket.Status().ToInt(), input.Status.ToInt(),
-		ticket.Resolution().ToInt(), input.Resolution.ToInt())
+		ticket.Resolution().ToInt(), resolution.ToInt())
 	columns := database.Columns(ctx, &event)
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		// Create a temporary table of all participants who will receive a
-		// notification. The columns are the participant ID, name, email
-		// address, and user ID (nullable).
-		_, err = tx.ExecContext(ctx, `
-			CREATE TEMP TABLE notify_participants
-			ON COMMIT DROP
-			AS (
-				SELECT
-					DISTINCT sub.participant_id,
-					COALESCE(part.email_name, CONCAT('~', "user".username)) name,
-					COALESCE(part.email, "user".email) address,
-					part.user_id
-				FROM ticket_subscription sub
-				JOIN participant part ON part.id = sub.participant_id
-				LEFT JOIN "user" ON "user".id = part.user_id
-				WHERE sub.tracker_id = $1 OR sub.ticket_id = $2
-			);
-		`, tracker.ID, ticket.PKID)
-		if err != nil {
-			panic(err)
-		}
-
 		_, err := update.
 			Where(`ticket.id = ?`, ticket.PKID).
 			RunWith(tx).
@@ -969,17 +947,9 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 			return err
 		}
 
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO event_notification (
-				created, event_id, user_id
-			) SELECT
-				now() at time zone 'utc',
-				$1, user_id
-			FROM notify_participants;
-		`, event.ID)
-		if err != nil {
-			return err
-		}
+		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_STATUS_CHANGE).
+			WithTicket(tracker, ticket)
+		builder.InsertNotifications(event.ID, nil)
 
 		// Send notification emails
 		conf := config.ForContext(ctx)
@@ -992,11 +962,24 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 			Status: input.Status.String(),
 			Resolution: resolution.String(),
 		}
+		subs := sq.Select(`
+				CASE part.participant_type
+				WHEN 'user' THEN '~' || "user".username
+				WHEN 'email' THEN part.email_name
+				ELSE null END
+			`, `
+				CASE part.participant_type
+				WHEN 'user' THEN "user".email
+				WHEN 'email' THEN part.email
+				ELSE null END
+			`).
+			Distinct().
+			From(`event_participant evpart`).
+			Join(`participant part ON evpart.participant_id = part.id`).
+			LeftJoin(`"user" ON "user".id = part.user_id`)
 		queueNotifications(ctx, tx,
 			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
-			ticketStatusTemplate, &details,
-				sq.Select("name", "address").
-					From(`notify_participants`))
+			ticketStatusTemplate, &details, subs)
 
 		return nil
 	}); err != nil {
