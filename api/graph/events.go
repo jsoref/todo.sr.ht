@@ -3,6 +3,14 @@ package graph
 import (
 	"context"
 	"database/sql"
+	"strings"
+	"text/template"
+
+	"git.sr.ht/~sircmpwn/core-go/auth"
+	"git.sr.ht/~sircmpwn/core-go/config"
+	"git.sr.ht/~sircmpwn/core-go/email"
+	"github.com/emersion/go-message/mail"
+	sq "github.com/Masterminds/squirrel"
 
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
@@ -60,36 +68,36 @@ func NewEventBuilder(ctx context.Context, tx *sql.Tx,
 
 // Associates this event with a ticket and implicates the submitter for the
 // appropriate events and notifications.
-func (eb *EventBuilder) WithTicket(
+func (builder *EventBuilder) WithTicket(
 	tracker *model.Tracker, ticket *model.Ticket) *EventBuilder {
-	eb.tracker = tracker
-	eb.ticket = ticket
-	_, err := eb.tx.ExecContext(eb.ctx, `
+	builder.tracker = tracker
+	builder.ticket = ticket
+	_, err := builder.tx.ExecContext(builder.ctx, `
 		INSERT INTO event_participant (
 			participant_id, event_type, subscribe
 		)
 		SELECT sub.participant_id, $1, false
 		FROM ticket_subscription sub
 		WHERE sub.tracker_id = $2 OR sub.ticket_id = $3
-	`, eb.eventType, tracker.ID, ticket.PKID)
+	`, builder.eventType, tracker.ID, ticket.PKID)
 	if err != nil {
 		panic(err)
 	}
-	return eb
+	return builder
 }
 
 // Adds mentions to this event builder
-func (eb *EventBuilder) AddMentions(mentions *Mentions) {
-	eb.mentions = mentions
+func (builder *EventBuilder) AddMentions(mentions *Mentions) {
+	builder.mentions = mentions
 	for user, _ := range mentions.Users {
-		part, err := loaders.ForContext(eb.ctx).ParticipantsByUsername.Load(user)
+		part, err := loaders.ForContext(builder.ctx).ParticipantsByUsername.Load(user)
 		if err != nil {
 			panic(err)
 		}
 		if part == nil {
 			continue
 		}
-		_, err = eb.tx.ExecContext(eb.ctx, `
+		_, err = builder.tx.ExecContext(builder.ctx, `
 			INSERT INTO event_participant (
 				participant_id, event_type, subscribe
 			) VALUES (
@@ -99,13 +107,13 @@ func (eb *EventBuilder) AddMentions(mentions *Mentions) {
 		if err != nil {
 			panic(err)
 		}
-		eb.mentionedParticipants = append(eb.mentionedParticipants, part.ID)
+		builder.mentionedParticipants = append(builder.mentionedParticipants, part.ID)
 	}
 }
 
 // Creates subscriptions for all affected users
-func (eb *EventBuilder) InsertSubscriptions() {
-	_, err := eb.tx.ExecContext(eb.ctx, `
+func (builder *EventBuilder) InsertSubscriptions() {
+	_, err := builder.tx.ExecContext(builder.ctx, `
 		INSERT INTO ticket_subscription (
 			created, updated, ticket_id, participant_id
 		)
@@ -117,7 +125,7 @@ func (eb *EventBuilder) InsertSubscriptions() {
 		WHERE subscribe = true
 		ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
 		DO NOTHING;
-	`, eb.ticket.PKID)
+	`, builder.ticket.PKID)
 	if err != nil {
 		panic(err)
 	}
@@ -125,8 +133,8 @@ func (eb *EventBuilder) InsertSubscriptions() {
 
 // Adds event_notification records for all affected users and inserts
 // ancillary events (such as mentions) and their notifications.
-func (eb *EventBuilder) InsertNotifications(eventID int, commentID *int) {
-	_, err := eb.tx.ExecContext(eb.ctx, `
+func (builder *EventBuilder) InsertNotifications(eventID int, commentID *int) {
+	_, err := builder.tx.ExecContext(builder.ctx, `
 		INSERT INTO event_notification (created, event_id, user_id)
 		SELECT
 			NOW() at time zone 'utc',
@@ -134,18 +142,18 @@ func (eb *EventBuilder) InsertNotifications(eventID int, commentID *int) {
 		FROM event_participant ev
 		JOIN participant part ON part.id = ev.participant_id
 		WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
-	`, eventID, eb.eventType)
+	`, eventID, builder.eventType)
 	if err != nil {
 		panic(err)
 	}
 
-	if eb.mentions == nil {
+	if builder.mentions == nil {
 		return
 	}
 
-	for _, id := range eb.mentionedParticipants {
+	for _, id := range builder.mentionedParticipants {
 		var eventID int
-		row := eb.tx.QueryRowContext(eb.ctx, `
+		row := builder.tx.QueryRowContext(builder.ctx, `
 			INSERT INTO event (
 				created, event_type, participant_id, by_participant_id,
 				ticket_id, from_ticket_id, comment_id
@@ -153,12 +161,12 @@ func (eb *EventBuilder) InsertNotifications(eventID int, commentID *int) {
 				NOW() at time zone 'utc',
 				$1, $2, $3, $4, $4, $5
 			) RETURNING id;`,
-			model.EVENT_USER_MENTIONED, id, eb.submitterID,
-			eb.ticket.PKID, commentID)
+			model.EVENT_USER_MENTIONED, id, builder.submitterID,
+			builder.ticket.PKID, commentID)
 		if err := row.Scan(&eventID); err != nil {
 			panic(err)
 		}
-		_, err := eb.tx.ExecContext(eb.ctx, `
+		_, err := builder.tx.ExecContext(builder.ctx, `
 			INSERT INTO event_notification (created, event_id, user_id)
 			SELECT
 				NOW() at time zone 'utc',
@@ -172,8 +180,8 @@ func (eb *EventBuilder) InsertNotifications(eventID int, commentID *int) {
 		}
 	}
 
-	for _, target := range eb.mentions.Tickets {
-		_, err := eb.tx.ExecContext(eb.ctx, `
+	for _, target := range builder.mentions.Tickets {
+		_, err := builder.tx.ExecContext(builder.ctx, `
 			WITH target AS (
 				SELECT tk.id
 				FROM ticket tk
@@ -189,8 +197,118 @@ func (eb *EventBuilder) InsertNotifications(eventID int, commentID *int) {
 				$4, $5, (SELECT id FROM target), $6, $7
 			)`,
 			target.OwnerName, target.TrackerName, target.ID,
-			model.EVENT_TICKET_MENTIONED, eb.submitterID, eb.ticket.PKID,
-			commentID)
+			model.EVENT_TICKET_MENTIONED, builder.submitterID,
+			builder.ticket.PKID, commentID)
+		if err != nil {
+			panic(err)
+		}
+	}
+}
+
+func (builder *EventBuilder) SendEmails(subject string,
+	template *template.Template, context interface{}) {
+	var (
+		rcpts []mail.Address
+		notifySelf, copiedSelf bool
+	)
+
+	user := auth.ForContext(builder.ctx)
+	row := builder.tx.QueryRowContext(builder.ctx, `
+		SELECT notify_self FROM "user" WHERE id = $1
+	`, user.UserID)
+	if err := row.Scan(&notifySelf); err != nil {
+		panic(err)
+	}
+
+	// XXX: It may be possible to implement this more efficiently by skipping
+	// the joins and pre-stashing the email details when inserting
+	// event_participants.
+	subs := sq.Select(`
+			CASE part.participant_type
+			WHEN 'user' THEN '~' || "user".username
+			WHEN 'email' THEN part.email_name
+			ELSE null END
+		`, `
+			CASE part.participant_type
+			WHEN 'user' THEN "user".email
+			WHEN 'email' THEN part.email
+			ELSE null END
+		`).
+		Distinct().
+		From(`event_participant evpart`).
+		Join(`participant part ON evpart.participant_id = part.id`).
+		LeftJoin(`"user" ON "user".id = part.user_id`)
+	rows, err := subs.
+		PlaceholderFormat(sq.Dollar).
+		RunWith(builder.tx).
+		QueryContext(builder.ctx)
+	if err != nil && err != sql.ErrNoRows {
+		panic(err)
+	}
+
+	set := make(map[string]interface{})
+	for rows.Next() {
+		var name, address string
+		if err := rows.Scan(&name, &address); err != nil {
+			panic(err)
+		}
+		if address == user.Email {
+			if notifySelf {
+				copiedSelf = true
+			} else {
+				continue
+			}
+		}
+		if _, ok := set[address]; ok {
+			continue
+		}
+		set[address] = nil
+		rcpts = append(rcpts, mail.Address{
+			Name: name,
+			Address: address,
+		})
+	}
+	if notifySelf && !copiedSelf {
+		rcpts = append(rcpts, mail.Address{
+			Name: "~" + user.Username,
+			Address: user.Email,
+		})
+	}
+
+	var body strings.Builder
+	err = template.Execute(&body, context)
+	if err != nil {
+		panic(err)
+	}
+
+	conf := config.ForContext(builder.ctx)
+	var notifyFrom string
+	if addr, ok := conf.Get("todo.sr.ht", "notify-from"); ok {
+		notifyFrom = addr
+	} else if addr, ok := conf.Get("mail", "smtp-from"); ok {
+		notifyFrom = addr
+	} else {
+		panic("Invalid mail configuratiojn")
+	}
+
+	from := mail.Address{
+		Name: "~" + user.Username,
+		Address: notifyFrom,
+	}
+	for _, rcpt := range rcpts {
+		var header mail.Header
+		// TODO: Add these headers:
+		// - In-Reply-To
+		// - Reply-To
+		// - Sender
+		// - List-Unsubscribe
+		header.SetAddressList("To", []*mail.Address{&rcpt})
+		header.SetAddressList("From", []*mail.Address{&from})
+		header.SetSubject(subject)
+
+		// TODO: Fetch user PGP key (or send via meta.sr.ht API?)
+		err = email.EnqueueStd(builder.ctx, header,
+			strings.NewReader(body.String()), nil)
 		if err != nil {
 			panic(err)
 		}
