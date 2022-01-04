@@ -753,85 +753,16 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		conf := config.ForContext(ctx)
 		origin := config.GetOrigin(conf, "todo.sr.ht", true)
 
-		// Create a temporary table of all participants affected by this
-		// submission. This includes everyone who will be notified about it.
-		_, err = tx.ExecContext(ctx, `
-			CREATE TEMP TABLE event_participant
-			ON COMMIT DROP
-			AS (SELECT
-				-- The affected participant:
-				$1::INTEGER AS participant_id,
-				-- Events they should be notified of:
-				$2::INTEGER AS event_type,
-				-- Should they be subscribed to this ticket?
-				true AS subscribe
-			);
-		`, participant.ID, model.EVENT_CREATED)
-		if err != nil {
-			panic(err)
-		}
+		builder := NewEventBuilder(ctx, tx, participant.ID, model.EVENT_CREATED).
+			WithTicket(tracker, &ticket)
 
-		var (
-			mentions              Mentions
-			mentionedParticipants []int
-		)
 		if ticket.Body != nil {
-			mentions = ScanMentions(ctx, tracker, &ticket, *ticket.Body)
-
-			for user, _ := range mentions.Users {
-				part, err := loaders.ForContext(ctx).ParticipantsByUsername.Load(user)
-				if err != nil {
-					panic(err)
-				}
-				if part == nil {
-					continue
-				}
-				_, err = tx.ExecContext(ctx, `
-					INSERT INTO event_participant (
-						participant_id, event_type, subscribe
-					) VALUES (
-						$1, $2, true
-					);
-				`, part.ID, model.EVENT_USER_MENTIONED)
-				if err != nil {
-					panic(err)
-				}
-				mentionedParticipants = append(mentionedParticipants, part.ID)
-			}
+			mentions := ScanMentions(ctx, tracker, &ticket, *ticket.Body)
+			builder.AddMentions(&mentions)
 		}
 
-		// Implicate all subscribers for this tracker
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO event_participant (
-				participant_id, event_type, subscribe
-			)
-			SELECT sub.participant_id, $1, false
-			FROM ticket_subscription sub
-			WHERE sub.tracker_id = $2
-		`, model.EVENT_CREATED, tracker.ID)
-		if err != nil {
-			panic(err)
-		}
+		builder.InsertSubscriptions()
 
-		// Create subscriptions for all affected users
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO ticket_subscription (
-				created, updated, ticket_id, participant_id
-			)
-			SELECT
-				NOW() at time zone 'utc',
-				NOW() at time zone 'utc',
-				$1, participant_id
-			FROM event_participant
-			WHERE subscribe = true
-			ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
-			DO NOTHING;
-		`, ticket.PKID)
-		if err != nil {
-			panic(err)
-		}
-
-		// Create events and event notifications
 		var eventID int
 		row = tx.QueryRowContext(ctx, `
 			INSERT INTO event (
@@ -845,68 +776,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 			panic(err)
 		}
 
-		// Ticket mention events
-		for _, target := range mentions.Tickets {
-			_, err := tx.ExecContext(ctx, `
-				WITH target AS (
-					SELECT tk.id
-					FROM ticket tk
-					JOIN tracker tr ON tk.tracker_id = tr.id
-					JOIN "user" u ON u.id = tr.owner_id
-					WHERE u.username = $1 AND tr.name = $2 AND tk.scoped_id = $3
-				)
-				INSERT INTO event (
-					created, event_type, by_participant_id, ticket_id,
-					from_ticket_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					$4, $5, (SELECT id FROM target), $6
-				)`,
-				target.OwnerName, target.TrackerName, target.ID,
-				model.EVENT_TICKET_MENTIONED, participant.ID, ticket.PKID)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO event_notification (created, event_id, user_id)
-			SELECT
-				NOW() at time zone 'utc',
-				$1, part.user_id
-			FROM event_participant ev
-			JOIN participant part ON part.id = ev.participant_id
-			WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
-		`, eventID, model.EVENT_CREATED)
-		if err != nil {
-			panic(err)
-		}
-		for _, id := range mentionedParticipants {
-			row := tx.QueryRowContext(ctx, `
-				INSERT INTO event (
-					created, event_type, participant_id, by_participant_id,
-					ticket_id, from_ticket_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					$1, $2, $3, $4, $4
-				) RETURNING id;
-			`, model.EVENT_USER_MENTIONED, id, participant.ID, ticket.PKID)
-			if err := row.Scan(&eventID); err != nil {
-				panic(err)
-			}
-			_, err := tx.ExecContext(ctx, `
-				INSERT INTO event_notification (created, event_id, user_id)
-				SELECT
-					NOW() at time zone 'utc',
-					$1, part.user_id
-				FROM event_participant ev
-				JOIN participant part ON part.id = ev.participant_id
-				WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
-			`, eventID, model.EVENT_USER_MENTIONED)
-			if err != nil {
-				panic(err)
-			}
-		}
+		builder.InsertNotifications(eventID, nil)
 
 		// Send notification emails
 		details := NewTicketDetails{
@@ -1210,90 +1080,20 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 	var event model.Event
 	columns := database.Columns(ctx, &event)
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		// TODO: This is mostly copypasta from submitTicket, try to generalize
-		var mentionedParticipants []int
+		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_COMMENT).
+			WithTicket(tracker, ticket)
+
 		mentions := ScanMentions(ctx, tracker, ticket, input.Text)
+		builder.AddMentions(&mentions)
 
-		// Create a temporary table of all participants affected by this
-		// submission. This includes everyone who will be notified about it.
-		_, err = tx.ExecContext(ctx, `
-			CREATE TEMP TABLE event_participant
-			ON COMMIT DROP
-			AS (SELECT
-				-- The affected participant:
-				$1::INTEGER AS participant_id,
-				-- Events they should be notified of:
-				$2::INTEGER AS event_type,
-				-- Should they be subscribed to this ticket?
-				true AS subscribe
-			);
-		`, part.ID, model.EVENT_COMMENT)
+		_, err := updateTicket.
+			Set(`comment_count`, sq.Expr(`comment_count + 1`)).
+			RunWith(tx).
+			ExecContext(ctx)
 		if err != nil {
-			panic(err)
-		}
-		for user, _ := range mentions.Users {
-			part, err := loaders.ForContext(ctx).ParticipantsByUsername.Load(user)
-			if err != nil {
-				panic(err)
-			}
-			if part == nil {
-				continue
-			}
-			_, err = tx.ExecContext(ctx, `
-				INSERT INTO event_participant (
-					participant_id, event_type, subscribe
-				) VALUES (
-					$1, $2, true
-				);
-			`, part.ID, model.EVENT_USER_MENTIONED)
-			if err != nil {
-				panic(err)
-			}
-			mentionedParticipants = append(mentionedParticipants, part.ID)
+			return err
 		}
 
-		// Implicate all subscribers for this tracker/ticket
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO event_participant (
-				participant_id, event_type, subscribe
-			)
-			SELECT sub.participant_id, $1, false
-			FROM ticket_subscription sub
-			WHERE sub.tracker_id = $2 OR sub.ticket_id = $3
-		`, model.EVENT_COMMENT, tracker.ID, ticket.PKID)
-		if err != nil {
-			panic(err)
-		}
-
-		// Create subscriptions for all affected users
-		_, err = tx.ExecContext(ctx, `
-			INSERT INTO ticket_subscription (
-				created, updated, ticket_id, participant_id
-			)
-			SELECT
-				NOW() at time zone 'utc',
-				NOW() at time zone 'utc',
-				$1, participant_id
-			FROM event_participant
-			WHERE subscribe = true
-			ON CONFLICT ON CONSTRAINT subscription_ticket_participant_uq
-			DO NOTHING;
-		`, ticket.PKID)
-		if err != nil {
-			panic(err)
-		}
-
-		// Update ticket status, if appropriate
-		if input.Status != nil {
-			_, err := updateTicket.
-				RunWith(tx).
-				ExecContext(ctx)
-			if err != nil {
-				return err
-			}
-		}
-
-		// Insert ticket comment
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO ticket_comment (
 				created, updated, submitter_id, ticket_id, text
@@ -1309,7 +1109,8 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 			return err
 		}
 
-		// Comment event & event_notifications
+		builder.InsertSubscriptions()
+
 		eventRow := insertEvent.Values(sq.Expr("now() at time zone 'utc'"),
 				eventType, ticket.PKID, part.ID, commentID,
 				oldStatus, newStatus, oldResolution, newResolution).
@@ -1319,73 +1120,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		if err := eventRow.Scan(database.Scan(ctx, &event)...); err != nil {
 			return err
 		}
-		_, err := tx.ExecContext(ctx, `
-			INSERT INTO event_notification (created, event_id, user_id)
-			SELECT
-				NOW() at time zone 'utc',
-				$1, part.user_id
-			FROM event_participant ev
-			JOIN participant part ON part.id = ev.participant_id
-			WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
-		`, event.ID, model.EVENT_COMMENT)
-		if err != nil {
-			panic(err)
-		}
-
-		// User mention events & event_notifications
-		for _, id := range mentionedParticipants {
-			var eventID int
-			row := tx.QueryRowContext(ctx, `
-				INSERT INTO event (
-					created, event_type, participant_id, by_participant_id,
-					ticket_id, from_ticket_id, comment_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					$1, $2, $3, $4, $4, $5
-				) RETURNING id;`,
-				model.EVENT_USER_MENTIONED, id, part.ID,
-				ticket.PKID, commentID)
-			if err := row.Scan(&eventID); err != nil {
-				panic(err)
-			}
-			_, err := tx.ExecContext(ctx, `
-				INSERT INTO event_notification (created, event_id, user_id)
-				SELECT
-					NOW() at time zone 'utc',
-					$1, part.user_id
-				FROM event_participant ev
-				JOIN participant part ON part.id = ev.participant_id
-				WHERE part.user_id IS NOT NULL AND ev.event_type = $2;
-			`, eventID, model.EVENT_USER_MENTIONED)
-			if err != nil {
-				panic(err)
-			}
-		}
-
-		// Ticket mention events
-		for _, target := range mentions.Tickets {
-			_, err := tx.ExecContext(ctx, `
-				WITH target AS (
-					SELECT tk.id
-					FROM ticket tk
-					JOIN tracker tr ON tk.tracker_id = tr.id
-					JOIN "user" u ON u.id = tr.owner_id
-					WHERE u.username = $1 AND tr.name = $2 AND tk.scoped_id = $3
-				)
-				INSERT INTO event (
-					created, event_type, by_participant_id, ticket_id,
-					from_ticket_id, comment_id
-				) VALUES (
-					NOW() at time zone 'utc',
-					$4, $5, (SELECT id FROM target), $6, $7
-				)`,
-				target.OwnerName, target.TrackerName, target.ID,
-				model.EVENT_TICKET_MENTIONED, part.ID, ticket.PKID,
-				commentID)
-			if err != nil {
-				panic(err)
-			}
-		}
+		builder.InsertNotifications(event.ID, &commentID)
 
 		// TODO:
 		// - Send email notifications
