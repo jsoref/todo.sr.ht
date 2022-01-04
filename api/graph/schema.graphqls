@@ -452,12 +452,27 @@ input ACLInput {
   triage: Boolean!
 }
 
+# This is used for importing tickets from third-party services, and may only be
+# used by the tracker owner. It causes a ticket submission, update, or comment
+# to be attributed to an external user and appear as if it were submitted at a
+# specific time.
+input ImportInput {
+  created: Time!
+  # External user ID. By convention this should be "service:username", e.g.
+  # "codeberg:ddevault".
+  externalId: String!
+  # A URL at which the user's external profile may be found, e.g.
+  # "https://codeberg.org/ddevault".
+  externalUrl: String!
+}
+
 input SubmitTicketInput {
   subject: String!
   body: String
 
   # These fields are meant for use when importing tickets from third-party
   # services, and may only be used by the tracker owner.
+  # TODO: Use ImportInput here
   created: Time
   externalId: String
   externalUrl: String
@@ -468,6 +483,9 @@ input SubmitTicketInput {
 input UpdateTicketInput {
   subject: String
   body: String
+
+  # For use by the tracker owner only
+  import: ImportInput
 }
 
 # You may omit the status or resolution fields to leave them unchanged (or if
@@ -477,12 +495,18 @@ input SubmitCommentInput {
   text: String!
   status: TicketStatus
   resolution: TicketResolution
+
+  # For use by the tracker owner only
+  import: ImportInput
 }
 
 # "resolution" is required if status is RESOLVED.
 input UpdateStatusInput {
   status: TicketStatus!
   resolution: TicketResolution
+
+  # For use by the tracker owner only
+  import: ImportInput
 }
 
 type Mutation {

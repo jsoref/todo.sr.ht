@@ -796,6 +796,10 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 }
 
 func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Ticket, error) {
+	if _, ok := input["import"]; ok {
+		panic(fmt.Errorf("not implemented"))
+	}
+
 	update := sq.Update("ticket").
 		PlaceholderFormat(sq.Dollar)
 
@@ -857,6 +861,10 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 }
 
 func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int, ticketID int, input model.UpdateStatusInput) (*model.Event, error) {
+	if input.Import != nil {
+		panic(fmt.Errorf("not implemented"))
+	}
+
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
 	if err != nil {
 		return nil, err
@@ -940,8 +948,8 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 			Root: origin,
 			TicketURL: fmt.Sprintf("/%s/%s/%d",
 				owner.CanonicalName(), tracker.Name, ticket.ID),
-			EventID: event.ID,
-			Status: input.Status.String(),
+			EventID:    event.ID,
+			Status:     input.Status.String(),
 			Resolution: resolution.String(),
 		}
 		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
@@ -956,6 +964,10 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 }
 
 func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
+	if input.Import != nil {
+		panic(fmt.Errorf("not implemented"))
+	}
+
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
 	if err != nil {
 		return nil, err
@@ -1061,8 +1073,8 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		builder.InsertSubscriptions()
 
 		eventRow := insertEvent.Values(sq.Expr("now() at time zone 'utc'"),
-				eventType, ticket.PKID, part.ID, commentID,
-				oldStatus, newStatus, oldResolution, newResolution).
+			eventType, ticket.PKID, part.ID, commentID,
+			oldStatus, newStatus, oldResolution, newResolution).
 			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
 			RunWith(tx).
 			QueryRowContext(ctx)
@@ -1077,8 +1089,8 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 			Root: origin,
 			TicketURL: fmt.Sprintf("/%s/%s/%d",
 				owner.CanonicalName(), tracker.Name, ticket.ID),
-			EventID: event.ID,
-			Comment: input.Text,
+			EventID:       event.ID,
+			Comment:       input.Text,
 			StatusUpdated: input.Status != nil,
 		}
 		if details.StatusUpdated {

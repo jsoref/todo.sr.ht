@@ -2182,12 +2182,27 @@ input ACLInput {
   triage: Boolean!
 }
 
+# This is used for importing tickets from third-party services, and may only be
+# used by the tracker owner. It causes a ticket submission, update, or comment
+# to be attributed to an external user and appear as if it were submitted at a
+# specific time.
+input ImportInput {
+  created: Time!
+  # External user ID. By convention this should be "service:username", e.g.
+  # "codeberg:ddevault".
+  externalId: String!
+  # A URL at which the user's external profile may be found, e.g.
+  # "https://codeberg.org/ddevault".
+  externalUrl: String!
+}
+
 input SubmitTicketInput {
   subject: String!
   body: String
 
   # These fields are meant for use when importing tickets from third-party
   # services, and may only be used by the tracker owner.
+  # TODO: Use ImportInput here
   created: Time
   externalId: String
   externalUrl: String
@@ -2198,20 +2213,30 @@ input SubmitTicketInput {
 input UpdateTicketInput {
   subject: String
   body: String
+
+  # For use by the tracker owner only
+  import: ImportInput
 }
 
 # You may omit the status or resolution fields to leave them unchanged (or if
-# you do not have permission to change them).
+# you do not have permission to change them). "resolution" is required if
+# status is RESOLVED.
 input SubmitCommentInput {
   text: String!
   status: TicketStatus
   resolution: TicketResolution
+
+  # For use by the tracker owner only
+  import: ImportInput
 }
 
 # "resolution" is required if status is RESOLVED.
 input UpdateStatusInput {
   status: TicketStatus!
   resolution: TicketResolution
+
+  # For use by the tracker owner only
+  import: ImportInput
 }
 
 type Mutation {
@@ -10626,6 +10651,41 @@ func (ec *executionContext) ___Directive_args(ctx context.Context, field graphql
 	return ec.marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚋintrospectionᚐInputValueᚄ(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) ___Directive_isRepeatable(ctx context.Context, field graphql.CollectedField, obj *introspection.Directive) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "__Directive",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   false,
+		IsResolver: false,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		ctx = rctx // use context from middleware stack in children
+		return obj.IsRepeatable, nil
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(bool)
+	fc.Result = res
+	return ec.marshalNBoolean2bool(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) ___EnumValue_name(ctx context.Context, field graphql.CollectedField, obj *introspection.EnumValue) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -11578,7 +11638,10 @@ func (ec *executionContext) ___Type_ofType(ctx context.Context, field graphql.Co
 
 func (ec *executionContext) unmarshalInputACLInput(ctx context.Context, obj interface{}) (model.ACLInput, error) {
 	var it model.ACLInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -11628,9 +11691,51 @@ func (ec *executionContext) unmarshalInputACLInput(ctx context.Context, obj inte
 	return it, nil
 }
 
+func (ec *executionContext) unmarshalInputImportInput(ctx context.Context, obj interface{}) (model.ImportInput, error) {
+	var it model.ImportInput
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
+
+	for k, v := range asMap {
+		switch k {
+		case "created":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("created"))
+			it.Created, err = ec.unmarshalNTime2timeᚐTime(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "externalId":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalId"))
+			it.ExternalID, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "externalUrl":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("externalUrl"))
+			it.ExternalURL, err = ec.unmarshalNString2string(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		}
+	}
+
+	return it, nil
+}
+
 func (ec *executionContext) unmarshalInputSubmitCommentInput(ctx context.Context, obj interface{}) (model.SubmitCommentInput, error) {
 	var it model.SubmitCommentInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -11658,6 +11763,14 @@ func (ec *executionContext) unmarshalInputSubmitCommentInput(ctx context.Context
 			if err != nil {
 				return it, err
 			}
+		case "import":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("import"))
+			it.Import, err = ec.unmarshalOImportInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐImportInput(ctx, v)
+			if err != nil {
+				return it, err
+			}
 		}
 	}
 
@@ -11666,7 +11779,10 @@ func (ec *executionContext) unmarshalInputSubmitCommentInput(ctx context.Context
 
 func (ec *executionContext) unmarshalInputSubmitTicketInput(ctx context.Context, obj interface{}) (model.SubmitTicketInput, error) {
 	var it model.SubmitTicketInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -11718,7 +11834,10 @@ func (ec *executionContext) unmarshalInputSubmitTicketInput(ctx context.Context,
 
 func (ec *executionContext) unmarshalInputUpdateStatusInput(ctx context.Context, obj interface{}) (model.UpdateStatusInput, error) {
 	var it model.UpdateStatusInput
-	var asMap = obj.(map[string]interface{})
+	asMap := map[string]interface{}{}
+	for k, v := range obj.(map[string]interface{}) {
+		asMap[k] = v
+	}
 
 	for k, v := range asMap {
 		switch k {
@@ -11735,6 +11854,14 @@ func (ec *executionContext) unmarshalInputUpdateStatusInput(ctx context.Context,
 
 			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("resolution"))
 			it.Resolution, err = ec.unmarshalOTicketResolution2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicketResolution(ctx, v)
+			if err != nil {
+				return it, err
+			}
+		case "import":
+			var err error
+
+			ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("import"))
+			it.Import, err = ec.unmarshalOImportInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐImportInput(ctx, v)
 			if err != nil {
 				return it, err
 			}
@@ -13606,6 +13733,11 @@ func (ec *executionContext) ___Directive(ctx context.Context, sel ast.SelectionS
 			if out.Values[i] == graphql.Null {
 				invalids++
 			}
+		case "isRepeatable":
+			out.Values[i] = ec.___Directive_isRepeatable(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -13931,6 +14063,7 @@ func (ec *executionContext) marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodo�
 
 	}
 	wg.Wait()
+
 	return ret
 }
 
@@ -13968,6 +14101,13 @@ func (ec *executionContext) marshalNEvent2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtod
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14029,6 +14169,7 @@ func (ec *executionContext) marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋ
 
 	}
 	wg.Wait()
+
 	return ret
 }
 
@@ -14095,6 +14236,7 @@ func (ec *executionContext) marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtod
 
 	}
 	wg.Wait()
+
 	return ret
 }
 
@@ -14132,6 +14274,13 @@ func (ec *executionContext) marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtod
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14228,6 +14377,13 @@ func (ec *executionContext) marshalNSubscription2ᚕgitᚗsrᚗhtᚋאsircmpwn�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14269,6 +14425,13 @@ func (ec *executionContext) marshalNTicket2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋto
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14369,6 +14532,13 @@ func (ec *executionContext) marshalNTracker2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋt
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14416,6 +14586,13 @@ func (ec *executionContext) marshalNTrackerACL2ᚕᚖgitᚗsrᚗhtᚋאsircmpwn�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14551,6 +14728,13 @@ func (ec *executionContext) marshalN__Directive2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14624,6 +14808,13 @@ func (ec *executionContext) marshalN__DirectiveLocation2ᚕstringᚄ(ctx context
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14673,6 +14864,13 @@ func (ec *executionContext) marshalN__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14714,6 +14912,13 @@ func (ec *executionContext) marshalN__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -14829,6 +15034,14 @@ func (ec *executionContext) marshalOEventDetail2gitᚗsrᚗhtᚋאsircmpwnᚋtod
 		return graphql.Null
 	}
 	return ec._EventDetail(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalOImportInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐImportInput(ctx context.Context, v interface{}) (*model.ImportInput, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := ec.unmarshalInputImportInput(ctx, v)
+	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
 func (ec *executionContext) marshalOLabel2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx context.Context, sel ast.SelectionSet, v *model.Label) graphql.Marshaler {
@@ -15033,6 +15246,13 @@ func (ec *executionContext) marshalO__EnumValue2ᚕgithubᚗcomᚋ99designsᚋgq
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -15073,6 +15293,13 @@ func (ec *executionContext) marshalO__Field2ᚕgithubᚗcomᚋ99designsᚋgqlgen
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -15113,6 +15340,13 @@ func (ec *executionContext) marshalO__InputValue2ᚕgithubᚗcomᚋ99designsᚋg
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
@@ -15160,6 +15394,13 @@ func (ec *executionContext) marshalO__Type2ᚕgithubᚗcomᚋ99designsᚋgqlgen�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
 	return ret
 }
 
