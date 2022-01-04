@@ -944,7 +944,7 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 			Status: input.Status.String(),
 			Resolution: resolution.String(),
 		}
-		subject := fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject)
+		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
 		builder.SendEmails(subject, ticketStatusTemplate, &details)
 
 		// TODO: Fire webhooks
@@ -1071,10 +1071,24 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		}
 		builder.InsertNotifications(event.ID, &commentID)
 
-		// TODO:
-		// - Send email notifications
-		// - Fire webhooks
-		_ = owner // XXX: TEMP
+		conf := config.ForContext(ctx)
+		origin := config.GetOrigin(conf, "todo.sr.ht", true)
+		details := SubmitCommentDetails{
+			Root: origin,
+			TicketURL: fmt.Sprintf("/%s/%s/%d",
+				owner.CanonicalName(), tracker.Name, ticket.ID),
+			EventID: event.ID,
+			Comment: input.Text,
+			StatusUpdated: input.Status != nil,
+		}
+		if details.StatusUpdated {
+			details.Status = model.TicketStatusFromInt(*newStatus).String()
+			details.Resolution = model.TicketResolutionFromInt(*newResolution).String()
+		}
+		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
+		builder.SendEmails(subject, submitCommentTemplate, &details)
+
+		// TODO: Fire webhooks
 		return nil
 	}); err != nil {
 		return nil, err
