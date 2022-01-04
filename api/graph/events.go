@@ -41,6 +41,30 @@ var ticketStatusTemplate = template.Must(template.New("ticket-status").Parse(
 -- 
 View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))
 
+type SubmitCommentDetails struct {
+	Comment       string
+	Root          string
+	TicketURL     string
+	EventID       int
+	Status        string
+	Resolution    string
+	StatusUpdated bool
+}
+
+var submitCommentTemplate = template.Must(template.New("ticket-status").Parse(`
+{{- if .StatusUpdated -}}
+{{- if eq .Status "RESOLVED" -}}
+Ticket resolved: {{.Resolution}}
+
+{{else -}}
+Ticket re-opened: {{.Status}}
+
+{{end}}{{end -}}
+{{.Comment }}
+
+-- 
+View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))
+
 type EventBuilder struct {
 	ctx         context.Context
 	tx          *sql.Tx
