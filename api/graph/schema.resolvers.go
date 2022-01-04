@@ -778,33 +778,16 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 
 		builder.InsertNotifications(eventID, nil)
 
-		// Send notification emails
 		details := NewTicketDetails{
 			Body: ticket.Body,
 			Root: origin,
 			TicketURL: fmt.Sprintf("/%s/%s/%d",
 				owner.CanonicalName(), tracker.Name, ticket.ID),
 		}
-		subs := sq.Select(`
-				CASE part.participant_type
-				WHEN 'user' THEN '~' || "user".username
-				WHEN 'email' THEN part.email_name
-				ELSE null END
-			`, `
-				CASE part.participant_type
-				WHEN 'user' THEN "user".email
-				WHEN 'email' THEN part.email
-				ELSE null END
-			`).
-			From(`event_participant evpart`).
-			Join(`participant part ON evpart.participant_id = part.id`).
-			LeftJoin(`"user" ON "user".id = part.user_id`)
-		queueNotifications(ctx, tx,
-			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
-			newTicketTemplate, &details, subs)
+		subject := fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject)
+		builder.SendEmails(subject, newTicketTemplate, &details)
 
 		// TODO: Fire webhooks
-
 		return nil
 	}); err != nil {
 		return nil, err
@@ -870,7 +853,6 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 	}
 
 	// TODO: Fire webhooks
-
 	return ticket, nil
 }
 
@@ -962,30 +944,14 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 			Status: input.Status.String(),
 			Resolution: resolution.String(),
 		}
-		subs := sq.Select(`
-				CASE part.participant_type
-				WHEN 'user' THEN '~' || "user".username
-				WHEN 'email' THEN part.email_name
-				ELSE null END
-			`, `
-				CASE part.participant_type
-				WHEN 'user' THEN "user".email
-				WHEN 'email' THEN part.email
-				ELSE null END
-			`).
-			Distinct().
-			From(`event_participant evpart`).
-			Join(`participant part ON evpart.participant_id = part.id`).
-			LeftJoin(`"user" ON "user".id = part.user_id`)
-		queueNotifications(ctx, tx,
-			fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject),
-			ticketStatusTemplate, &details, subs)
+		subject := fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject)
+		builder.SendEmails(subject, ticketStatusTemplate, &details)
 
+		// TODO: Fire webhooks
 		return nil
 	}); err != nil {
 		return nil, err
 	}
-	// TODO: Fire webhooks
 	return &event, nil
 }
 
