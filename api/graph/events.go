@@ -16,6 +16,31 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 )
 
+type NewTicketDetails struct {
+	Body      *string
+	Root      string
+	TicketURL string
+}
+
+var newTicketTemplate = template.Must(template.New("new-ticket").Parse(
+`{{.Body}}
+
+-- 
+View on the web: {{.Root}}{{.TicketURL}}`))
+
+type TicketStatusDetails struct {
+	Root       string
+	TicketURL  string
+	EventID    int
+	Status     string
+	Resolution string
+}
+
+var ticketStatusTemplate = template.Must(template.New("ticket-status").Parse(
+`{{if eq .Status "RESOLVED"}}Ticket resolved: {{.Resolution}}{{end}}
+-- 
+View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))
+
 type EventBuilder struct {
 	ctx         context.Context
 	tx          *sql.Tx
