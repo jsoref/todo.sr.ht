@@ -1005,7 +1005,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		_oldResolution int
 		newResolution  *int
 		_newResolution int
-		eventType      int = model.EVENT_COMMENT
+		eventType      uint = model.EVENT_COMMENT
 	)
 	if input.Status != nil {
 		eventType |= model.EVENT_STATUS_CHANGE
@@ -1029,7 +1029,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 	var event model.Event
 	columns := database.Columns(ctx, &event)
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_COMMENT).
+		builder := NewEventBuilder(ctx, tx, part.ID, eventType).
 			WithTicket(tracker, ticket)
 
 		mentions := ScanMentions(ctx, tracker, ticket, input.Text)
