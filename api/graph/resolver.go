@@ -100,7 +100,7 @@ func queueNotifications(ctx context.Context, tx *sql.Tx, subject string,
 			if notifySelf {
 				copiedSelf = true
 			} else {
-				break
+				continue
 			}
 		}
 		if _, ok := set[address]; ok {
