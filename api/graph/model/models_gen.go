@@ -37,6 +37,12 @@ type EventCursor struct {
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+type ImportInput struct {
+	Created     time.Time `json:"created"`
+	ExternalID  string    `json:"externalId"`
+	ExternalURL string    `json:"externalUrl"`
+}
+
 type LabelCursor struct {
 	Results []*Label      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
@@ -46,6 +52,7 @@ type SubmitCommentInput struct {
 	Text       string            `json:"text"`
 	Status     *TicketStatus     `json:"status"`
 	Resolution *TicketResolution `json:"resolution"`
+	Import     *ImportInput      `json:"import"`
 }
 
 type SubmitTicketInput struct {
@@ -74,6 +81,7 @@ type TrackerCursor struct {
 type UpdateStatusInput struct {
 	Status     TicketStatus      `json:"status"`
 	Resolution *TicketResolution `json:"resolution"`
+	Import     *ImportInput      `json:"import"`
 }
 
 type Version struct {
