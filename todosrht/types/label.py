@@ -45,6 +45,11 @@ class Label(Base):
 
 class TicketLabel(Base):
     __tablename__ = 'ticket_label'
+    __table_args__ = (
+        sa.UniqueConstraint("ticket_id", "label_id",
+            name="idx_label_ticket_unique"),
+    )
+
     ticket_id = sa.Column(sa.Integer,
             sa.ForeignKey('ticket.id', ondelete="CASCADE"),
             primary_key=True)
