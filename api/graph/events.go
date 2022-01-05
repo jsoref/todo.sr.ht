@@ -51,7 +51,7 @@ type SubmitCommentDetails struct {
 	StatusUpdated bool
 }
 
-var submitCommentTemplate = template.Must(template.New("ticket-status").Parse(`
+var submitCommentTemplate = template.Must(template.New("ticket-comment").Parse(`
 {{- if .StatusUpdated -}}
 {{- if eq .Status "RESOLVED" -}}
 Ticket resolved: {{.Resolution}}
@@ -61,6 +61,20 @@ Ticket re-opened: {{.Status}}
 
 {{end}}{{end -}}
 {{.Comment }}
+
+-- 
+View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))
+
+type TicketAssignedDetails struct {
+	Root      string
+	TicketURL string
+	EventID   int
+	Assigner  string
+	Assignee  string
+}
+
+var ticketAssignedTemplate = template.Must(template.New("ticket-assigned").Parse(`
+~{{.Assigner}} assigned this ticket to ~{{.Assignee}}
 
 -- 
 View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))
