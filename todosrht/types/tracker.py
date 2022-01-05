@@ -17,6 +17,11 @@ class Visibility(Enum):
 
 class Tracker(Base):
     __tablename__ = 'tracker'
+    __table_args__ = (
+        sa.UniqueConstraint("owner_id", "name",
+            name="tracker_owner_id_name_unique"),
+    )
+
     id = sa.Column(sa.Integer, primary_key=True)
     owner_id = sa.Column(sa.Integer, sa.ForeignKey("user.id"), nullable=False)
     owner = sa.orm.relationship("User", backref=sa.orm.backref("owned_trackers"))

@@ -381,8 +381,6 @@ def notify_assignee(subscription, ticket, assigner, assignee):
     notify(subscription, "ticket_assigned", subject, headers, **context)
 
 def assign(ticket, assignee, assigner):
-    role = ""  # Role is not yet implemented
-
     ticket_assignee = TicketAssignee.query.filter_by(
         ticket=ticket, assignee=assignee).one_or_none()
 
@@ -394,7 +392,6 @@ def assign(ticket, assignee, assigner):
         ticket=ticket,
         assignee=assignee,
         assigner=assigner,
-        role=role,
     )
     db.session.add(ticket_assignee)
 
