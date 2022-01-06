@@ -163,7 +163,7 @@ func (ev *Event) Changes() []EventDetail {
 
 	if ev.EventType & EVENT_LABEL_REMOVED != 0 {
 		changes = append(changes, LabelUpdate{
-			EventType:     EventTypeLabelAdded,
+			EventType:     EventTypeLabelRemoved,
 			TicketID:      ev.TicketID,
 			ParticipantID: ev.ParticipantID,
 			LabelID:       *ev.LabelID,

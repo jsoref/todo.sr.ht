@@ -1374,11 +1374,175 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 }
 
 func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
-	panic(fmt.Errorf("not implemented"))
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, fmt.Errorf("No such tracker")
+	}
+	if !tracker.CanTriage() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, fmt.Errorf("No such ticket")
+	}
+
+	label, err := loaders.ForContext(ctx).
+		LabelsByID.Load(labelID)
+	if err != nil {
+		return nil, err
+	} else if label == nil {
+		return nil, fmt.Errorf("No such label")
+	}
+
+	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
+	var event model.Event
+	insertEvent := sq.Insert("event").
+		PlaceholderFormat(sq.Dollar).
+		Columns("created", "event_type", "ticket_id",
+			"participant_id", "label_id").
+		Values(sq.Expr("now() at time zone 'utc'"),
+			model.EVENT_LABEL_ADDED, ticket.PKID, part.ID, label.ID)
+
+	valid := valid.New(ctx)
+	columns := database.Columns(ctx, &event)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			INSERT INTO ticket_label (
+				created, ticket_id, label_id, user_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			)`, ticket.PKID, label.ID, user.UserID)
+		if err, ok := err.(*pq.Error); ok &&
+			err.Code == "23505" && // unique_violation
+			err.Constraint == "ticket_label_pkey" {
+			valid.Error("This label is already assigned to this ticket").
+				WithField("userId")
+			return errors.New("placeholder") // To rollback the transaction
+		} else if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			UPDATE ticket
+			SET updated = NOW() at time zone 'utc'
+			WHERE id = $1
+		`, ticket.PKID)
+		if err != nil {
+			return nil
+		}
+
+		row := insertEvent.
+			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &event)...); err != nil {
+			return err
+		}
+
+		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_LABEL_ADDED).
+			WithTicket(tracker, ticket)
+		builder.InsertNotifications(event.ID, nil)
+		return nil
+	}); err != nil {
+		if !valid.Ok() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &event, nil
 }
 
 func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
-	panic(fmt.Errorf("not implemented"))
+	// XXX: Some of this can be shared with labelTicket
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, fmt.Errorf("No such tracker")
+	}
+	if !tracker.CanTriage() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, fmt.Errorf("No such ticket")
+	}
+
+	label, err := loaders.ForContext(ctx).
+		LabelsByID.Load(labelID)
+	if err != nil {
+		return nil, err
+	} else if label == nil {
+		return nil, fmt.Errorf("No such label")
+	}
+
+	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
+	var event model.Event
+	insertEvent := sq.Insert("event").
+		PlaceholderFormat(sq.Dollar).
+		Columns("created", "event_type", "ticket_id",
+			"participant_id", "label_id").
+		Values(sq.Expr("now() at time zone 'utc'"),
+			model.EVENT_LABEL_REMOVED, ticket.PKID, part.ID, label.ID)
+
+	columns := database.Columns(ctx, &event)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			DELETE FROM ticket_label
+			WHERE ticket_id = $1 AND label_id = $2`,
+			ticket.PKID, label.ID)
+		if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			UPDATE ticket
+			SET updated = NOW() at time zone 'utc'
+			WHERE id = $1
+		`, ticket.PKID)
+		if err != nil {
+			return nil
+		}
+
+		row := insertEvent.
+			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &event)...); err != nil {
+			return err
+		}
+
+		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_LABEL_REMOVED).
+			WithTicket(tracker, ticket)
+		builder.InsertNotifications(event.ID, nil)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &event, nil
 }
 
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
