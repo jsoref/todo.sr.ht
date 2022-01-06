@@ -69,12 +69,17 @@ type TicketAssignedDetails struct {
 	Root      string
 	TicketURL string
 	EventID   int
+	Assigned  bool
 	Assigner  string
 	Assignee  string
 }
 
 var ticketAssignedTemplate = template.Must(template.New("ticket-assigned").Parse(`
+{{- if .Assigned -}}
 ~{{.Assigner}} assigned this ticket to ~{{.Assignee}}
+{{- else -}}
+~{{.Assigner}} unassigned ~{{.Assignee}} from this ticket
+{{- end}}
 
 -- 
 View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))

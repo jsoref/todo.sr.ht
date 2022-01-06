@@ -1201,7 +1201,7 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 			return err
 		}
 
-		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_ASSIGNED_USER ).
+		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_ASSIGNED_USER).
 			WithTicket(tracker, ticket)
 		_, err = builder.tx.ExecContext(builder.ctx, `
 			INSERT INTO event_participant (
@@ -1223,6 +1223,7 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 			TicketURL: fmt.Sprintf("/%s/%s/%d",
 				owner.CanonicalName(), tracker.Name, ticket.ID),
 			EventID:  event.ID,
+			Assigned: true,
 			Assigner: user.Username,
 			Assignee: assignedUser.Username,
 		}
@@ -1242,7 +1243,134 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 }
 
 func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error) {
-	panic(fmt.Errorf("not implemented"))
+	// XXX: I wonder how much of this can be shared with AssignUser
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, nil
+	}
+	if !tracker.CanTriage() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
+	if err != nil {
+		panic(err)
+	}
+
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, nil
+	}
+
+	assignedUser, err := loaders.ForContext(ctx).UsersByID.Load(userID)
+	if err != nil {
+		return nil, err
+	} else if assignedUser == nil {
+		return nil, nil
+	}
+
+	assignee, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(userID)
+	if err != nil {
+		return nil, err
+	} else if assignee == nil {
+		return nil, nil
+	}
+
+	user := auth.ForContext(ctx)
+	part, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(user.UserID)
+	if err != nil {
+		panic(err)
+	}
+
+	var event model.Event
+	insertEvent := sq.Insert("event").
+		PlaceholderFormat(sq.Dollar).
+		Columns("created", "event_type", "ticket_id",
+			"participant_id", "by_participant_id").
+		Values(sq.Expr("now() at time zone 'utc'"),
+			model.EVENT_UNASSIGNED_USER, ticket.PKID,
+			assignee.ID, part.ID)
+
+	valid := valid.New(ctx)
+	columns := database.Columns(ctx, &event)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		var taId int
+		err := tx.QueryRowContext(ctx, `
+			DELETE FROM ticket_assignee
+			WHERE ticket_id = $1 AND assignee_id = $2
+			RETURNING id`,
+			ticket.PKID, userID).
+			Scan(&taId)
+		if err == sql.ErrNoRows {
+			valid.Error("This user is not assigned to this ticket").
+				WithField("userId")
+			return nil
+		} else if err != nil {
+			return err
+		}
+
+		_, err = tx.ExecContext(ctx, `
+			UPDATE ticket
+			SET updated = NOW() at time zone 'utc'
+			WHERE id = $1
+		`, ticket.PKID)
+		if err != nil {
+			return nil
+		}
+
+		row := insertEvent.
+			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &event)...); err != nil {
+			return err
+		}
+
+		builder := NewEventBuilder(ctx, tx, part.ID, model.EVENT_UNASSIGNED_USER).
+			WithTicket(tracker, ticket)
+		_, err = builder.tx.ExecContext(builder.ctx, `
+			INSERT INTO event_participant (
+				participant_id, event_type, subscribe
+			) VALUES (
+				$1, $2, true
+			);
+		`, assignee.ID, model.EVENT_ASSIGNED_USER)
+		if err != nil {
+			panic(err)
+		}
+		builder.InsertSubscriptions()
+		builder.InsertNotifications(event.ID, nil)
+
+		conf := config.ForContext(ctx)
+		origin := config.GetOrigin(conf, "todo.sr.ht", true)
+		details := TicketAssignedDetails{
+			Root: origin,
+			TicketURL: fmt.Sprintf("/%s/%s/%d",
+				owner.CanonicalName(), tracker.Name, ticket.ID),
+			EventID:  event.ID,
+			Assigned: false,
+			Assigner: user.Username,
+			Assignee: assignedUser.Username,
+		}
+		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
+		builder.SendEmails(subject, ticketAssignedTemplate, &details)
+
+		// TODO: Fire webhooks
+		return nil
+	}); err != nil {
+		if !valid.Ok() {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &event, nil
+
 }
 
 func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
