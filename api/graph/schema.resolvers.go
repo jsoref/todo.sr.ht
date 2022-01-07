@@ -1371,7 +1371,6 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 	}
 
 	return &event, nil
-
 }
 
 func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
@@ -1898,6 +1897,10 @@ func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.AC
 	}
 
 	return acl, nil
+}
+
+func (r *trackerResolver) DefaultACL(ctx context.Context, obj *model.Tracker) (*model.DefaultACL, error) {
+	panic(fmt.Errorf("not implemented"))
 }
 
 func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
