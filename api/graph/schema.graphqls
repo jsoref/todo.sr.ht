@@ -102,6 +102,7 @@ type Tracker {
   acl: ACL
 
   # Only available to the tracker owner:
+  defaultACL: DefaultACL!
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
   # Returns a URL from which the tracker owner may download a gzipped JSON
