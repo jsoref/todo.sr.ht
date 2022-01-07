@@ -32,9 +32,10 @@ type Tracker struct {
 	Description *string    `json:"description"`
 	Visibility  Visibility `json:"visibility"`
 
-	OwnerID int
-	Access  int
-	ACLID   *int
+	OwnerID       int
+	Access        int
+	DefaultAccess int
+	ACLID         *int
 
 	alias  string
 	fields *database.ModelFields
