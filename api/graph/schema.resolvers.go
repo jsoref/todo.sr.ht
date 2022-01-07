@@ -239,9 +239,10 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 }
 
 func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tracker, error) {
+	user := auth.ForContext(ctx)
+
 	var tracker model.Tracker
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		user := auth.ForContext(ctx)
 		row := tx.QueryRowContext(ctx, `
 			DELETE FROM tracker
 			WHERE id = $1 AND owner_id = $2
@@ -262,7 +263,8 @@ func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tr
 		}
 		return nil, err
 	}
-	// TODO: Fire webhooks
+
+	webhooks.DeliverLegacyTrackerDelete(ctx, tracker.ID, user.UserID)
 	return &tracker, nil
 }
 

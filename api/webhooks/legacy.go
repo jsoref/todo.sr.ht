@@ -106,3 +106,27 @@ func DeliverLegacyTrackerEvent(ctx context.Context,
 		Where("sub.user_id = ?", user.UserID)
 	q.Schedule(ctx, query, "user", ev, encoded)
 }
+
+func DeliverLegacyTrackerDelete(ctx context.Context, trackerId, userId int) {
+	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
+	if !ok {
+		panic("No legacy user webhooks worker for this context")
+	}
+
+	type WebhookPayload struct {
+		ID int `json:"id"`
+	}
+
+	payload := WebhookPayload{trackerId}
+
+	encoded, err := json.Marshal(&payload)
+	if err != nil {
+		panic(err) // Programmer error
+	}
+
+	query := sq.
+		Select().
+		From("user_webhook_subscription sub").
+		Where("sub.user_id = ?", userId)
+	q.Schedule(ctx, query, "user", "tracker:delete", encoded)
+}
