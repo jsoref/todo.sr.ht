@@ -60,7 +60,7 @@ func DeliverLegacyTrackerEvent(ctx context.Context,
 	tracker *model.Tracker, ev string) {
 	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
 	if !ok {
-		panic("No legacy user webhooks worker for this context")
+		panic("No legacy webhooks worker for this context")
 	}
 
 	type WebhookPayload struct {
@@ -110,7 +110,7 @@ func DeliverLegacyTrackerEvent(ctx context.Context,
 func DeliverLegacyTrackerDelete(ctx context.Context, trackerId, userId int) {
 	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
 	if !ok {
-		panic("No legacy user webhooks worker for this context")
+		panic("No legacy webhooks worker for this context")
 	}
 
 	type WebhookPayload struct {
