@@ -19,6 +19,7 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/webhooks"
 	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
 	"github.com/lib/pq"
@@ -158,13 +159,13 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 				NOW() at time zone 'utc',
 				$1, $2, $3, $4
 			)
-			RETURNING
-				id, owner_id, created, updated, name, description, visibility;
+			RETURNING id, owner_id, created, updated, name, description,
+				visibility, default_access;
 		`, user.UserID, name, description, visibility.String())
 
 		if err := row.Scan(&tracker.ID, &tracker.OwnerID, &tracker.Created,
 			&tracker.Updated, &tracker.Name, &tracker.Description,
-			&tracker.Visibility); err != nil {
+			&tracker.Visibility, &tracker.DefaultAccess); err != nil {
 			if err, ok := err.(*pq.Error); ok &&
 				err.Code == "23505" && // unique_violation
 				err.Constraint == "tracker_owner_id_name_unique" {
@@ -192,7 +193,7 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		}
 		return nil, err
 	}
-	// TODO: Fire webhooks
+	webhooks.DeliverLegacyTrackerEvent(ctx, &tracker, "tracker:create")
 	return &tracker, nil
 }
 
@@ -233,7 +234,7 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 	}); err != nil {
 		return nil, err
 	}
-	// TODO: Fire webhooks
+	webhooks.DeliverLegacyTrackerEvent(ctx, tracker, "tracker:update")
 	return tracker, nil
 }
 
