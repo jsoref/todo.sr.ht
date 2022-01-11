@@ -130,3 +130,62 @@ func DeliverLegacyTrackerDelete(ctx context.Context, trackerId, userId int) {
 		Where("sub.user_id = ?", userId)
 	q.Schedule(ctx, query, "user", "tracker:delete", encoded)
 }
+
+func DeliverLegacyLabelCreate(ctx context.Context,
+	tracker *model.Tracker, label *model.Label) {
+	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
+	if !ok {
+		panic("No legacy webhooks worker for this context")
+	}
+
+	type WebhookPayload struct {
+		Name    string    `json:"name"`
+		Created time.Time `json:"created"`
+
+		Colors struct {
+			Background string `json:"background"`
+			Text       string `json:"text"`
+		} `json:"colors"`
+
+		Tracker struct {
+			ID      int       `json:"id"`
+			Created time.Time `json:"created"`
+			Updated time.Time `json:"updated"`
+			Name    string    `json:"name"`
+
+			Owner struct {
+				CanonicalName string `json:"canonical_name"`
+				Name          string `json:"name"`
+			} `json:"owner"`
+		} `json:"tracker"`
+	}
+
+	payload := WebhookPayload{
+		Name:    label.Name,
+		Created: label.Created,
+	}
+	payload.Colors.Background = label.BackgroundColor
+	payload.Colors.Text = label.ForegroundColor
+	payload.Tracker.ID = tracker.ID
+	payload.Tracker.Created = tracker.Created
+	payload.Tracker.Updated = tracker.Updated
+	payload.Tracker.Name = tracker.Name
+
+	user := auth.ForContext(ctx)
+	if user.UserID != tracker.OwnerID {
+		panic("Submitting webhook for another user's context (why?)")
+	}
+	payload.Tracker.Owner.CanonicalName = "~" + user.Username
+	payload.Tracker.Owner.Name = user.Username
+
+	encoded, err := json.Marshal(&payload)
+	if err != nil {
+		panic(err) // Programmer error
+	}
+
+	query := sq.
+		Select().
+		From("tracker_webhook_subscription sub").
+		Where("sub.tracker_id = ?", tracker.ID)
+	q.Schedule(ctx, query, "tracker", "label:create", encoded)
+}
