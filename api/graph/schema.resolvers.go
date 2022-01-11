@@ -521,23 +521,27 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 	if n, err := hex.Decode(bgb[:], []byte(background[1:])); err != nil || n != 3 {
 		return nil, fmt.Errorf("Invalid background color format")
 	}
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, nil
+	}
+	if tracker.OwnerID != user.UserID {
+		return nil, fmt.Errorf("Access denied")
+	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		// TODO: Rename the columns for consistency
 		row := tx.QueryRowContext(ctx, `
-			WITH tr AS (
-				SELECT id
-				FROM tracker
-				WHERE id = $1 AND owner_id = $2
-			) INSERT INTO label (
+			INSERT INTO label (
 				created, updated, tracker_id, name, color, text_color
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
-				(SELECT id FROM tr),
-				$3, $4, $5
+				$1, $2, $3, $4
 			) RETURNING id, created, name, color, text_color, tracker_id;
-		`, trackerID, user.UserID, name, background, foreground)
+		`, tracker.ID, name, background, foreground)
 
 		if err := row.Scan(&label.ID, &label.Created, &label.Name,
 			&label.BackgroundColor, &label.ForegroundColor,
@@ -561,6 +565,7 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 		}
 		return nil, err
 	}
+	webhooks.DeliverLegacyLabelCreate(ctx, tracker, &label)
 	return &label, nil
 }
 
