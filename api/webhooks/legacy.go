@@ -189,3 +189,29 @@ func DeliverLegacyLabelCreate(ctx context.Context,
 		Where("sub.tracker_id = ?", tracker.ID)
 	q.Schedule(ctx, query, "tracker", "label:create", encoded)
 }
+
+func DeliverLegacyLabelDelete(ctx context.Context, trackerID, labelID int) {
+	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
+	if !ok {
+		panic("No legacy webhooks worker for this context")
+	}
+
+	// It occurs to me that this webhook is completely useless given that the
+	// legacy API doesn't expose label IDs to the user
+	type WebhookPayload struct {
+		ID int `json:"id"`
+	}
+
+	payload := WebhookPayload{labelID}
+
+	encoded, err := json.Marshal(&payload)
+	if err != nil {
+		panic(err) // Programmer error
+	}
+
+	query := sq.
+		Select().
+		From("tracker_webhook_subscription sub").
+		Where("sub.tracker_id = ?", trackerID)
+	q.Schedule(ctx, query, "tracker", "label:delete", encoded)
+}
