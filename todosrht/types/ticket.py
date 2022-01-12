@@ -84,9 +84,6 @@ class Ticket(Base):
         return f"<Ticket {self.id}>"
 
     def to_dict(self, short=False):
-        def permissions(w):
-            return [p.name for p in TicketAccess
-                    if p in w and p not in [TicketAccess.none, TicketAccess.all]]
         return {
             "id": self.scoped_id,
             "ref": self.ref(),
