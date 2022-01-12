@@ -23,7 +23,7 @@ type SubscriptionInfo struct {
 	fields *database.ModelFields
 }
 
-type Subscription interface {
+type ActivitySubscription interface {
 	IsSubscription()
 	DBID() int
 }
@@ -86,7 +86,7 @@ func (si *SubscriptionInfo) Fields() *database.ModelFields {
 }
 
 func (si *SubscriptionInfo) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
-	q sq.SelectBuilder, cur *model.Cursor) ([]Subscription, *model.Cursor) {
+	q sq.SelectBuilder, cur *model.Cursor) ([]ActivitySubscription, *model.Cursor) {
 	var (
 		err  error
 		rows *sql.Rows
@@ -105,7 +105,7 @@ func (si *SubscriptionInfo) QueryWithCursor(ctx context.Context, runner sq.BaseR
 	}
 	defer rows.Close()
 
-	var subs []Subscription
+	var subs []ActivitySubscription
 	for rows.Next() {
 		var si SubscriptionInfo
 		if err := rows.Scan(database.Scan(ctx, &si)...); err != nil {

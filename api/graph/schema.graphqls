@@ -341,7 +341,7 @@ type TicketMention implements EventDetail {
   mentioned: Ticket! @access(scope: TICKETS, kind: RO)
 }
 
-interface Subscription {
+interface ActivitySubscription {
   id: Int!
   created: Time!
 }
@@ -350,7 +350,7 @@ interface Subscription {
 A tracker subscription will notify a participant of all activity for a
 tracker, including all new tickets and their events.
 """
-type TrackerSubscription implements Subscription {
+type TrackerSubscription implements ActivitySubscription {
   id: Int!
   created: Time!
   tracker: Tracker! @access(scope: TRACKERS, kind: RO)
@@ -360,7 +360,7 @@ type TrackerSubscription implements Subscription {
 A ticket subscription will notify a participant when activity occurs on a
 ticket.
 """
-type TicketSubscription implements Subscription {
+type TicketSubscription implements ActivitySubscription {
   id: Int!
   created: Time!
   ticket: Ticket! @access(scope: TICKETS, kind: RO)
@@ -433,8 +433,8 @@ If there are additional results available, the cursor object may be passed
 back into the same endpoint to retrieve another page. If the cursor is null,
 there are no remaining results to return.
 """
-type SubscriptionCursor {
-  results: [Subscription!]!
+type ActivitySubscriptionCursor {
+  results: [ActivitySubscription!]!
   cursor: Cursor
 }
 
@@ -479,7 +479,7 @@ type Query {
   events(cursor: Cursor): EventCursor @access(scope: EVENTS, kind: RO)
 
   "List of subscriptions of the authenticated user."
-  subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
+  subscriptions(cursor: Cursor): ActivitySubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
 "You may omit any fields to leave them unchanged."

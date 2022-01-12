@@ -42,6 +42,16 @@ type ACLInput struct {
 	Triage bool `json:"triage"`
 }
 
+// A cursor for enumerating subscriptions
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
+type ActivitySubscriptionCursor struct {
+	Results []ActivitySubscription `json:"results"`
+	Cursor  *model.Cursor          `json:"cursor"`
+}
+
 // A cursor for enumerating events
 //
 // If there are additional results available, the cursor object may be passed
@@ -93,16 +103,6 @@ type SubmitTicketInput struct {
 	Created     *time.Time `json:"created"`
 	ExternalID  *string    `json:"externalId"`
 	ExternalURL *string    `json:"externalUrl"`
-}
-
-// A cursor for enumerating subscriptions
-//
-// If there are additional results available, the cursor object may be passed
-// back into the same endpoint to retrieve another page. If the cursor is null,
-// there are no remaining results to return.
-type SubscriptionCursor struct {
-	Results []Subscription `json:"results"`
-	Cursor  *model.Cursor  `json:"cursor"`
 }
 
 // A cursor for enumerating tickets
