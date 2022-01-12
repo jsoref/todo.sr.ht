@@ -1642,12 +1642,12 @@ func (r *queryResolver) Events(ctx context.Context, cursor *coremodel.Cursor) (*
 	return &model.EventCursor{events, cursor}, nil
 }
 
-func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.SubscriptionCursor, error) {
+func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.ActivitySubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
 	}
 
-	var subs []model.Subscription
+	var subs []model.ActivitySubscription
 	if err := database.WithTx(ctx, &sql.TxOptions{}, func(tx *sql.Tx) error {
 		sub := (&model.SubscriptionInfo{}).As(`sub`)
 		query := database.
@@ -1661,7 +1661,7 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 		return nil, err
 	}
 
-	return &model.SubscriptionCursor{subs, cursor}, nil
+	return &model.ActivitySubscriptionCursor{subs, cursor}, nil
 }
 
 func (r *statusChangeResolver) Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error) {
