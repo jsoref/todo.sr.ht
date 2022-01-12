@@ -28,8 +28,8 @@ import (
 	"text/template"
 	"time"
 
-	"github.com/lib/pq"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/lib/pq"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/client"
@@ -48,17 +48,17 @@ type contextKey struct {
 type Loaders struct {
 	EntitiesByParticipantID EntitiesByParticipantIDLoader
 
-	UsersByID            UsersByIDLoader
-	UsersByName          UsersByNameLoader
-	TrackersByID         TrackersByIDLoader
-	TrackersByName       TrackersByNameLoader
-	TrackersByOwnerName  TrackersByOwnerNameLoader
-	TicketsByID          TicketsByIDLoader
-	TicketsByTrackerID   TicketsByTrackerIDLoader
-	LabelsByID           LabelsByIDLoader
+	UsersByID           UsersByIDLoader
+	UsersByName         UsersByNameLoader
+	TrackersByID        TrackersByIDLoader
+	TrackersByName      TrackersByNameLoader
+	TrackersByOwnerName TrackersByOwnerNameLoader
+	TicketsByID         TicketsByIDLoader
+	TicketsByTrackerID  TicketsByTrackerIDLoader
+	LabelsByID          LabelsByIDLoader
 
 	// Upserts
-	ParticipantsByUserID   ParticipantsByUserIDLoader
+	ParticipantsByUserID ParticipantsByUserIDLoader
 	// Upserts & fetches from meta.sr.ht
 	ParticipantsByUsername ParticipantsByUsernameLoader
 
@@ -72,8 +72,8 @@ func fetchUsersByID(ctx context.Context) func(ids []int) ([]*model.User, []error
 		users := make([]*model.User, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -117,8 +117,8 @@ func fetchUsersByName(ctx context.Context) func(names []string) ([]*model.User, 
 		users := make([]*model.User, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -162,8 +162,8 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 		trackers := make([]*model.Tracker, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -202,9 +202,9 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 			for rows.Next() {
 				tracker := model.Tracker{}
 				if err := rows.Scan(append(
-						database.Scan(ctx, &tracker),
-						&tracker.Access, &tracker.ACLID,
-						&tracker.DefaultAccess)...); err != nil {
+					database.Scan(ctx, &tracker),
+					&tracker.Access, &tracker.ACLID,
+					&tracker.DefaultAccess)...); err != nil {
 					return err
 				}
 				trackersByID[tracker.ID] = &tracker
@@ -231,8 +231,8 @@ func fetchTrackersByName(ctx context.Context) func(names []string) ([]*model.Tra
 		trackers := make([]*model.Tracker, len(names))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -281,8 +281,8 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 		trackers := make([]*model.Tracker, len(tuples))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err        error
 				rows       *sql.Rows
@@ -360,8 +360,8 @@ func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []e
 
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -416,7 +416,7 @@ func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []e
 func fetchTicketsByTrackerID(ctx context.Context) func(ids [][2]int) ([]*model.Ticket, []error) {
 	return func(ids [][2]int) ([]*model.Ticket, []error) {
 		tickets := make([]*model.Ticket, len(ids))
-		if err := database.WithTx(ctx, nil, func (tx *sql.Tx) error {
+		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 			var (
 				err        error
 				rows       *sql.Rows
@@ -494,8 +494,8 @@ func fetchCommentsByIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Comm
 		comments := make([]*model.Comment, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -552,8 +552,8 @@ func fetchEntitiesByParticipantID(ctx context.Context) func(ids []int) ([]model.
 		entities := make([]model.Entity, len(ids))
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -609,7 +609,7 @@ func fetchEntitiesByParticipantID(ctx context.Context) func(ids []int) ([]model.
 					}
 				}
 
-				switch (ptype) {
+				switch ptype {
 				case "user":
 					entity = &user
 				case "email":
@@ -646,8 +646,8 @@ func fetchLabelsByID(ctx context.Context) func(ids []int) ([]*model.Label, []err
 
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -703,7 +703,7 @@ func fetchParticipantsByUserID(ctx context.Context) func(ids []int) ([]*model.Pa
 	return func(ids []int) ([]*model.Participant, []error) {
 		parts := make([]*model.Participant, len(ids))
 
-		if err := database.WithTx(ctx, nil, func (tx *sql.Tx) error {
+		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 			// XXX: This is optimized for working with many user IDs at once,
 			// for a low number of IDs it might be faster to do it differently
 			_, err := tx.ExecContext(ctx, `
@@ -824,7 +824,7 @@ func fetchParticipantsByUsername(ctx context.Context) func(names []string) ([]*m
 	return func(names []string) ([]*model.Participant, []error) {
 		parts := make([]*model.Participant, len(names))
 
-		if err := database.WithTx(ctx, nil, func (tx *sql.Tx) error {
+		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx, `
 				CREATE TEMP TABLE participant_users (
 					username varchar NOT NULL
@@ -1036,8 +1036,8 @@ func fetchSubsByTicketIDUnsafe(ctx context.Context) func(ids []int) ([]*model.Ti
 
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows
@@ -1091,8 +1091,8 @@ func fetchSubsByTrackerIDUnsafe(ctx context.Context) func(ids []int) ([]*model.T
 
 		if err := database.WithTx(ctx, &sql.TxOptions{
 			Isolation: 0,
-			ReadOnly: true,
-		}, func (tx *sql.Tx) error {
+			ReadOnly:  true,
+		}, func(tx *sql.Tx) error {
 			var (
 				err  error
 				rows *sql.Rows

@@ -73,13 +73,13 @@ func (si *SubscriptionInfo) Fields() *database.ModelFields {
 	}
 	si.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &si.ID },
-			{ "created", "created", &si.Created },
+			{"id", "id", &si.ID},
+			{"created", "created", &si.Created},
 
 			// Always fetch:
-			{ "id", "", &si.ID },
-			{ "tracker_id", "", &si.TrackerID },
-			{ "ticket_id", "", &si.TicketID },
+			{"id", "", &si.ID},
+			{"tracker_id", "", &si.TrackerID},
+			{"ticket_id", "", &si.TicketID},
 		},
 	}
 	return si.fields

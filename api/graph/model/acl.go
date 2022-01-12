@@ -63,13 +63,13 @@ func (acl *TrackerACL) Fields() *database.ModelFields {
 	}
 	acl.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &acl.ID },
-			{ "created", "created", &acl.Created },
+			{"id", "id", &acl.ID},
+			{"created", "created", &acl.Created},
 
 			// Always fetch:
-			{ "id", "", &acl.ID },
-			{ "user_id", "", &acl.UserID },
-			{ "tracker_id", "", &acl.TrackerID },
+			{"id", "", &acl.ID},
+			{"user_id", "", &acl.UserID},
+			{"tracker_id", "", &acl.TrackerID},
 		},
 	}
 	return acl.fields
@@ -106,11 +106,11 @@ func (acl *TrackerACL) QueryWithCursor(ctx context.Context, runner sq.BaseRunner
 			database.Scan(ctx, &acl), &access)...); err != nil {
 			panic(err)
 		}
-		acl.Browse = access & ACCESS_BROWSE != 0
-		acl.Submit = access & ACCESS_SUBMIT != 0
-		acl.Comment = access & ACCESS_COMMENT != 0
-		acl.Edit = access & ACCESS_EDIT != 0
-		acl.Triage = access & ACCESS_TRIAGE != 0
+		acl.Browse = access&ACCESS_BROWSE != 0
+		acl.Submit = access&ACCESS_SUBMIT != 0
+		acl.Comment = access&ACCESS_COMMENT != 0
+		acl.Edit = access&ACCESS_EDIT != 0
+		acl.Triage = access&ACCESS_TRIAGE != 0
 		acls = append(acls, &acl)
 	}
 

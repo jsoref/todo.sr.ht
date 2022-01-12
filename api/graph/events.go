@@ -9,8 +9,8 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/email"
-	"github.com/emersion/go-message/mail"
 	sq "github.com/Masterminds/squirrel"
+	"github.com/emersion/go-message/mail"
 
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
@@ -23,7 +23,7 @@ type NewTicketDetails struct {
 }
 
 var newTicketTemplate = template.Must(template.New("new-ticket").Parse(
-`{{.Body}}
+	`{{.Body}}
 
 -- 
 View on the web: {{.Root}}{{.TicketURL}}`))
@@ -37,7 +37,7 @@ type TicketStatusDetails struct {
 }
 
 var ticketStatusTemplate = template.Must(template.New("ticket-status").Parse(
-`{{if eq .Status "RESOLVED"}}Ticket resolved: {{.Resolution}}{{end}}
+	`{{if eq .Status "RESOLVED"}}Ticket resolved: {{.Resolution}}{{end}}
 -- 
 View on the web: {{.Root}}{{.TicketURL}}#event-{{.EventID}}`))
 
@@ -93,7 +93,7 @@ type EventBuilder struct {
 	ticket      *model.Ticket
 
 	mentionedParticipants []int
-	mentions *Mentions
+	mentions              *Mentions
 }
 
 // Creates a new event builder for a given submitter (a participant ID) and a
@@ -276,7 +276,7 @@ func (builder *EventBuilder) InsertNotifications(eventID int, commentID *int) {
 func (builder *EventBuilder) SendEmails(subject string,
 	template *template.Template, context interface{}) {
 	var (
-		rcpts []mail.Address
+		rcpts                  []mail.Address
 		notifySelf, copiedSelf bool
 	)
 
@@ -332,13 +332,13 @@ func (builder *EventBuilder) SendEmails(subject string,
 		}
 		set[address] = nil
 		rcpts = append(rcpts, mail.Address{
-			Name: name,
+			Name:    name,
 			Address: address,
 		})
 	}
 	if notifySelf && !copiedSelf {
 		rcpts = append(rcpts, mail.Address{
-			Name: "~" + user.Username,
+			Name:    "~" + user.Username,
 			Address: user.Email,
 		})
 	}
@@ -360,7 +360,7 @@ func (builder *EventBuilder) SendEmails(subject string,
 	}
 
 	from := mail.Address{
-		Name: "~" + user.Username,
+		Name:    "~" + user.Username,
 		Address: notifyFrom,
 	}
 	for _, rcpt := range rcpts {

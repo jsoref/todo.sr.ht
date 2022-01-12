@@ -2,8 +2,8 @@ package model
 
 import (
 	"context"
-	"errors"
 	"database/sql"
+	"errors"
 	"strconv"
 	"time"
 
@@ -15,13 +15,13 @@ import (
 )
 
 const (
-    ACCESS_NONE = 0
-    ACCESS_BROWSE = 1
-    ACCESS_SUBMIT = 2
-    ACCESS_COMMENT = 4
-    ACCESS_EDIT = 8
-    ACCESS_TRIAGE = 16
-	ACCESS_ALL = 1 | 2 | 4 | 8 | 16
+	ACCESS_NONE    = 0
+	ACCESS_BROWSE  = 1
+	ACCESS_SUBMIT  = 2
+	ACCESS_COMMENT = 4
+	ACCESS_EDIT    = 8
+	ACCESS_TRIAGE  = 16
+	ACCESS_ALL     = 1 | 2 | 4 | 8 | 16
 )
 
 type Tracker struct {
@@ -60,16 +60,16 @@ func (t *Tracker) Fields() *database.ModelFields {
 	}
 	t.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &t.ID },
-			{ "created", "created", &t.Created },
-			{ "updated", "updated", &t.Updated },
-			{ "name", "name", &t.Name },
-			{ "description", "description", &t.Description },
-			{ "visibility", "visibility", &t.Visibility },
+			{"id", "id", &t.ID},
+			{"created", "created", &t.Created},
+			{"updated", "updated", &t.Updated},
+			{"name", "name", &t.Name},
+			{"description", "description", &t.Description},
+			{"visibility", "visibility", &t.Visibility},
 
 			// Always fetch:
-			{ "id", "", &t.ID },
-			{ "owner_id", "", &t.OwnerID },
+			{"id", "", &t.ID},
+			{"owner_id", "", &t.OwnerID},
 		},
 	}
 	return t.fields
@@ -88,8 +88,8 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 	}
 	auser := auth.ForContext(ctx)
 	q = q.
-		OrderBy(database.WithAlias(t.alias, "id") + " DESC").
-		Limit(uint64(cur.Count + 1)).
+		OrderBy(database.WithAlias(t.alias, "id")+" DESC").
+		Limit(uint64(cur.Count+1)).
 		LeftJoin(`user_access tr_ua ON tr_ua.tracker_id = tr.id`).
 		Column(`COALESCE(
 			tr_ua.permissions,
@@ -110,7 +110,7 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 	for rows.Next() {
 		var tracker Tracker
 		if err := rows.Scan(append(database.Scan(
-				ctx, &tracker), &tracker.Access, &tracker.ACLID)...); err != nil {
+			ctx, &tracker), &tracker.Access, &tracker.ACLID)...); err != nil {
 			panic(err)
 		}
 		trackers = append(trackers, &tracker)
@@ -134,33 +134,33 @@ func (t *Tracker) CanBrowse() bool {
 	if t.Access == ACCESS_NONE {
 		panic(errors.New("Invariant broken: tracker access is 0"))
 	}
-	return t.Access & ACCESS_BROWSE == ACCESS_BROWSE
+	return t.Access&ACCESS_BROWSE == ACCESS_BROWSE
 }
 
 func (t *Tracker) CanSubmit() bool {
 	if t.Access == ACCESS_NONE {
 		panic(errors.New("Invariant broken: tracker access is 0"))
 	}
-	return t.Access & ACCESS_SUBMIT == ACCESS_SUBMIT
+	return t.Access&ACCESS_SUBMIT == ACCESS_SUBMIT
 }
 
 func (t *Tracker) CanComment() bool {
 	if t.Access == ACCESS_NONE {
 		panic(errors.New("Invariant broken: tracker access is 0"))
 	}
-	return t.Access & ACCESS_COMMENT == ACCESS_COMMENT
+	return t.Access&ACCESS_COMMENT == ACCESS_COMMENT
 }
 
 func (t *Tracker) CanEdit() bool {
 	if t.Access == ACCESS_NONE {
 		panic(errors.New("Invariant broken: tracker access is 0"))
 	}
-	return t.Access & ACCESS_EDIT == ACCESS_EDIT
+	return t.Access&ACCESS_EDIT == ACCESS_EDIT
 }
 
 func (t *Tracker) CanTriage() bool {
 	if t.Access == ACCESS_NONE {
 		panic(errors.New("Invariant broken: tracker access is 0"))
 	}
-	return t.Access & ACCESS_TRIAGE == ACCESS_TRIAGE
+	return t.Access&ACCESS_TRIAGE == ACCESS_TRIAGE
 }

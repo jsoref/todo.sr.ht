@@ -13,7 +13,7 @@ import (
 
 var (
 	// ~username
-	userMentionRE   = regexp.MustCompile(`(^|[\s(]?)?~(\w+)\b([^/]|$)`)
+	userMentionRE = regexp.MustCompile(`(^|[\s(]?)?~(\w+)\b([^/]|$)`)
 	// ~username/tracker-name#id
 	// tracker-name#id
 	// #id
@@ -94,7 +94,7 @@ func ScanMentions(ctx context.Context, tracker *model.Tracker,
 	}
 
 	return Mentions{
-		Users: mentionedUsers,
+		Users:   mentionedUsers,
 		Tickets: mentionedTickets,
 	}
 }
