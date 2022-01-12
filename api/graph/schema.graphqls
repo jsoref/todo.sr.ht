@@ -188,8 +188,8 @@ type Ticket {
   resolution: TicketResolution!
   authenticity: Authenticity!
 
-  labels: [Label]!
-  assignees: [Entity]! @access(scope: PROFILE, kind: RO)
+  labels: [Label!]!
+  assignees: [Entity!]! @access(scope: PROFILE, kind: RO)
   events(cursor: Cursor): EventCursor! @access(scope: EVENTS, kind: RO)
 
   """
@@ -273,7 +273,7 @@ single event, and are enumerated in the "changes" field.
 type Event {
   id: Int!
   created: Time!
-  changes: [EventDetail]!
+  changes: [EventDetail!]!
 
   ticket: Ticket! @access(scope: TICKETS, kind: RO)
 }
