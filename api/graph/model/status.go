@@ -54,16 +54,16 @@ func (e TicketStatus) MarshalGQL(w io.Writer) {
 }
 
 const (
-    STATUS_REPORTED = 0
-    STATUS_CONFIRMED = 1
-    STATUS_IN_PROGRESS = 2
-    STATUS_PENDING = 4
-    STATUS_RESOLVED = 8
+	STATUS_REPORTED    = 0
+	STATUS_CONFIRMED   = 1
+	STATUS_IN_PROGRESS = 2
+	STATUS_PENDING     = 4
+	STATUS_RESOLVED    = 8
 )
 
 // Creates a TicketStatus from its database representation
 func TicketStatusFromInt(status int) TicketStatus {
-	switch (status) {
+	switch status {
 	case STATUS_REPORTED:
 		return TicketStatusReported
 	case STATUS_CONFIRMED:
@@ -81,7 +81,7 @@ func TicketStatusFromInt(status int) TicketStatus {
 
 // Converts a TicketStatus to its database representation
 func (status TicketStatus) ToInt() int {
-	switch (status) {
+	switch status {
 	case TicketStatusReported:
 		return STATUS_REPORTED
 	case TicketStatusConfirmed:
@@ -151,19 +151,19 @@ func (e TicketResolution) MarshalGQL(w io.Writer) {
 }
 
 const (
-    RESOLVED_UNRESOLVED = 0
-    RESOLVED_FIXED = 1
-    RESOLVED_IMPLEMENTED = 2
-    RESOLVED_WONT_FIX = 4
-    RESOLVED_BY_DESIGN = 8
-    RESOLVED_INVALID = 16
-    RESOLVED_DUPLICATE = 32
-    RESOLVED_NOT_OUR_BUG = 64
+	RESOLVED_UNRESOLVED  = 0
+	RESOLVED_FIXED       = 1
+	RESOLVED_IMPLEMENTED = 2
+	RESOLVED_WONT_FIX    = 4
+	RESOLVED_BY_DESIGN   = 8
+	RESOLVED_INVALID     = 16
+	RESOLVED_DUPLICATE   = 32
+	RESOLVED_NOT_OUR_BUG = 64
 )
 
 // Creates a TicketResolution from its database representation
 func TicketResolutionFromInt(resolution int) TicketResolution {
-	switch (resolution) {
+	switch resolution {
 	case RESOLVED_UNRESOLVED:
 		return TicketResolutionUnresolved
 	case RESOLVED_FIXED:
@@ -187,7 +187,7 @@ func TicketResolutionFromInt(resolution int) TicketResolution {
 
 // Converts a TicketResolution to its database representation
 func (e TicketResolution) ToInt() int {
-	switch (e) {
+	switch e {
 	case TicketResolutionUnresolved:
 		return RESOLVED_UNRESOLVED
 	case TicketResolutionFixed:

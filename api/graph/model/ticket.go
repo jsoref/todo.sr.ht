@@ -21,11 +21,11 @@ type Ticket struct {
 	Subject string    `json:"subject"`
 	Body    *string   `json:"body"`
 
-	PKID         int // global ID
-	TrackerID    int
-	TrackerName  string
-	OwnerName    string
-	SubmitterID  int
+	PKID        int // global ID
+	TrackerID   int
+	TrackerName string
+	OwnerName   string
+	SubmitterID int
 
 	RawAuthenticity int
 	RawStatus       int
@@ -70,21 +70,21 @@ func (t *Ticket) Fields() *database.ModelFields {
 	}
 	t.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "created", "created", &t.Created },
-			{ "updated", "updated", &t.Updated },
-			{ "title", "subject", &t.Subject },
-			{ "description", "body", &t.Body },
-			{ "authenticity", "authenticity", &t.RawAuthenticity },
-			{ "status", "status", &t.RawStatus },
-			{ "resolution", "resolution", &t.RawResolution },
-			{ "tracker.name", "ref", &t.TrackerName },
-			{ `"user".username`, "ref", &t.OwnerName },
+			{"created", "created", &t.Created},
+			{"updated", "updated", &t.Updated},
+			{"title", "subject", &t.Subject},
+			{"description", "body", &t.Body},
+			{"authenticity", "authenticity", &t.RawAuthenticity},
+			{"status", "status", &t.RawStatus},
+			{"resolution", "resolution", &t.RawResolution},
+			{"tracker.name", "ref", &t.TrackerName},
+			{`"user".username`, "ref", &t.OwnerName},
 
 			// Always fetch:
-			{ "id", "", &t.PKID },
-			{ "scoped_id", "", &t.ID },
-			{ "submitter_id", "", &t.SubmitterID },
-			{ "tracker_id", "", &t.TrackerID },
+			{"id", "", &t.PKID},
+			{"scoped_id", "", &t.ID},
+			{"submitter_id", "", &t.SubmitterID},
+			{"tracker_id", "", &t.TrackerID},
 		},
 	}
 	return t.fields
@@ -92,7 +92,7 @@ func (t *Ticket) Fields() *database.ModelFields {
 
 func (t *Ticket) Select(q sq.SelectBuilder) sq.SelectBuilder {
 	return q.LeftJoin(fmt.Sprintf(`tracker on %s = tracker.id`,
-			database.WithAlias(t.alias, "tracker_id"))).
+		database.WithAlias(t.alias, "tracker_id"))).
 		LeftJoin(`"user" on tracker.owner_id = "user".id`)
 }
 
@@ -140,9 +140,9 @@ func (t *Ticket) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 }
 
 const (
-	AUTH_AUTHENTIC = 0
+	AUTH_AUTHENTIC       = 0
 	AUTH_UNAUTHENTICATED = 1
-	AUTH_TAMPERED = 2
+	AUTH_TAMPERED        = 2
 )
 
 func intToAuthenticity(auth int) Authenticity {

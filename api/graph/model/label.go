@@ -13,11 +13,11 @@ import (
 )
 
 type Label struct {
-	ID              int           `json:"id"`
-	Created         time.Time     `json:"created"`
-	Name            string        `json:"name"`
-	BackgroundColor string        `json:"backgroundColor"`
-	ForegroundColor string        `json:"foregroundColor"`
+	ID              int       `json:"id"`
+	Created         time.Time `json:"created"`
+	Name            string    `json:"name"`
+	BackgroundColor string    `json:"backgroundColor"`
+	ForegroundColor string    `json:"foregroundColor"`
 
 	TrackerID int
 
@@ -44,15 +44,15 @@ func (l *Label) Fields() *database.ModelFields {
 	}
 	l.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &l.ID },
-			{ "created", "created", &l.Created },
-			{ "name", "name", &l.Name },
-			{ "color", "backgroundColor", &l.BackgroundColor },
-			{ "text_color", "foregroundColor", &l.ForegroundColor },
+			{"id", "id", &l.ID},
+			{"created", "created", &l.Created},
+			{"name", "name", &l.Name},
+			{"color", "backgroundColor", &l.BackgroundColor},
+			{"text_color", "foregroundColor", &l.ForegroundColor},
 
 			// Always fetch:
-			{ "id", "", &l.ID },
-			{ "tracker_id", "", &l.TrackerID },
+			{"id", "", &l.ID},
+			{"tracker_id", "", &l.TrackerID},
 		},
 	}
 	return l.fields

@@ -11,8 +11,8 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/webhooks"
 	sq "github.com/Masterminds/squirrel"
 
-	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 )
 
 type UserWebhookPayload struct {
@@ -21,30 +21,30 @@ type UserWebhookPayload struct {
 }
 
 type ParticipantWebhookPayload struct {
-	Type          string `json:"type"`
+	Type string `json:"type"`
 
 	// User
 	Name          string `json:"name,omitempty"`
 	CanonicalName string `json:"canonical_name,omitempty"`
 
 	// Email address
-	Address       string `json:"address,omitempty"`
+	Address string `json:"address,omitempty"`
 
 	// External
-	ExternalID    string `json:"external_id,omitempty"`
-	ExternalURL   string `json:"external_url,omitempty"`
+	ExternalID  string `json:"external_id,omitempty"`
+	ExternalURL string `json:"external_url,omitempty"`
 }
 
 type TrackerWebhookPayload struct {
-		ID            int       `json:"id"`
-		Created       time.Time `json:"created"`
-		Updated       time.Time `json:"updated"`
-		Name          string    `json:"name"`
-		Description   *string   `json:"description,omitempty"`
-		Visibility    string    `json:"visibility,omitempty"`
-		DefaultAccess []string  `json:"default_access,omitempty"`
+	ID            int       `json:"id"`
+	Created       time.Time `json:"created"`
+	Updated       time.Time `json:"updated"`
+	Name          string    `json:"name"`
+	Description   *string   `json:"description,omitempty"`
+	Visibility    string    `json:"visibility,omitempty"`
+	DefaultAccess []string  `json:"default_access,omitempty"`
 
-		Owner UserWebhookPayload `json:"owner"`
+	Owner UserWebhookPayload `json:"owner"`
 }
 
 type TicketWebhookPayload struct {
@@ -160,7 +160,7 @@ func DeliverLegacyTrackerEvent(ctx context.Context,
 		Visibility:    strings.ToLower(tracker.Visibility.String()),
 		DefaultAccess: mkaccess(tracker),
 
-		Owner: UserWebhookPayload {
+		Owner: UserWebhookPayload{
 			CanonicalName: "~" + user.Username,
 			Name:          user.Username,
 		},
@@ -300,14 +300,14 @@ func DeliverLegacyTicketCreate(ctx context.Context,
 	}
 
 	payload := TicketWebhookPayload{
-		ID: ticket.ID,
-		Ref: ticket.Ref(),
-		Created: ticket.Created,
-		Updated: ticket.Updated,
-		Title: ticket.Subject,
+		ID:          ticket.ID,
+		Ref:         ticket.Ref(),
+		Created:     ticket.Created,
+		Updated:     ticket.Updated,
+		Title:       ticket.Subject,
 		Description: ticket.Body,
-		Status: ticket.Status().String(),
-		Resolution: ticket.Resolution().String(),
+		Status:      ticket.Status().String(),
+		Resolution:  ticket.Resolution().String(),
 
 		Submitter: mkparticipant(part),
 		Tracker: TrackerWebhookPayload{
@@ -316,7 +316,7 @@ func DeliverLegacyTicketCreate(ctx context.Context,
 			Updated: tracker.Updated,
 			Name:    tracker.Name,
 
-			Owner: UserWebhookPayload {
+			Owner: UserWebhookPayload{
 				CanonicalName: "~" + ticket.OwnerName,
 				Name:          ticket.OwnerName,
 			},

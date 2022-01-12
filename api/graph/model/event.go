@@ -58,7 +58,7 @@ type Comment struct {
 func (Comment) IsEventDetail() {}
 
 type StatusChange struct {
-	EventType     EventType        `json:"eventType"`
+	EventType     EventType `json:"eventType"`
 	TicketID      int
 	ParticipantID int
 
@@ -71,7 +71,7 @@ type StatusChange struct {
 func (StatusChange) IsEventDetail() {}
 
 type LabelUpdate struct {
-	EventType EventType `json:"eventType"`
+	EventType     EventType `json:"eventType"`
 	TicketID      int
 	ParticipantID int
 	LabelID       int
@@ -80,16 +80,16 @@ type LabelUpdate struct {
 func (LabelUpdate) IsEventDetail() {}
 
 type Assignment struct {
-	EventType EventType `json:"eventType"`
-	TicketID      int
-	AssignerID    int
-	AssigneeID    int
+	EventType  EventType `json:"eventType"`
+	TicketID   int
+	AssignerID int
+	AssigneeID int
 }
 
 func (Assignment) IsEventDetail() {}
 
 type UserMention struct {
-	EventType EventType `json:"eventType"`
+	EventType     EventType `json:"eventType"`
 	TicketID      int
 	ParticipantID int
 	MentionedID   int
@@ -98,7 +98,7 @@ type UserMention struct {
 func (UserMention) IsEventDetail() {}
 
 type TicketMention struct {
-	EventType EventType `json:"eventType"`
+	EventType     EventType `json:"eventType"`
 	TicketID      int
 	ParticipantID int
 	MentionedID   int
@@ -107,21 +107,21 @@ type TicketMention struct {
 func (TicketMention) IsEventDetail() {}
 
 const (
-    EVENT_CREATED = 1
-    EVENT_COMMENT = 2
-    EVENT_STATUS_CHANGE = 4
-    EVENT_LABEL_ADDED = 8
-    EVENT_LABEL_REMOVED = 16
-    EVENT_ASSIGNED_USER = 32
-    EVENT_UNASSIGNED_USER = 64
-    EVENT_USER_MENTIONED = 128
-    EVENT_TICKET_MENTIONED = 256
+	EVENT_CREATED          = 1
+	EVENT_COMMENT          = 2
+	EVENT_STATUS_CHANGE    = 4
+	EVENT_LABEL_ADDED      = 8
+	EVENT_LABEL_REMOVED    = 16
+	EVENT_ASSIGNED_USER    = 32
+	EVENT_UNASSIGNED_USER  = 64
+	EVENT_USER_MENTIONED   = 128
+	EVENT_TICKET_MENTIONED = 256
 )
 
 func (ev *Event) Changes() []EventDetail {
 	var changes []EventDetail
 
-	if ev.EventType & EVENT_CREATED != 0 {
+	if ev.EventType&EVENT_CREATED != 0 {
 		changes = append(changes, Created{
 			EventType:     EventTypeCreated,
 			TicketID:      ev.TicketID,
@@ -129,7 +129,7 @@ func (ev *Event) Changes() []EventDetail {
 		})
 	}
 
-	if ev.EventType & EVENT_COMMENT != 0 {
+	if ev.EventType&EVENT_COMMENT != 0 {
 		comment := Comment{
 			EventType:     EventTypeComment,
 			TicketID:      ev.TicketID,
@@ -139,7 +139,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, comment)
 	}
 
-	if ev.EventType & EVENT_STATUS_CHANGE != 0 {
+	if ev.EventType&EVENT_STATUS_CHANGE != 0 {
 		changes = append(changes, StatusChange{
 			EventType:     EventTypeStatusChange,
 			TicketID:      ev.TicketID,
@@ -152,7 +152,7 @@ func (ev *Event) Changes() []EventDetail {
 		})
 	}
 
-	if ev.EventType & EVENT_LABEL_ADDED != 0 {
+	if ev.EventType&EVENT_LABEL_ADDED != 0 {
 		changes = append(changes, LabelUpdate{
 			EventType:     EventTypeLabelAdded,
 			TicketID:      ev.TicketID,
@@ -161,7 +161,7 @@ func (ev *Event) Changes() []EventDetail {
 		})
 	}
 
-	if ev.EventType & EVENT_LABEL_REMOVED != 0 {
+	if ev.EventType&EVENT_LABEL_REMOVED != 0 {
 		changes = append(changes, LabelUpdate{
 			EventType:     EventTypeLabelRemoved,
 			TicketID:      ev.TicketID,
@@ -170,7 +170,7 @@ func (ev *Event) Changes() []EventDetail {
 		})
 	}
 
-	if ev.EventType & EVENT_ASSIGNED_USER != 0 {
+	if ev.EventType&EVENT_ASSIGNED_USER != 0 {
 		changes = append(changes, Assignment{
 			EventType:  EventTypeAssignedUser,
 			TicketID:   ev.TicketID,
@@ -179,7 +179,7 @@ func (ev *Event) Changes() []EventDetail {
 		})
 	}
 
-	if ev.EventType & EVENT_UNASSIGNED_USER != 0 {
+	if ev.EventType&EVENT_UNASSIGNED_USER != 0 {
 		changes = append(changes, Assignment{
 			EventType:  EventTypeUnassignedUser,
 			TicketID:   ev.TicketID,
@@ -188,7 +188,7 @@ func (ev *Event) Changes() []EventDetail {
 		})
 	}
 
-	if ev.EventType & EVENT_USER_MENTIONED != 0 {
+	if ev.EventType&EVENT_USER_MENTIONED != 0 {
 		changes = append(changes, UserMention{
 			EventType:     EventTypeUserMentioned,
 			TicketID:      ev.TicketID,
@@ -197,7 +197,7 @@ func (ev *Event) Changes() []EventDetail {
 		})
 	}
 
-	if ev.EventType & EVENT_TICKET_MENTIONED != 0 {
+	if ev.EventType&EVENT_TICKET_MENTIONED != 0 {
 		changes = append(changes, TicketMention{
 			EventType:     EventTypeTicketMentioned,
 			TicketID:      *ev.FromTicketID,
@@ -228,22 +228,22 @@ func (ev *Event) Fields() *database.ModelFields {
 	}
 	ev.fields = &database.ModelFields{
 		Fields: []*database.FieldMap{
-			{ "id", "id", &ev.ID },
-			{ "created", "created", &ev.Created },
+			{"id", "id", &ev.ID},
+			{"created", "created", &ev.Created},
 
 			// Always fetch:
-			{ "id", "", &ev.ID },
-			{ "event_type", "", &ev.EventType },
-			{ "participant_id", "", &ev.ParticipantID },
-			{ "ticket_id", "", &ev.TicketID },
-			{ "by_participant_id", "", &ev.ByParticipantID },
-			{ "comment_id", "", &ev.CommentID },
-			{ "label_id", "", &ev.LabelID },
-			{ "from_ticket_id", "", &ev.FromTicketID },
-			{ "old_status", "", &ev.OldStatus },
-			{ "old_resolution", "", &ev.OldResolution },
-			{ "new_status", "", &ev.NewStatus },
-			{ "new_resolution", "", &ev.NewResolution },
+			{"id", "", &ev.ID},
+			{"event_type", "", &ev.EventType},
+			{"participant_id", "", &ev.ParticipantID},
+			{"ticket_id", "", &ev.TicketID},
+			{"by_participant_id", "", &ev.ByParticipantID},
+			{"comment_id", "", &ev.CommentID},
+			{"label_id", "", &ev.LabelID},
+			{"from_ticket_id", "", &ev.FromTicketID},
+			{"old_status", "", &ev.OldStatus},
+			{"old_resolution", "", &ev.OldResolution},
+			{"new_status", "", &ev.NewStatus},
+			{"new_resolution", "", &ev.NewResolution},
 		},
 	}
 	return ev.fields
