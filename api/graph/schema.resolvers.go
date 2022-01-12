@@ -650,6 +650,7 @@ func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Labe
 		}
 		return nil, err
 	}
+	webhooks.DeliverLegacyLabelDelete(ctx, label.TrackerID, label.ID)
 	return &label, nil
 }
 
