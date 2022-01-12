@@ -1744,7 +1744,7 @@ scalar Time
 scalar URL
 scalar Upload
 
-# Used to provide a human-friendly description of an access scope
+"Used to provide a human-friendly description of an access scope"
 directive @scopehelp(details: String!) on ENUM_VALUE
 
 enum AccessScope {
@@ -1761,8 +1761,10 @@ enum AccessKind {
   RW @scopehelp(details: "read and write")
 }
 
-# Decorates fields for which access requires a particular OAuth 2.0 scope with
-# read or write access.
+"""
+Decorates fields for which access requires a particular OAuth 2.0 scope with
+read or write access.
+"""
 directive @access(scope: AccessScope!, kind: AccessKind!) on FIELD_DEFINITION
 
 # https://semver.org
@@ -1771,9 +1773,11 @@ type Version {
   minor: Int!
   patch: Int!
 
-  # If this API version is scheduled for deprecation, this is the date on which
-  # it will stop working; or null if this API version is not scheduled for
-  # deprecation.
+  """
+  If this API version is scheduled for deprecation, this is the date on which
+  it will stop working; or null if this API version is not scheduled for
+  deprecation.
+  """
   deprecationDate: Time
 }
 
@@ -1798,19 +1802,25 @@ type User implements Entity {
 type EmailAddress implements Entity {
   canonicalName: String!
 
-  # "jdoe@example.org" of "Jane Doe <jdoe@example.org>"
+  """
+  "jdoe@example.org" of "Jane Doe <jdoe@example.org>"
+  """
   mailbox: String!
-  # "Jane Doe" of "Jane Doe <jdoe@example.org>"
+  """
+  "Jane Doe" of "Jane Doe <jdoe@example.org>"
+  """
   name: String
 }
 
 type ExternalUser implements Entity {
   canonicalName: String!
 
-  # <service>:<service specific details...>
-  # e.g. github:ddevault
+  """
+  <service>:<service specific details...>
+  e.g. github:ddevault
+  """
   externalId: String!
-  # The canonical external URL for this user, e.g. https://github.com/ddevault
+  "The canonical external URL for this user, e.g. https://github.com/ddevault"
   externalUrl: String
 }
 
@@ -1832,20 +1842,26 @@ type Tracker {
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
 
-  # If the authenticated user is subscribed to this tracker, this is that
-  # subscription.
+  """
+  If the authenticated user is subscribed to this tracker, this is that
+  subscription.
+  """
   subscription: TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 
-  # The access control list entry (or the default ACL) which describes the
-  # authenticated user's permissions with respect to this tracker.
+  """
+  The access control list entry (or the default ACL) which describes the
+  authenticated user's permissions with respect to this tracker.
+  """
   acl: ACL
 
   # Only available to the tracker owner:
   defaultACL: DefaultACL!
   acls(cursor: Cursor): ACLCursor! @access(scope: ACLS, kind: RO)
 
-  # Returns a URL from which the tracker owner may download a gzipped JSON
-  # archive of the tracker.
+  """
+  Returns a URL from which the tracker owner may download a gzipped JSON
+  archive of the tracker.
+  """
   export: URL!
 }
 
@@ -1869,21 +1885,29 @@ enum TicketResolution {
 }
 
 enum Authenticity {
-  # The server vouches for this information as entered verbatim by the
-  # attributed entity.
+  """
+  The server vouches for this information as entered verbatim by the
+  attributed entity.
+  """
   AUTHENTIC
-  # The server does not vouch for this information as entered by the attributed
-  # entity, no authentication was provided.
+  """
+  The server does not vouch for this information as entered by the attributed
+  entity, no authentication was provided.
+  """
   UNAUTHENTICATED
-  # The server has evidence that the information has likely been manipulated by
-  # a third-party.
+  """
+  The server has evidence that the information has likely been manipulated by
+  a third-party.
+  """
   TAMPERED
 }
 
 type Ticket {
-  # The ticket ID is unique within each tracker, but is not globally unique.
-  # The first ticket opened on a given tracker will have ID 1, then 2, and so
-  # on.
+  """
+  The ticket ID is unique within each tracker, but is not globally unique.
+  The first ticket opened on a given tracker will have ID 1, then 2, and so
+  on.
+  """
   id: Int!
 
   created: Time!
@@ -1891,8 +1915,10 @@ type Ticket {
   submitter: Entity! @access(scope: PROFILE, kind: RO)
   tracker: Tracker! @access(scope: TRACKERS, kind: RO)
 
-  # Canonical ticket reference string; may be used in comments to identify the
-  # ticket from anywhere.
+  """
+  Canonical ticket reference string; may be used in comments to identify the
+  ticket from anywhere.
+  """
   ref: String!
 
   subject: String!
@@ -1901,30 +1927,34 @@ type Ticket {
   resolution: TicketResolution!
   authenticity: Authenticity!
 
-  labels: [Label]!
-  assignees: [Entity]! @access(scope: PROFILE, kind: RO)
+  labels: [Label!]!
+  assignees: [Entity!]! @access(scope: PROFILE, kind: RO)
   events(cursor: Cursor): EventCursor! @access(scope: EVENTS, kind: RO)
 
-  # If the authenticated user is subscribed to this ticket, this is that
-  # subscription.
+  """
+  If the authenticated user is subscribed to this ticket, this is that
+  subscription.
+  """
   subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
 interface ACL {
-  # Permission to view tickets
+  "Permission to view tickets"
   browse: Boolean!
-  # Permission to submit tickets
+  "Permission to submit tickets"
   submit: Boolean!
-  # Permission to comment on tickets
+  "Permission to comment on tickets"
   comment: Boolean!
-  # Permission to edit tickets
+  "Permission to edit tickets"
   edit: Boolean!
-  # Permission to resolve, re-open, transfer, or label tickets
+  "Permission to resolve, re-open, transfer, or label tickets"
   triage: Boolean!
 }
 
-# These ACLs are configured for specific entities, and may be used to expand or
-# constrain the rights of a participant.
+"""
+These ACLs are configured for specific entities, and may be used to expand or
+constrain the rights of a participant.
+"""
 type TrackerACL implements ACL {
   id: Int!
   created: Time!
@@ -1938,8 +1968,10 @@ type TrackerACL implements ACL {
   triage: Boolean!
 }
 
-# These ACL policies are applied non-specifically, e.g. the default ACL for all
-# authenticated users.
+"""
+These ACL policies are applied non-specifically, e.g. the default ACL for all
+authenticated users.
+"""
 type DefaultACL implements ACL {
   browse: Boolean!
   submit: Boolean!
@@ -1954,7 +1986,7 @@ type Label {
   name: String!
   tracker: Tracker! @access(scope: TRACKERS, kind: RO)
 
-  # In CSS hexadecimal format
+  "In CSS hexadecimal format"
   backgroundColor: String!
   foregroundColor: String!
 
@@ -1973,12 +2005,14 @@ enum EventType {
   TICKET_MENTIONED
 }
 
-# Represents an event which affects a ticket. Multiple changes can occur in a
-# single event, and are enumerated in the "changes" field.
+"""
+Represents an event which affects a ticket. Multiple changes can occur in a
+single event, and are enumerated in the "changes" field.
+"""
 type Event {
   id: Int!
   created: Time!
-  changes: [EventDetail]!
+  changes: [EventDetail!]!
 
   ticket: Ticket! @access(scope: TICKETS, kind: RO)
 }
@@ -2010,7 +2044,7 @@ type Comment implements EventDetail {
   text: String!
   authenticity: Authenticity!
 
-  # If this comment has been edited, this field points to the new revision.
+  "If this comment has been edited, this field points to the new revision."
   supersededBy: Comment
 }
 
@@ -2051,128 +2085,150 @@ interface Subscription {
   created: Time!
 }
 
-# A tracker subscription will notify a participant of all activity for a
-# tracker, including all new tickets and their events.
+"""
+A tracker subscription will notify a participant of all activity for a
+tracker, including all new tickets and their events.
+"""
 type TrackerSubscription implements Subscription {
   id: Int!
   created: Time!
   tracker: Tracker! @access(scope: TRACKERS, kind: RO)
 }
 
-# A ticket subscription will notify a participant when activity occurs on a
-# ticket.
+"""
+A ticket subscription will notify a participant when activity occurs on a
+ticket.
+"""
 type TicketSubscription implements Subscription {
   id: Int!
   created: Time!
   ticket: Ticket! @access(scope: TICKETS, kind: RO)
 }
 
-# A cursor for enumerating trackers
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating trackers
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type TrackerCursor {
   results: [Tracker!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating tickets
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating tickets
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type TicketCursor {
   results: [Ticket!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating labels
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating labels
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type LabelCursor {
   results: [Label!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating access control list entries
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating access control list entries
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type ACLCursor {
   results: [TrackerACL!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating events
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating events
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type EventCursor {
   results: [Event!]!
   cursor: Cursor
 }
 
-# A cursor for enumerating subscriptions
-#
-# If there are additional results available, the cursor object may be passed
-# back into the same endpoint to retrieve another page. If the cursor is null,
-# there are no remaining results to return.
+"""
+A cursor for enumerating subscriptions
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
 type SubscriptionCursor {
   results: [Subscription!]!
   cursor: Cursor
 }
 
 type Query {
-  # Returns API version information.
+  "Returns API version information."
   version: Version!
 
-  # Returns the authenticated user.
+  "Returns the authenticated user."
   me: User! @access(scope: PROFILE, kind: RO)
 
-  # Returns a specific user.
+  "Returns a specific user."
   user(username: String!): User @access(scope: PROFILE, kind: RO)
 
-  # Returns trackers that the authenticated user has access to.
-  #
-  # NOTE: in this version of the API, only trackers owned by the authenticated
-  # user are returned, but in the future the default behavior will be to return
-  # all trackers that the user either (1) has been given explicit access to via
-  # ACLs or (2) has implicit access to either by ownership or group membership.
+  """
+  Returns trackers that the authenticated user has access to.
+
+  NOTE: in this version of the API, only trackers owned by the authenticated
+  user are returned, but in the future the default behavior will be to return
+  all trackers that the user either (1) has been given explicit access to via
+  ACLs or (2) has implicit access to either by ownership or group membership.
+  """
   trackers(cursor: Cursor): TrackerCursor @access(scope: TRACKERS, kind: RO)
 
-  # Returns a specific tracker by ID.
+  "Returns a specific tracker by ID."
   tracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RO)
 
-  # Returns a specific tracker, owned by the authenticated user.
+  "Returns a specific tracker, owned by the authenticated user."
   trackerByName(name: String!): Tracker @access(scope: TRACKERS, kind: RO)
 
-  # Returns a specific tracker, owned by the given canonical name (e.g.
-  # "~sircmpwn").
+  """
+  Returns a specific tracker, owned by the given canonical name (e.g.
+  "~sircmpwn").
+  """
   trackerByOwner(owner: String!, tracker: String!): Tracker @access(scope: TRACKERS, kind: RO)
 
   # TODO: Add ticket by tracker ID and ticket ID
 
-  # List of events which the authenticated user is subscribed to or implicated
-  # in, ordered by the event date (recent events first).
+  """
+  List of events which the authenticated user is subscribed to or implicated
+  in, ordered by the event date (recent events first).
+  """
   events(cursor: Cursor): EventCursor @access(scope: EVENTS, kind: RO)
 
-  # List of subscriptions of the authenticated user.
+  "List of subscriptions of the authenticated user."
   subscriptions(cursor: Cursor): SubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
 }
 
-# You may omit any fields to leave them unchanged.
+"You may omit any fields to leave them unchanged."
 # TODO: Allow users to change the name of a tracker
 input TrackerInput {
   description: String
   visibility: Visibility
 }
 
-# You may omit any fields to leave them unchanged.
+"You may omit any fields to leave them unchanged."
 input UpdateLabelInput {
   name: String
   foregroundColor: String
@@ -2180,29 +2236,35 @@ input UpdateLabelInput {
 }
 
 input ACLInput {
-  # Permission to view tickets
+  "Permission to view tickets"
   browse: Boolean!
-  # Permission to submit tickets
+  "Permission to submit tickets"
   submit: Boolean!
-  # Permission to comment on tickets
+  "Permission to comment on tickets"
   comment: Boolean!
-  # Permission to edit tickets
+  "Permission to edit tickets"
   edit: Boolean!
-  # Permission to resolve, re-open, transfer, or label tickets
+  "Permission to resolve, re-open, transfer, or label tickets"
   triage: Boolean!
 }
 
-# This is used for importing tickets from third-party services, and may only be
-# used by the tracker owner. It causes a ticket submission, update, or comment
-# to be attributed to an external user and appear as if it were submitted at a
-# specific time.
+"""
+This is used for importing tickets from third-party services, and may only be
+used by the tracker owner. It causes a ticket submission, update, or comment
+to be attributed to an external user and appear as if it were submitted at a
+specific time.
+"""
 input ImportInput {
   created: Time!
-  # External user ID. By convention this should be "service:username", e.g.
-  # "codeberg:ddevault".
+  """
+  External user ID. By convention this should be "service:username", e.g.
+  "codeberg:ddevault".
+  """
   externalId: String!
-  # A URL at which the user's external profile may be found, e.g.
-  # "https://codeberg.org/ddevault".
+  """
+  A URL at which the user's external profile may be found, e.g.
+  "https://codeberg.org/ddevault".
+  """
   externalUrl: String!
 }
 
@@ -2218,139 +2280,157 @@ input SubmitTicketInput {
   externalUrl: String
 }
 
-# You may omit any fields to leave them unchanged. To remove the ticket body,
-# set it to null.
+"""
+You may omit any fields to leave them unchanged. To remove the ticket body,
+set it to null.
+"""
 input UpdateTicketInput {
   subject: String
   body: String
 
-  # For use by the tracker owner only
+  "For use by the tracker owner only"
   import: ImportInput
 }
 
-# You may omit the status or resolution fields to leave them unchanged (or if
-# you do not have permission to change them). "resolution" is required if
-# status is RESOLVED.
+"""
+You may omit the status or resolution fields to leave them unchanged (or if
+you do not have permission to change them). "resolution" is required if
+status is RESOLVED.
+"""
 input SubmitCommentInput {
   text: String!
   status: TicketStatus
   resolution: TicketResolution
 
-  # For use by the tracker owner only
+  "For use by the tracker owner only"
   import: ImportInput
 }
 
-# "resolution" is required if status is RESOLVED.
+"""
+"resolution" is required if status is RESOLVED.
+"""
 input UpdateStatusInput {
   status: TicketStatus!
   resolution: TicketResolution
 
-  # For use by the tracker owner only
+  "For use by the tracker owner only"
   import: ImportInput
 }
 
 type Mutation {
-  # Creates a new bug tracker. If specified, the 'import' field specifies a
-  # gzipped dump of a tracker to populate tickets from; see Tracker.export.
+  """
+  Creates a new bug tracker. If specified, the 'import' field specifies a
+  gzipped dump of a tracker to populate tickets from; see Tracker.export.
+  """
   createTracker(
     name: String!,
     description: String,
     visibility: Visibility!,
     import: Upload): Tracker @access(scope: TRACKERS, kind: RW)
 
-  # Updates an existing bug tracker
+  "Updates an existing bug tracker"
   updateTracker(
     id: Int!,
     input: TrackerInput!): Tracker @access(scope: TRACKERS, kind: RW)
 
-  # Deletes a bug tracker
+  "Deletes a bug tracker"
   deleteTracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RW)
 
-  # Adds or updates the ACL for a specific user on a bug tracker
+  "Adds or updates the ACL for a specific user on a bug tracker"
   updateUserACL(
     trackerId: Int!,
     userId: Int!,
     input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
 
-  # Adds or updates the ACL for an email address on a bug tracker
+  # "Adds or updates the ACL for an email address on a bug tracker"
   # TODO: This requires internal changes
   #updateSenderACL(
   #  trackerId: Int!,
   #  address: String!,
   #  input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
 
-  # Updates the default ACL for a bug tracker, which applies to users and
-  # senders for whom a more specific ACL does not exist.
+  """
+  Updates the default ACL for a bug tracker, which applies to users and
+  senders for whom a more specific ACL does not exist.
+  """
   updateTrackerACL(
     trackerId: Int!,
     input: ACLInput!): DefaultACL @access(scope: ACLS, kind: RW)
 
-  # Removes a tracker ACL. Following this change, the default tracker ACL will
-  # apply to this user.
+  """
+  Removes a tracker ACL. Following this change, the default tracker ACL will
+  apply to this user.
+  """
   deleteACL(id: Int!): TrackerACL @access(scope: ACLS, kind: RW)
 
-  # Subscribes to all email notifications for a tracker
+  "Subscribes to all email notifications for a tracker"
   trackerSubscribe(
     trackerId: Int!): TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Unsubscribes from email notifications for a tracker. If "tickets" is true,
-  # also unsubscribe from all tickets on this tracker.
+  """
+  Unsubscribes from email notifications for a tracker. If "tickets" is true,
+  also unsubscribe from all tickets on this tracker.
+  """
   trackerUnsubscribe(
     trackerId: Int!,
     tickets: Boolean!): TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Subscribes to all email notifications for a ticket
+  "Subscribes to all email notifications for a ticket"
   ticketSubscribe(
     trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Unsubscribes from email notifications for a ticket
+  "Unsubscribes from email notifications for a ticket"
   ticketUnsubscribe(
     trackerId: Int!,
     ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
 
-  # Creates a new ticket label for a tracker. The colors must be in CSS
-  # hexadecimal RGB format "#RRGGBB", i.e. "#000000" for black and "#FF0000" for
-  # red.
+  """
+  Creates a new ticket label for a tracker. The colors must be in CSS
+  hexadecimal RGB format "#RRGGBB", i.e. "#000000" for black and "#FF0000" for
+  red.
+  """
   createLabel(trackerId: Int!, name: String!,
     foreground: String!, background: String!): Label @access(scope: TRACKERS, kind: RW)
 
-  # Changes the name or colors for a label.
+  "Changes the name or colors for a label."
   updateLabel(id: Int!, input: UpdateLabelInput!): Label @access(scope: TRACKERS, kind: RW)
 
-  # Deletes a label, removing it from any tickets which currently have it
-  # applied.
+  """
+  Deletes a label, removing it from any tickets which currently have it
+  applied.
+  """
   deleteLabel(id: Int!): Label @access(scope: TRACKERS, kind: RW)
 
-  # Creates a new ticket.
+  "Creates a new ticket."
   submitTicket(trackerId: Int!,
     input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
 
-  # Updates a ticket's subject or body
+  "Updates a ticket's subject or body"
   updateTicket(trackerId: Int!, ticketId: Int!,
     input: UpdateTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
 
-  # Updates the status or resolution of a ticket
+  "Updates the status or resolution of a ticket"
   updateTicketStatus(trackerId: Int!, ticketId: Int!,
     input: UpdateStatusInput!): Event @access(scope: TICKETS, kind: RW)
 
-  # Submits a comment for a ticket
+  "Submits a comment for a ticket"
   submitComment(trackerId: Int!, ticketId: Int!,
     input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
 
-  # Adds a user to the list of assigned users for a ticket
+  "Adds a user to the list of assigned users for a ticket"
   assignUser(trackerId: Int!, ticketId: Int!,
     userId: Int!): Event @access(scope: TICKETS, kind: RW)
 
-  # Removes a user from the list of assigned users for a ticket
+  "Removes a user from the list of assigned users for a ticket"
   unassignUser(trackerId: Int!, ticketId: Int!,
     userId: Int!): Event @access(scope: TICKETS, kind: RW)
 
-  # Adds a label to the list of labels for a ticket
+  "Adds a label to the list of labels for a ticket"
   labelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
 
-  # Removes a list from the list of labels for a ticket
+  "Removes a list from the list of labels for a ticket"
   unlabelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
 }
@@ -4328,7 +4408,7 @@ func (ec *executionContext) _Event_changes(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.([]model.EventDetail)
 	fc.Result = res
-	return ec.marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx, field.Selections, res)
+	return ec.marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetailᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Event_ticket(ctx context.Context, field graphql.CollectedField, obj *model.Event) (ret graphql.Marshaler) {
@@ -8017,7 +8097,7 @@ func (ec *executionContext) _Ticket_labels(ctx context.Context, field graphql.Co
 	}
 	res := resTmp.([]*model.Label)
 	fc.Result = res
-	return ec.marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx, field.Selections, res)
+	return ec.marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabelᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Ticket_assignees(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
@@ -8080,7 +8160,7 @@ func (ec *executionContext) _Ticket_assignees(ctx context.Context, field graphql
 	}
 	res := resTmp.([]model.Entity)
 	fc.Result = res
-	return ec.marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, field.Selections, res)
+	return ec.marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntityᚄ(ctx, field.Selections, res)
 }
 
 func (ec *executionContext) _Ticket_events(ctx context.Context, field graphql.CollectedField, obj *model.Ticket) (ret graphql.Marshaler) {
@@ -14102,7 +14182,7 @@ func (ec *executionContext) marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗs
 	return ec._Entity(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v []model.Entity) graphql.Marshaler {
+func (ec *executionContext) marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntityᚄ(ctx context.Context, sel ast.SelectionSet, v []model.Entity) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -14126,7 +14206,7 @@ func (ec *executionContext) marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodo�
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, sel, v[i])
+			ret[i] = ec.marshalNEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -14136,6 +14216,12 @@ func (ec *executionContext) marshalNEntity2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodo�
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
 
 	return ret
 }
@@ -14208,7 +14294,17 @@ func (ec *executionContext) marshalNEventCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋ
 	return ec._EventCursor(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx context.Context, sel ast.SelectionSet, v []model.EventDetail) graphql.Marshaler {
+func (ec *executionContext) marshalNEventDetail2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx context.Context, sel ast.SelectionSet, v model.EventDetail) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	return ec._EventDetail(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetailᚄ(ctx context.Context, sel ast.SelectionSet, v []model.EventDetail) graphql.Marshaler {
 	ret := make(graphql.Array, len(v))
 	var wg sync.WaitGroup
 	isLen1 := len(v) == 1
@@ -14232,7 +14328,7 @@ func (ec *executionContext) marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋ
 			if !isLen1 {
 				defer wg.Done()
 			}
-			ret[i] = ec.marshalOEventDetail2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx, sel, v[i])
+			ret[i] = ec.marshalNEventDetail2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx, sel, v[i])
 		}
 		if isLen1 {
 			f(i)
@@ -14242,6 +14338,12 @@ func (ec *executionContext) marshalNEventDetail2ᚕgitᚗsrᚗhtᚋאsircmpwnᚋ
 
 	}
 	wg.Wait()
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
 
 	return ret
 }
@@ -14273,44 +14375,6 @@ func (ec *executionContext) marshalNInt2int(ctx context.Context, sel ast.Selecti
 
 func (ec *executionContext) marshalNLabel2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx context.Context, sel ast.SelectionSet, v model.Label) graphql.Marshaler {
 	return ec._Label(ctx, sel, &v)
-}
-
-func (ec *executionContext) marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx context.Context, sel ast.SelectionSet, v []*model.Label) graphql.Marshaler {
-	ret := make(graphql.Array, len(v))
-	var wg sync.WaitGroup
-	isLen1 := len(v) == 1
-	if !isLen1 {
-		wg.Add(len(v))
-	}
-	for i := range v {
-		i := i
-		fc := &graphql.FieldContext{
-			Index:  &i,
-			Result: &v[i],
-		}
-		ctx := graphql.WithFieldContext(ctx, fc)
-		f := func(i int) {
-			defer func() {
-				if r := recover(); r != nil {
-					ec.Error(ctx, ec.Recover(ctx, r))
-					ret = nil
-				}
-			}()
-			if !isLen1 {
-				defer wg.Done()
-			}
-			ret[i] = ec.marshalOLabel2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabel(ctx, sel, v[i])
-		}
-		if isLen1 {
-			f(i)
-		} else {
-			go f(i)
-		}
-
-	}
-	wg.Wait()
-
-	return ret
 }
 
 func (ec *executionContext) marshalNLabel2ᚕᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐLabelᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Label) graphql.Marshaler {
@@ -15081,13 +15145,6 @@ func (ec *executionContext) marshalODefaultACL2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋt
 	return ec._DefaultACL(ctx, sel, v)
 }
 
-func (ec *executionContext) marshalOEntity2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEntity(ctx context.Context, sel ast.SelectionSet, v model.Entity) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._Entity(ctx, sel, v)
-}
-
 func (ec *executionContext) marshalOEvent2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEvent(ctx context.Context, sel ast.SelectionSet, v *model.Event) graphql.Marshaler {
 	if v == nil {
 		return graphql.Null
@@ -15100,13 +15157,6 @@ func (ec *executionContext) marshalOEventCursor2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋ
 		return graphql.Null
 	}
 	return ec._EventCursor(ctx, sel, v)
-}
-
-func (ec *executionContext) marshalOEventDetail2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐEventDetail(ctx context.Context, sel ast.SelectionSet, v model.EventDetail) graphql.Marshaler {
-	if v == nil {
-		return graphql.Null
-	}
-	return ec._EventDetail(ctx, sel, v)
 }
 
 func (ec *executionContext) unmarshalOImportInput2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐImportInput(ctx context.Context, v interface{}) (*model.ImportInput, error) {

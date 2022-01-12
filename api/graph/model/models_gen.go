@@ -19,40 +19,72 @@ type EventDetail interface {
 	IsEventDetail()
 }
 
+// A cursor for enumerating access control list entries
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type ACLCursor struct {
 	Results []*TrackerACL `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
 type ACLInput struct {
-	Browse  bool `json:"browse"`
-	Submit  bool `json:"submit"`
+	// Permission to view tickets
+	Browse bool `json:"browse"`
+	// Permission to submit tickets
+	Submit bool `json:"submit"`
+	// Permission to comment on tickets
 	Comment bool `json:"comment"`
-	Edit    bool `json:"edit"`
-	Triage  bool `json:"triage"`
+	// Permission to edit tickets
+	Edit bool `json:"edit"`
+	// Permission to resolve, re-open, transfer, or label tickets
+	Triage bool `json:"triage"`
 }
 
+// A cursor for enumerating events
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type EventCursor struct {
 	Results []*Event      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// This is used for importing tickets from third-party services, and may only be
+// used by the tracker owner. It causes a ticket submission, update, or comment
+// to be attributed to an external user and appear as if it were submitted at a
+// specific time.
 type ImportInput struct {
-	Created     time.Time `json:"created"`
-	ExternalID  string    `json:"externalId"`
-	ExternalURL string    `json:"externalUrl"`
+	Created time.Time `json:"created"`
+	// External user ID. By convention this should be "service:username", e.g.
+	// "codeberg:ddevault".
+	ExternalID string `json:"externalId"`
+	// A URL at which the user's external profile may be found, e.g.
+	// "https://codeberg.org/ddevault".
+	ExternalURL string `json:"externalUrl"`
 }
 
+// A cursor for enumerating labels
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type LabelCursor struct {
 	Results []*Label      `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// You may omit the status or resolution fields to leave them unchanged (or if
+// you do not have permission to change them). "resolution" is required if
+// status is RESOLVED.
 type SubmitCommentInput struct {
 	Text       string            `json:"text"`
 	Status     *TicketStatus     `json:"status"`
 	Resolution *TicketResolution `json:"resolution"`
-	Import     *ImportInput      `json:"import"`
+	// For use by the tracker owner only
+	Import *ImportInput `json:"import"`
 }
 
 type SubmitTicketInput struct {
@@ -63,31 +95,51 @@ type SubmitTicketInput struct {
 	ExternalURL *string    `json:"externalUrl"`
 }
 
+// A cursor for enumerating subscriptions
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type SubscriptionCursor struct {
 	Results []Subscription `json:"results"`
 	Cursor  *model.Cursor  `json:"cursor"`
 }
 
+// A cursor for enumerating tickets
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type TicketCursor struct {
 	Results []*Ticket     `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// A cursor for enumerating trackers
+//
+// If there are additional results available, the cursor object may be passed
+// back into the same endpoint to retrieve another page. If the cursor is null,
+// there are no remaining results to return.
 type TrackerCursor struct {
 	Results []*Tracker    `json:"results"`
 	Cursor  *model.Cursor `json:"cursor"`
 }
 
+// "resolution" is required if status is RESOLVED.
 type UpdateStatusInput struct {
 	Status     TicketStatus      `json:"status"`
 	Resolution *TicketResolution `json:"resolution"`
-	Import     *ImportInput      `json:"import"`
+	// For use by the tracker owner only
+	Import *ImportInput `json:"import"`
 }
 
 type Version struct {
-	Major           int        `json:"major"`
-	Minor           int        `json:"minor"`
-	Patch           int        `json:"patch"`
+	Major int `json:"major"`
+	Minor int `json:"minor"`
+	Patch int `json:"patch"`
+	// If this API version is scheduled for deprecation, this is the date on which
+	// it will stop working; or null if this API version is not scheduled for
+	// deprecation.
 	DeprecationDate *time.Time `json:"deprecationDate"`
 }
 
@@ -184,9 +236,15 @@ func (e AccessScope) MarshalGQL(w io.Writer) {
 type Authenticity string
 
 const (
-	AuthenticityAuthentic       Authenticity = "AUTHENTIC"
+	// The server vouches for this information as entered verbatim by the
+	// attributed entity.
+	AuthenticityAuthentic Authenticity = "AUTHENTIC"
+	// The server does not vouch for this information as entered by the attributed
+	// entity, no authentication was provided.
 	AuthenticityUnauthenticated Authenticity = "UNAUTHENTICATED"
-	AuthenticityTampered        Authenticity = "TAMPERED"
+	// The server has evidence that the information has likely been manipulated by
+	// a third-party.
+	AuthenticityTampered Authenticity = "TAMPERED"
 )
 
 var AllAuthenticity = []Authenticity{
