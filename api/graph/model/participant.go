@@ -17,7 +17,7 @@ func (EmailAddress) IsEntity() {}
 
 func (e EmailAddress) CanonicalName() string {
 	if e.Name != nil {
-		return fmt.Sprintf("%s <%s>", e.Name, e.Mailbox)
+		return fmt.Sprintf("%s <%s>", *e.Name, e.Mailbox)
 	}
 	return e.Mailbox
 }
