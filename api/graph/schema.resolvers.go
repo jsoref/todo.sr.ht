@@ -795,12 +795,11 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		}
 		subject := fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject)
 		builder.SendEmails(subject, newTicketTemplate, &details)
-
-		// TODO: Fire webhooks
 		return nil
 	}); err != nil {
 		return nil, err
 	}
+	webhooks.DeliverLegacyTicketCreate(ctx, tracker, &ticket)
 	return &ticket, nil
 }
 
