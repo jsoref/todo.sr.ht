@@ -100,6 +100,7 @@ type Tracker {
   description: String
   visibility: Visibility!
 
+  ticket(id: Int!): Ticket! @access(scope: TICKETS, kind: RO)
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
 

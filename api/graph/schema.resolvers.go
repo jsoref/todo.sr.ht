@@ -1799,6 +1799,10 @@ func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+func (r *trackerResolver) Ticket(ctx context.Context, obj *model.Tracker, id int) (*model.Ticket, error) {
+	return loaders.ForContext(ctx).TicketsByTrackerID.Load([2]int{obj.ID, id})
+}
+
 func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)

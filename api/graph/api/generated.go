@@ -243,6 +243,7 @@ type ComplexityRoot struct {
 		Name         func(childComplexity int) int
 		Owner        func(childComplexity int) int
 		Subscription func(childComplexity int) int
+		Ticket       func(childComplexity int, id int) int
 		Tickets      func(childComplexity int, cursor *model1.Cursor) int
 		Updated      func(childComplexity int) int
 		Visibility   func(childComplexity int) int
@@ -386,6 +387,7 @@ type TicketSubscriptionResolver interface {
 type TrackerResolver interface {
 	Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error)
 
+	Ticket(ctx context.Context, obj *model.Tracker, id int) (*model.Ticket, error)
 	Tickets(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.TicketCursor, error)
 	Labels(ctx context.Context, obj *model.Tracker, cursor *model1.Cursor) (*model.LabelCursor, error)
 	Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error)
@@ -1418,6 +1420,18 @@ func (e *executableSchema) Complexity(typeName, field string, childComplexity in
 
 		return e.complexity.Tracker.Subscription(childComplexity), true
 
+	case "Tracker.ticket":
+		if e.complexity.Tracker.Ticket == nil {
+			break
+		}
+
+		args, err := ec.field_Tracker_ticket_args(context.TODO(), rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.complexity.Tracker.Ticket(childComplexity, args["id"].(int)), true
+
 	case "Tracker.tickets":
 		if e.complexity.Tracker.Tickets == nil {
 			break
@@ -1839,6 +1853,7 @@ type Tracker {
   description: String
   visibility: Visibility!
 
+  ticket(id: Int!): Ticket! @access(scope: TICKETS, kind: RO)
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
   labels(cursor: Cursor): LabelCursor!
 
@@ -3243,6 +3258,21 @@ func (ec *executionContext) field_Tracker_labels_args(ctx context.Context, rawAr
 		}
 	}
 	args["cursor"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Tracker_ticket_args(ctx context.Context, rawArgs map[string]interface{}) (map[string]interface{}, error) {
+	var err error
+	args := map[string]interface{}{}
+	var arg0 int
+	if tmp, ok := rawArgs["id"]; ok {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithField("id"))
+		arg0, err = ec.unmarshalNInt2int(ctx, tmp)
+		if err != nil {
+			return nil, err
+		}
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -8987,6 +9017,76 @@ func (ec *executionContext) _Tracker_visibility(ctx context.Context, field graph
 	return ec.marshalNVisibility2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐVisibility(ctx, field.Selections, res)
 }
 
+func (ec *executionContext) _Tracker_ticket(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
+	defer func() {
+		if r := recover(); r != nil {
+			ec.Error(ctx, ec.Recover(ctx, r))
+			ret = graphql.Null
+		}
+	}()
+	fc := &graphql.FieldContext{
+		Object:     "Tracker",
+		Field:      field,
+		Args:       nil,
+		IsMethod:   true,
+		IsResolver: true,
+	}
+
+	ctx = graphql.WithFieldContext(ctx, fc)
+	rawArgs := field.ArgumentMap(ec.Variables)
+	args, err := ec.field_Tracker_ticket_args(ctx, rawArgs)
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	fc.Args = args
+	resTmp, err := ec.ResolverMiddleware(ctx, func(rctx context.Context) (interface{}, error) {
+		directive0 := func(rctx context.Context) (interface{}, error) {
+			ctx = rctx // use context from middleware stack in children
+			return ec.resolvers.Tracker().Ticket(rctx, obj, args["id"].(int))
+		}
+		directive1 := func(ctx context.Context) (interface{}, error) {
+			scope, err := ec.unmarshalNAccessScope2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessScope(ctx, "TICKETS")
+			if err != nil {
+				return nil, err
+			}
+			kind, err := ec.unmarshalNAccessKind2gitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐAccessKind(ctx, "RO")
+			if err != nil {
+				return nil, err
+			}
+			if ec.directives.Access == nil {
+				return nil, errors.New("directive access is not implemented")
+			}
+			return ec.directives.Access(ctx, obj, directive0, scope, kind)
+		}
+
+		tmp, err := directive1(rctx)
+		if err != nil {
+			return nil, graphql.ErrorOnPath(ctx, err)
+		}
+		if tmp == nil {
+			return nil, nil
+		}
+		if data, ok := tmp.(*model.Ticket); ok {
+			return data, nil
+		}
+		return nil, fmt.Errorf(`unexpected type %T from directive, should be *git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model.Ticket`, tmp)
+	})
+	if err != nil {
+		ec.Error(ctx, err)
+		return graphql.Null
+	}
+	if resTmp == nil {
+		if !graphql.HasFieldError(ctx, fc) {
+			ec.Errorf(ctx, "must not be null")
+		}
+		return graphql.Null
+	}
+	res := resTmp.(*model.Ticket)
+	fc.Result = res
+	return ec.marshalNTicket2ᚖgitᚗsrᚗhtᚋאsircmpwnᚋtodoᚗsrᚗhtᚋapiᚋgraphᚋmodelᚐTicket(ctx, field.Selections, res)
+}
+
 func (ec *executionContext) _Tracker_tickets(ctx context.Context, field graphql.CollectedField, obj *model.Tracker) (ret graphql.Marshaler) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -13401,6 +13501,20 @@ func (ec *executionContext) _Tracker(ctx context.Context, sel ast.SelectionSet, 
 			if out.Values[i] == graphql.Null {
 				atomic.AddUint32(&invalids, 1)
 			}
+		case "ticket":
+			field := field
+			out.Concurrently(i, func() (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Tracker_ticket(ctx, field, obj)
+				if res == graphql.Null {
+					atomic.AddUint32(&invalids, 1)
+				}
+				return res
+			})
 		case "tickets":
 			field := field
 			out.Concurrently(i, func() (res graphql.Marshaler) {
