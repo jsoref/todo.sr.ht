@@ -67,6 +67,8 @@ def _webhook_filters(query, username, tracker_name):
     return query.filter(TrackerWebhook.Subscription.tracker_id == tracker.id)
 
 def _webhook_create(sub, valid, username, tracker_name):
+    if current_token.token_partial != "internal":
+        abort(401)
     user = get_user(username)
     tracker, access = get_tracker(user, tracker_name, user=current_token.user)
     if not tracker:
