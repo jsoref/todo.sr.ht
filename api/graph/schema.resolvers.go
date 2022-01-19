@@ -962,12 +962,11 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 		}
 		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
 		builder.SendEmails(subject, ticketStatusTemplate, &details)
-
-		// TODO: Fire webhooks
 		return nil
 	}); err != nil {
 		return nil, err
 	}
+	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
 	return &event, nil
 }
 
@@ -1107,13 +1106,11 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		}
 		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
 		builder.SendEmails(subject, submitCommentTemplate, &details)
-
-		// TODO: Fire webhooks
 		return nil
 	}); err != nil {
 		return nil, err
 	}
-
+	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
 	return &event, nil
 }
 
@@ -1237,8 +1234,6 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 		}
 		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
 		builder.SendEmails(subject, ticketAssignedTemplate, &details)
-
-		// TODO: Fire webhooks
 		return nil
 	}); err != nil {
 		if !valid.Ok() {
@@ -1246,7 +1241,7 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 		}
 		return nil, err
 	}
-
+	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
 	return &event, nil
 }
 
@@ -1367,8 +1362,6 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 		}
 		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
 		builder.SendEmails(subject, ticketAssignedTemplate, &details)
-
-		// TODO: Fire webhooks
 		return nil
 	}); err != nil {
 		if !valid.Ok() {
@@ -1376,7 +1369,7 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 		}
 		return nil, err
 	}
-
+	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
 	return &event, nil
 }
 
@@ -1468,7 +1461,7 @@ func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticke
 		}
 		return nil, err
 	}
-
+	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
 	return &event, nil
 }
 
@@ -1548,7 +1541,7 @@ func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, tic
 	}); err != nil {
 		return nil, err
 	}
-
+	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
 	return &event, nil
 }
 

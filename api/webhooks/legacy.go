@@ -1,4 +1,6 @@
 package webhooks
+// XXX: No one uses the todo webhooks other than internal users, and they are
+// really stupid and bad, and I am lacking in patience, so this is half-assed.
 
 import (
 	"context"
@@ -57,12 +59,57 @@ type TicketWebhookPayload struct {
 	Status      string    `json:"status"`
 	Resolution  string    `json:"resolution"`
 
-	Submitter ParticipantWebhookPayload `json:"submitter"`
-	Tracker   TrackerWebhookPayload     `json:"tracker"`
+	Submitter *ParticipantWebhookPayload `json:"submitter,omitempty"`
+	Tracker   *TrackerWebhookPayload     `json:"tracker"`
 
 	// In the interest of keeping the legacy code simple, these are left unused:
 	Labels    []string      `json:"labels"`
 	Assignees []interface{} `json:"assignees"`
+}
+
+type LabelWebhookPayload struct {
+	Name    string    `json:"name"`
+	Created time.Time `json:"created"`
+
+	Colors struct {
+		Background string `json:"background"`
+		Text       string `json:"text"`
+	} `json:"colors"`
+
+	Tracker struct {
+		ID      int       `json:"id"`
+		Created time.Time `json:"created"`
+		Updated time.Time `json:"updated"`
+		Name    string    `json:"name"`
+
+		Owner struct {
+			CanonicalName string `json:"canonical_name"`
+			Name          string `json:"name"`
+		} `json:"owner"`
+	} `json:"tracker"`
+}
+
+type CommentWebhookPayload struct {
+	ID      int       `json:"id"`
+	Created time.Time `json:"created"`
+	Text    string    `json:"text"`
+}
+
+type EventWebhookPayload struct {
+	ID            int       `json:"id"`
+	Created       time.Time `json:"created"`
+	EventType     []string  `json:"event_type"`
+	OldStatus     *string   `json:"old_status"`
+	OldResolution *string   `json:"old_resolution"`
+	NewStatus     *string   `json:"new_status"`
+	NewResolution *string   `json:"new_resolution"`
+
+	User       *ParticipantWebhookPayload `json:"user"`
+	Ticket     *TicketWebhookPayload      `json:"ticket"`
+	Comment    *CommentWebhookPayload     `json:"comment"`
+	Label      *LabelWebhookPayload       `json:"label"`
+	ByUser     *ParticipantWebhookPayload `json:"by_user"`
+	FromTicket *TicketWebhookPayload      `json:"from_ticket"`
 }
 
 func NewLegacyQueue() *webhooks.LegacyQueue {
@@ -107,10 +154,10 @@ func mkaccess(tracker *model.Tracker) []string {
 	return items
 }
 
-func mkparticipant(part model.Entity) ParticipantWebhookPayload {
+func mkparticipant(part model.Entity) *ParticipantWebhookPayload {
 	switch part := part.(type) {
 	case *model.User:
-		return ParticipantWebhookPayload{
+		return &ParticipantWebhookPayload{
 			Type:          "user",
 			Name:          part.Username,
 			CanonicalName: part.CanonicalName(),
@@ -120,7 +167,7 @@ func mkparticipant(part model.Entity) ParticipantWebhookPayload {
 		if part.Name != nil {
 			name = *part.Name
 		}
-		return ParticipantWebhookPayload{
+		return &ParticipantWebhookPayload{
 			Type:    "email",
 			Address: part.Mailbox,
 			Name:    name,
@@ -130,7 +177,7 @@ func mkparticipant(part model.Entity) ParticipantWebhookPayload {
 		if part.ExternalURL != nil {
 			url = *part.ExternalURL
 		}
-		return ParticipantWebhookPayload{
+		return &ParticipantWebhookPayload{
 			Type:        "external",
 			ExternalID:  part.ExternalID,
 			ExternalURL: url,
@@ -209,29 +256,7 @@ func DeliverLegacyLabelCreate(ctx context.Context,
 		panic("No legacy webhooks worker for this context")
 	}
 
-	type WebhookPayload struct {
-		Name    string    `json:"name"`
-		Created time.Time `json:"created"`
-
-		Colors struct {
-			Background string `json:"background"`
-			Text       string `json:"text"`
-		} `json:"colors"`
-
-		Tracker struct {
-			ID      int       `json:"id"`
-			Created time.Time `json:"created"`
-			Updated time.Time `json:"updated"`
-			Name    string    `json:"name"`
-
-			Owner struct {
-				CanonicalName string `json:"canonical_name"`
-				Name          string `json:"name"`
-			} `json:"owner"`
-		} `json:"tracker"`
-	}
-
-	payload := WebhookPayload{
+	payload := LabelWebhookPayload{
 		Name:    label.Name,
 		Created: label.Created,
 	}
@@ -310,7 +335,7 @@ func DeliverLegacyTicketCreate(ctx context.Context,
 		Resolution:  ticket.Resolution().String(),
 
 		Submitter: mkparticipant(part),
-		Tracker: TrackerWebhookPayload{
+		Tracker:   &TrackerWebhookPayload{
 			ID:      tracker.ID,
 			Created: tracker.Created,
 			Updated: tracker.Updated,
@@ -341,4 +366,144 @@ func DeliverLegacyTicketCreate(ctx context.Context,
 			Where("sub.user_id = ?", user.ID)
 		q.Schedule(ctx, query, "user", "ticket:create", encoded)
 	}
+}
+
+func mkEventTypes(eventType int) []string {
+	var results []string
+	if eventType&model.EVENT_CREATED != 0 {
+		results = append(results, "created")
+	}
+	if eventType&model.EVENT_STATUS_CHANGE != 0 {
+		results = append(results, "status_change")
+	}
+	if eventType&model.EVENT_LABEL_ADDED != 0 {
+		results = append(results, "label_added")
+	}
+	if eventType&model.EVENT_LABEL_REMOVED != 0 {
+		results = append(results, "label_removed")
+	}
+	if eventType&model.EVENT_ASSIGNED_USER != 0 {
+		results = append(results, "assigned_user")
+	}
+	if eventType&model.EVENT_UNASSIGNED_USER != 0 {
+		results = append(results, "unassigned_user")
+	}
+	if eventType&model.EVENT_USER_MENTIONED != 0 {
+		results = append(results, "user_mentioned")
+	}
+	if eventType&model.EVENT_TICKET_MENTIONED != 0 {
+		results = append(results, "ticket_mentioned")
+	}
+	return results
+}
+
+func mkStatus(status *int) *string {
+	if status == nil {
+		return nil
+	}
+	var st string
+	switch *status {
+	case model.STATUS_REPORTED:
+		st = "reported"
+	case model.STATUS_CONFIRMED:
+		st = "confirmed"
+	case model.STATUS_IN_PROGRESS:
+		st = "in_progress"
+	case model.STATUS_PENDING:
+		st = "pending"
+	case model.STATUS_RESOLVED:
+		st = "resolved"
+	}
+	return &st
+}
+
+func mkResolution(res *int) *string {
+	if res == nil {
+		return nil
+	}
+	var r string
+	switch *res {
+	case model.RESOLVED_UNRESOLVED:
+		r = "unresolved"
+	case model.RESOLVED_FIXED:
+		r = "fixed"
+	case model.RESOLVED_IMPLEMENTED:
+		r = "implemented"
+	case model.RESOLVED_WONT_FIX:
+		r = "wont_fix"
+	case model.RESOLVED_BY_DESIGN:
+		r = "by_design"
+	case model.RESOLVED_DUPLICATE:
+		r = "duplicate"
+	case model.RESOLVED_NOT_OUR_BUG:
+		r = "not_our_bug"
+	}
+	return &r
+}
+
+func DeliverLegacyEventCreate(ctx context.Context,
+	tracker *model.Tracker, ticket *model.Ticket, event *model.Event) {
+	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
+	if !ok {
+		panic("No legacy webhooks worker for this context")
+	}
+
+	part, err := loaders.ForContext(ctx).EntitiesByParticipantID.Load(event.ParticipantID)
+	if err != nil || part == nil {
+		panic("Invalid event participant")
+	}
+
+	payload := EventWebhookPayload{
+		ID:        event.ID,
+		Created:   event.Created,
+		EventType: mkEventTypes(event.EventType),
+
+		OldStatus:     mkStatus(event.OldStatus),
+		OldResolution: mkResolution(event.OldResolution),
+		NewStatus:     mkStatus(event.NewStatus),
+		NewResolution: mkResolution(event.NewResolution),
+
+		Ticket: &TicketWebhookPayload{
+			ID:      ticket.PKID,
+			Ref:     ticket.Ref(),
+			Title:   ticket.Subject,
+			Tracker: &TrackerWebhookPayload{
+				ID:      tracker.ID,
+				Created: tracker.Created,
+				Updated: tracker.Updated,
+				Name:    tracker.Name,
+
+				Owner: UserWebhookPayload{
+					CanonicalName: "~" + ticket.OwnerName,
+					Name:          ticket.OwnerName,
+				},
+			},
+		},
+
+		User: mkparticipant(part),
+	}
+	if event.ByParticipantID != nil {
+		part, err := loaders.ForContext(ctx).
+			EntitiesByParticipantID.Load(*event.ByParticipantID)
+		if err != nil || part == nil {
+			panic("Invalid event participant")
+		}
+		payload.ByUser = mkparticipant(part)
+	}
+
+	encoded, err := json.Marshal(&payload)
+	if err != nil {
+		panic(err) // Programmer error
+	}
+
+	query := sq.
+		Select().
+		From("tracker_webhook_subscription sub").
+		Where("sub.tracker_id = ?", tracker.ID)
+	q.Schedule(ctx, query, "tracker", "event:create", encoded)
+	query = sq.
+		Select().
+		From("ticket_webhook_subscription sub").
+		Where("sub.ticket_id = ?", ticket.ID)
+	q.Schedule(ctx, query, "ticket", "event:create", encoded)
 }
