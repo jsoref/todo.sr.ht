@@ -105,7 +105,7 @@ func (t *Ticket) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 
 	if cur.Next != "" {
 		next, _ := strconv.ParseInt(cur.Next, 10, 64)
-		q = q.Where(database.WithAlias(t.alias, "id")+"<= ?", next)
+		q = q.Where(database.WithAlias(t.alias, "scoped_id")+"<= ?", next)
 	}
 	q = q.
 		OrderBy(database.WithAlias(t.alias, "scoped_id") + " DESC").
