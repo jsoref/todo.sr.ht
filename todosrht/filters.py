@@ -10,6 +10,15 @@ from srht.cache import get_cache, set_cache
 from todosrht import urls
 from todosrht.tickets import find_mentioned_users, find_mentioned_tickets
 from todosrht.tickets import TICKET_MENTION_PATTERN, USER_MENTION_PATTERN
+from prometheus_client import Counter
+
+metrics = type("metrics", tuple(), {
+    c.describe()[0].name: c
+    for c in [
+        Counter("todosrht_markup_cache_access", "Number of markup cache accesses"),
+        Counter("todosrht_markup_cache_miss", "Number of markup cache misses"),
+    ]
+})
 
 def cache_rendered_markup(func):
     @wraps(func)
@@ -19,9 +28,11 @@ def cache_rendered_markup(func):
         sha.update(json.dumps(obj.to_dict(), default=date_handler).encode())
         key = f"todo.sr.ht:cache_rendered_markup:{class_name}:{sha.hexdigest()}:v{SRHT_MARKDOWN_VERSION}"
         value = get_cache(key)
+        metrics.todosrht_markup_cache_access.inc()
         if value:
             return Markup(value.decode())
 
+        metrics.todosrht_markup_cache_miss.inc()
         value = func(obj)
         set_cache(key, timedelta(days=30), value)
         return value
