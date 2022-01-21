@@ -805,7 +805,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 
 func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Ticket, error) {
 	if _, ok := input["import"]; ok {
-		panic(fmt.Errorf("not implemented"))
+		panic(fmt.Errorf("not implemented")) // TODO
 	}
 
 	update := sq.Update("ticket").
@@ -864,13 +864,12 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 		return nil, err
 	}
 
-	// TODO: Fire webhooks
 	return ticket, nil
 }
 
 func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int, ticketID int, input model.UpdateStatusInput) (*model.Event, error) {
 	if input.Import != nil {
-		panic(fmt.Errorf("not implemented"))
+		panic(fmt.Errorf("not implemented")) // TODO
 	}
 
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
@@ -972,7 +971,7 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 
 func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
 	if input.Import != nil {
-		panic(fmt.Errorf("not implemented"))
+		panic(fmt.Errorf("not implemented")) // TODO
 	}
 
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
@@ -1904,7 +1903,7 @@ func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.AC
 }
 
 func (r *trackerResolver) DefaultACL(ctx context.Context, obj *model.Tracker) (*model.DefaultACL, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("not implemented")) // TODO
 }
 
 func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
@@ -1936,7 +1935,7 @@ func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *
 }
 
 func (r *trackerResolver) Export(ctx context.Context, obj *model.Tracker) (string, error) {
-	panic(fmt.Errorf("not implemented"))
+	panic(fmt.Errorf("not implemented")) // TODO
 }
 
 func (r *trackerACLResolver) Tracker(ctx context.Context, obj *model.TrackerACL) (*model.Tracker, error) {
