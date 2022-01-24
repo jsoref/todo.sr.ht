@@ -79,9 +79,9 @@ func ScanMentions(ctx context.Context, tracker *model.Tracker,
 			panic("Invalid regex match")
 		}
 		var (
-			root        string = match[2]
-			username    string = match[4]
-			trackerName string = match[5]
+			root        = match[2]
+			username    = match[4]
+			trackerName = match[5]
 		)
 		if root != origin {
 			continue
