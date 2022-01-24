@@ -24,7 +24,7 @@ var (
 
 // Stores state associated with user or ticket mentions
 type Mentions struct {
-	Users   map[string]interface{}
+	Users   map[string]struct{}
 	Tickets map[string]model.Ticket // Partially filled in
 }
 
@@ -34,14 +34,14 @@ func ScanMentions(ctx context.Context, tracker *model.Tracker,
 	conf := config.ForContext(ctx)
 	origin := config.GetOrigin(conf, "todo.sr.ht", true)
 
-	mentionedUsers := make(map[string]interface{})
+	mentionedUsers := make(map[string]struct{})
 	mentionedTickets := make(map[string]model.Ticket)
 	matches := userMentionRE.FindAllStringSubmatch(body, -1)
 	for _, match := range matches {
 		if len(match) != 4 {
 			panic("Invalid regex match")
 		}
-		mentionedUsers[match[2]] = nil
+		mentionedUsers[match[2]] = struct{}{}
 	}
 
 	matches = ticketMentionRE.FindAllStringSubmatch(body, -1)
