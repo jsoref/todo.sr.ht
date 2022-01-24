@@ -293,11 +293,7 @@ func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, use
 			return err
 		}
 
-		acl.Browse = bits&model.ACCESS_BROWSE != 0
-		acl.Submit = bits&model.ACCESS_SUBMIT != 0
-		acl.Comment = bits&model.ACCESS_COMMENT != 0
-		acl.Edit = bits&model.ACCESS_EDIT != 0
-		acl.Triage = bits&model.ACCESS_TRIAGE != 0
+		acl.SetBits(bits)
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -324,13 +320,9 @@ func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, 
 		}
 		return nil, err
 	}
-	return &model.DefaultACL{
-		bits&model.ACCESS_BROWSE != 0,
-		bits&model.ACCESS_SUBMIT != 0,
-		bits&model.ACCESS_COMMENT != 0,
-		bits&model.ACCESS_EDIT != 0,
-		bits&model.ACCESS_TRIAGE != 0,
-	}, nil
+	acl := &model.DefaultACL{}
+	acl.SetBits(bits)
+	return acl, nil
 }
 
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.TrackerACL, error) {
@@ -353,11 +345,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Tracke
 			return err
 		}
 
-		acl.Browse = bits&model.ACCESS_BROWSE != 0
-		acl.Submit = bits&model.ACCESS_SUBMIT != 0
-		acl.Comment = bits&model.ACCESS_COMMENT != 0
-		acl.Edit = bits&model.ACCESS_EDIT != 0
-		acl.Triage = bits&model.ACCESS_TRIAGE != 0
+		acl.SetBits(bits)
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
@@ -520,6 +508,9 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 	}
 	if n, err := hex.Decode(bgb[:], []byte(background[1:])); err != nil || n != 3 {
 		return nil, fmt.Errorf("Invalid background color format")
+	}
+	if len(name) <= 0 {
+		return nil, fmt.Errorf("Label name must be greater than zero in length")
 	}
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
 	if err != nil {
