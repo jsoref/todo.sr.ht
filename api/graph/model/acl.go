@@ -26,6 +26,15 @@ type DefaultACL struct {
 
 func (DefaultACL) IsACL() {}
 
+// Sets the ACL struct's boolean fields from the database bits.
+func (acl *DefaultACL) SetBits(bits uint) {
+	acl.Browse = bits&ACCESS_BROWSE != 0
+	acl.Submit = bits&ACCESS_SUBMIT != 0
+	acl.Comment = bits&ACCESS_COMMENT != 0
+	acl.Edit = bits&ACCESS_EDIT != 0
+	acl.Triage = bits&ACCESS_TRIAGE != 0
+}
+
 type TrackerACL struct {
 	ID      int       `json:"id"`
 	Created time.Time `json:"created"`
@@ -43,6 +52,15 @@ type TrackerACL struct {
 }
 
 func (TrackerACL) IsACL() {}
+
+// Sets the ACL struct's boolean fields from the database bits.
+func (acl *TrackerACL) SetBits(bits uint) {
+	acl.Browse = bits&ACCESS_BROWSE != 0
+	acl.Submit = bits&ACCESS_SUBMIT != 0
+	acl.Comment = bits&ACCESS_COMMENT != 0
+	acl.Edit = bits&ACCESS_EDIT != 0
+	acl.Triage = bits&ACCESS_TRIAGE != 0
+}
 
 func (acl *TrackerACL) As(alias string) *TrackerACL {
 	acl.alias = alias
