@@ -8,6 +8,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
@@ -658,6 +659,10 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		valid.Expect(strings.ContainsRune(*input.ExternalID, ':'),
 			"Format of externalId field is '<third-party>:<name>', .e.g 'example.org:jdoe'").
 			WithField("externalId")
+		u, err := url.Parse(*input.ExternalURL)
+		valid.Expect(err == nil, err.Error()).
+			And(u.Scheme == "http" || u.Scheme == "https", "Invalid URL scheme").
+			WithField("externalUrl")
 	}
 	if input.Created != nil {
 		valid.Expect(tracker.OwnerID == user.UserID,
