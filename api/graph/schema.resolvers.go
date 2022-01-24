@@ -6,7 +6,6 @@ package graph
 import (
 	"context"
 	"database/sql"
-	"encoding/hex"
 	"errors"
 	"fmt"
 	"strings"
@@ -491,23 +490,16 @@ func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int,
 }
 
 func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name string, foreground string, background string) (*model.Label, error) {
-	var label model.Label
-	user := auth.ForContext(ctx)
 	var (
-		fgb [3]byte
-		bgb [3]byte
+		err   error
+		label model.Label
 	)
-	if !strings.HasPrefix(foreground, "#") {
-		return nil, fmt.Errorf("Invalid foreground color format")
+	user := auth.ForContext(ctx)
+	if _, err = parseColor(foreground); err != nil {
+		return nil, err
 	}
-	if n, err := hex.Decode(fgb[:], []byte(foreground[1:])); err != nil || n != 3 {
-		return nil, fmt.Errorf("Invalid foreground color format")
-	}
-	if !strings.HasPrefix(background, "#") {
-		return nil, fmt.Errorf("Invalid background color format")
-	}
-	if n, err := hex.Decode(bgb[:], []byte(background[1:])); err != nil || n != 3 {
-		return nil, fmt.Errorf("Invalid background color format")
+	if _, err = parseColor(background); err != nil {
+		return nil, err
 	}
 	if len(name) <= 0 {
 		return nil, fmt.Errorf("Label name must be greater than zero in length")
@@ -562,29 +554,13 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 
 func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[string]interface{}) (*model.Label, error) {
 	valid := valid.New(ctx).WithInput(input)
-	var (
-		fgb [3]byte
-		bgb [3]byte
-	)
 	valid.OptionalString("foregroundColor", func(foreground string) {
-		valid.Expect(strings.HasPrefix(foreground, "#"),
-			"Invalid foreground color format").
-			WithField("foregroundColor").
-			And((func() bool {
-				n, err := hex.Decode(fgb[:], []byte(foreground[1:]))
-				return err == nil && n == 3
-			})(), "Invalid foreground color").
-			WithField("foregroundColor")
+		_, err := parseColor(foreground)
+		valid.Expect(err == nil, err.Error()).WithField("foregroundColor")
 	})
 	valid.OptionalString("backgroundColor", func(background string) {
-		valid.Expect(strings.HasPrefix(background, "#"),
-			"Invalid background color format").
-			WithField("backgroundColor").
-			And((func() bool {
-				n, err := hex.Decode(bgb[:], []byte(background[1:]))
-				return err == nil && n == 3
-			})(), "Invalid background color").
-			WithField("backgroundColor")
+		_, err := parseColor(background)
+		valid.Expect(err == nil, err.Error()).WithField("backgroundColor")
 	})
 	valid.OptionalString("name", func(name string) {
 		valid.Expect(len(name) != 0, "Name cannot be empty").WithField(name)
