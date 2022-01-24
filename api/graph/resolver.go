@@ -1,7 +1,10 @@
 package graph
 
 import (
+	"encoding/hex"
+	"fmt"
 	"regexp"
+	"strings"
 
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 )
@@ -30,4 +33,15 @@ func aclBits(input model.ACLInput) uint {
 		bits |= model.ACCESS_TRIAGE
 	}
 	return bits
+}
+
+func parseColor(input string) ([3]byte, error) {
+	var color [3]byte
+	if !strings.HasPrefix(input, "#") {
+		return color, fmt.Errorf("Invalid color format")
+	}
+	if n, err := hex.Decode(color[:], []byte(input[1:])); err != nil || n != 3 {
+		return color, fmt.Errorf("Invalid color format")
+	}
+	return color, nil
 }
