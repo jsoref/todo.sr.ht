@@ -65,11 +65,12 @@ func ScanMentions(ctx context.Context, tracker *model.Tracker,
 			trackerName = tracker.Name
 		}
 		ticketID, _ = strconv.Atoi(match[5])
-		mentionedTickets[ticket.Ref()] = model.Ticket{
+		tik := model.Ticket{
 			ID:          ticketID,
 			TrackerName: trackerName,
 			OwnerName:   username,
 		}
+		mentionedTickets[tik.Ref()] = tik
 	}
 
 	matches = ticketURLRE.FindAllStringSubmatch(body, -1)
