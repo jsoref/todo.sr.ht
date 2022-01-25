@@ -70,6 +70,7 @@ def _import_comment(ticket, event, edata):
             comment.authenticity = TicketAuthenticity.authentic
         else:
             comment.authenticity = TicketAuthenticity.tampered
+    ticket.comment_count += 1
     db.session.add(comment)
     db.session.flush()
     event.comment_id = comment.id
