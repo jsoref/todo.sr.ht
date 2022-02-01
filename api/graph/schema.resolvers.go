@@ -1313,7 +1313,7 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 			) VALUES (
 				$1, $2, true
 			);
-		`, assignee.ID, model.EVENT_ASSIGNED_USER)
+		`, assignee.ID, model.EVENT_UNASSIGNED_USER)
 		if err != nil {
 			panic(err)
 		}
