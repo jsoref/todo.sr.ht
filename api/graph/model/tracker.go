@@ -34,7 +34,7 @@ type Tracker struct {
 
 	OwnerID       int
 	Access        int
-	DefaultAccess int
+	DefaultAccess uint
 	ACLID         *int
 
 	alias  string

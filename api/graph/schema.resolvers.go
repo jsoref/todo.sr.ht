@@ -1875,7 +1875,9 @@ func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.AC
 }
 
 func (r *trackerResolver) DefaultACL(ctx context.Context, obj *model.Tracker) (*model.DefaultACL, error) {
-	panic(fmt.Errorf("not implemented")) // TODO
+	acl := &model.DefaultACL{}
+	acl.SetBits(obj.DefaultAccess)
+	return acl, nil
 }
 
 func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
