@@ -7,6 +7,11 @@
 </title>
 <!-- Tracker ID: {{tracker.id}} -->
 {% endblock %}
+{% block head %}
+{% if tracker.visibility.value =='UNLISTED' %}
+<meta name="robots" content="noindex">
+{% endif %}
+{% endblock %}
 {% block body %}
 <div class="header-tabbed">
   <div class="container-fluid">
