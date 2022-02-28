@@ -198,15 +198,22 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 }
 
 func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[string]interface{}) (*model.Tracker, error) {
+	query := sq.Update("tracker").
+		PlaceholderFormat(sq.Dollar)
+
 	valid := valid.New(ctx).WithInput(input)
 
 	valid.OptionalString("description", func(desc string) {
 		valid.Expect(len(desc) < 8192,
 			"Description must be fewer than 8192 characters").
 			WithField("description")
+		if !valid.Ok() {
+			return
+		}
+		query = query.Set(`description`, desc)
 	})
 	valid.OptionalString("visibility", func(vis string) {
-		input["visibility"] = model.Visibility(vis)
+		query = query.Set(`visibility`, vis)
 	})
 	if !valid.Ok() {
 		return nil, nil
@@ -223,7 +230,7 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		var err error
 		if len(input) != 0 {
-			_, err = database.Apply(tracker, input).
+			_, err = query.
 				Where(database.WithAlias(tracker.Alias(), `id`)+"= ?", tracker.ID).
 				Set(database.WithAlias(tracker.Alias(), `updated`),
 					sq.Expr(`now() at time zone 'utc'`)).
@@ -554,17 +561,32 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 }
 
 func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[string]interface{}) (*model.Label, error) {
+	query := sq.Update("label").
+		PlaceholderFormat(sq.Dollar)
+
 	valid := valid.New(ctx).WithInput(input)
 	valid.OptionalString("foregroundColor", func(foreground string) {
 		_, err := parseColor(foreground)
 		valid.Expect(err == nil, err.Error()).WithField("foregroundColor")
+		if !valid.Ok() {
+			return
+		}
+		query = query.Set(`text_color`, foreground)
 	})
 	valid.OptionalString("backgroundColor", func(background string) {
 		_, err := parseColor(background)
 		valid.Expect(err == nil, err.Error()).WithField("backgroundColor")
+		if !valid.Ok() {
+			return
+		}
+		query = query.Set(`color`, background)
 	})
 	valid.OptionalString("name", func(name string) {
 		valid.Expect(len(name) != 0, "Name cannot be empty").WithField(name)
+		if !valid.Ok() {
+			return
+		}
+		query = query.Set(`name`, name)
 	})
 	if !valid.Ok() {
 		return nil, nil
@@ -585,7 +607,7 @@ func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[st
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		var err error
 		if len(input) != 0 {
-			_, err = database.Apply(label, input).
+			_, err = query.
 				Where(database.WithAlias(label.Alias(), `id`)+"= ?", id).
 				RunWith(tx).
 				ExecContext(ctx)
