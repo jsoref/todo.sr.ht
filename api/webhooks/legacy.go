@@ -1,4 +1,5 @@
 package webhooks
+
 // XXX: No one uses the todo webhooks other than internal users, and they are
 // really stupid and bad, and I am lacking in patience, so this is half-assed.
 
@@ -335,7 +336,7 @@ func DeliverLegacyTicketCreate(ctx context.Context,
 		Resolution:  ticket.Resolution().String(),
 
 		Submitter: mkparticipant(part),
-		Tracker:   &TrackerWebhookPayload{
+		Tracker: &TrackerWebhookPayload{
 			ID:      tracker.ID,
 			Created: tracker.Created,
 			Updated: tracker.Updated,
@@ -464,9 +465,9 @@ func DeliverLegacyEventCreate(ctx context.Context,
 		NewResolution: mkResolution(event.NewResolution),
 
 		Ticket: &TicketWebhookPayload{
-			ID:      ticket.PKID,
-			Ref:     ticket.Ref(),
-			Title:   ticket.Subject,
+			ID:    ticket.PKID,
+			Ref:   ticket.Ref(),
+			Title: ticket.Subject,
 			Tracker: &TrackerWebhookPayload{
 				ID:      tracker.ID,
 				Created: tracker.Created,
