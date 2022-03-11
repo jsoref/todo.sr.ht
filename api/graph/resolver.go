@@ -37,7 +37,7 @@ func aclBits(input model.ACLInput) uint {
 
 func parseColor(input string) ([3]byte, error) {
 	var color [3]byte
-	if !strings.HasPrefix(input, "#") {
+	if !strings.HasPrefix(input, "#") || len(input) != 7 {
 		return color, fmt.Errorf("Invalid color format")
 	}
 	if n, err := hex.Decode(color[:], []byte(input[1:])); err != nil || n != 3 {
