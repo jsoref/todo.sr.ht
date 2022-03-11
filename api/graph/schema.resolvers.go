@@ -1027,6 +1027,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 
 		_, err := updateTicket.
 			Set(`comment_count`, sq.Expr(`comment_count + 1`)).
+			Where(`ticket.id = ?`, ticket.PKID).
 			RunWith(tx).
 			ExecContext(ctx)
 		if err != nil {
