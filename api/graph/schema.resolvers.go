@@ -127,18 +127,18 @@ func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate)
 }
 
 func (r *mutationResolver) CreateTracker(ctx context.Context, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error) {
-	valid := valid.New(ctx)
-	valid.Expect(trackerNameRE.MatchString(name), "Name must match %s", trackerNameRE.String()).
+	validation := valid.New(ctx)
+	validation.Expect(trackerNameRE.MatchString(name), "Name must match %s", trackerNameRE.String()).
 		WithField("name").
 		And(name != "." && name != ".." && name != ".git" && name != ".hg",
 			"This is a reserved name and cannot be used for user trakcers.").
 		WithField("name")
 	// TODO: Unify description limits
-	valid.Expect(description == nil || len(*description) < 8192,
+	validation.Expect(description == nil || len(*description) < 8192,
 		"Description must be fewer than 8192 characters").
 		WithField("description")
-	valid.Expect(importArg == nil, "TODO: imports").WithField("import") // TODO
-	if !valid.Ok() {
+	validation.Expect(importArg == nil, "TODO: imports").WithField("import") // TODO
+	if !validation.Ok() {
 		return nil, nil
 	}
 
@@ -169,9 +169,8 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 			if err, ok := err.(*pq.Error); ok &&
 				err.Code == "23505" && // unique_violation
 				err.Constraint == "tracker_owner_id_name_unique" {
-				valid.Error("A tracker by this name already exists.").
-					WithField("name")
-				return errors.New("placeholder") // To rollback the transaction
+				return valid.Error(ctx, "name",
+					"A tracker by this name already exists.")
 			}
 			return err
 		}
@@ -188,9 +187,6 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		`, tracker.ID, part.ID)
 		return err
 	}); err != nil {
-		if !valid.Ok() {
-			return nil, nil
-		}
 		return nil, err
 	}
 	webhooks.DeliverLegacyTrackerEvent(ctx, &tracker, "tracker:create")
@@ -201,21 +197,21 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 	query := sq.Update("tracker").
 		PlaceholderFormat(sq.Dollar)
 
-	valid := valid.New(ctx).WithInput(input)
+	validation := valid.New(ctx).WithInput(input)
 
-	valid.OptionalString("description", func(desc string) {
-		valid.Expect(len(desc) < 8192,
+	validation.OptionalString("description", func(desc string) {
+		validation.Expect(len(desc) < 8192,
 			"Description must be fewer than 8192 characters").
 			WithField("description")
-		if !valid.Ok() {
+		if !validation.Ok() {
 			return
 		}
 		query = query.Set(`description`, desc)
 	})
-	valid.OptionalString("visibility", func(vis string) {
+	validation.OptionalString("visibility", func(vis string) {
 		query = query.Set(`visibility`, vis)
 	})
-	if !valid.Ok() {
+	if !validation.Ok() {
 		return nil, nil
 	}
 
@@ -564,31 +560,32 @@ func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[st
 	query := sq.Update("label").
 		PlaceholderFormat(sq.Dollar)
 
-	valid := valid.New(ctx).WithInput(input)
-	valid.OptionalString("foregroundColor", func(foreground string) {
+	validation := valid.New(ctx).WithInput(input)
+	validation.OptionalString("foregroundColor", func(foreground string) {
 		_, err := parseColor(foreground)
-		valid.Expect(err == nil, err.Error()).WithField("foregroundColor")
-		if !valid.Ok() {
+		if err != nil {
+			validation.Error("%s", err.Error()).WithField("foregroundColor")
 			return
 		}
 		query = query.Set(`text_color`, foreground)
 	})
-	valid.OptionalString("backgroundColor", func(background string) {
+	validation.OptionalString("backgroundColor", func(background string) {
 		_, err := parseColor(background)
-		valid.Expect(err == nil, err.Error()).WithField("backgroundColor")
-		if !valid.Ok() {
+		if err != nil {
+			validation.Error("%s", err.Error()).WithField("backgroundColor")
 			return
 		}
 		query = query.Set(`color`, background)
 	})
-	valid.OptionalString("name", func(name string) {
-		valid.Expect(len(name) != 0, "Name cannot be empty").WithField(name)
-		if !valid.Ok() {
+	validation.OptionalString("name", func(name string) {
+		validation.Expect(len(name) != 0, "Name cannot be empty").
+			WithField("name")
+		if !validation.Ok() {
 			return
 		}
 		query = query.Set(`name`, name)
 	})
-	if !valid.Ok() {
+	if !validation.Ok() {
 		return nil, nil
 	}
 
@@ -645,18 +642,18 @@ func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Labe
 }
 
 func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error) {
-	valid := valid.New(ctx)
-	valid.Expect(len(input.Subject) <= 2048,
+	validation := valid.New(ctx)
+	validation.Expect(len(input.Subject) <= 2048,
 		"Ticket subject must be fewer than to 2049 characters.").
 		WithField("subject")
 	if input.Body != nil {
-		valid.Expect(len(*input.Body) <= 16384,
+		validation.Expect(len(*input.Body) <= 16384,
 			"Ticket body must be less than 16 KiB in size").
 			WithField("body")
 	}
-	valid.Expect((input.ExternalID == nil) == (input.ExternalURL == nil),
+	validation.Expect((input.ExternalID == nil) == (input.ExternalURL == nil),
 		"Must specify both externalId and externalUrl, or neither, but not one")
-	if !valid.Ok() {
+	if !validation.Ok() {
 		return nil, nil
 	}
 
@@ -676,20 +673,26 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 
 	user := auth.ForContext(ctx)
 	if input.ExternalID != nil {
-		valid.Expect(tracker.OwnerID == user.UserID,
+		validation.Expect(tracker.OwnerID == user.UserID,
 			"Cannot configure external user import unless you are the owner of this tracker")
-		valid.Expect(strings.ContainsRune(*input.ExternalID, ':'),
+		validation.Expect(strings.ContainsRune(*input.ExternalID, ':'),
 			"Format of externalId field is '<third-party>:<name>', .e.g 'example.org:jdoe'").
 			WithField("externalId")
 		u, err := url.Parse(*input.ExternalURL)
-		valid.Expect(err == nil, err.Error()).
-			And(u.Scheme == "http" || u.Scheme == "https", "Invalid URL scheme").
-			WithField("externalUrl")
+		if err != nil {
+			return nil, valid.Error(ctx, "externalUrl", err.Error())
+		}
+		if u.Scheme != "http" && u.Scheme != "https" {
+			return nil, valid.Error(ctx, "externalUrl", "Invalid URL scheme")
+		}
 	}
 	if input.Created != nil {
-		valid.Expect(tracker.OwnerID == user.UserID,
+		validation.Expect(tracker.OwnerID == user.UserID,
 			"Cannot configure creation time unless you are the owner of this tracker").
 			WithField("created")
+	}
+	if !validation.Ok() {
+		return nil, nil
 	}
 
 	var ticket model.Ticket
@@ -823,26 +826,32 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 		return nil, nil
 	}
 
-	valid := valid.New(ctx).WithInput(input)
+	validation := valid.New(ctx).WithInput(input)
 	// TODO: Rename database columns title => subject; description => body
-	valid.OptionalString("subject", func(subject string) {
-		valid.Expect(len(subject) <= 2048,
-			"Ticket subject must be fewer than to 2049 characters.").
+	validation.OptionalString("subject", func(subject string) {
+		validation.Expect(len(subject) < 2049,
+			"Ticket subject must be fewer than 2049 characters.").
 			WithField("subject")
+		if !validation.Ok() {
+			return
+		}
 		ticket.Subject = subject
 		update = update.Set("title", subject)
 	})
-	if body, ok := input["body"]; ok {
-		// TODO: Should we re-scan for new mentions? Probably yes
-		if ptr, ok := body.(*string); ok {
-			if ptr != nil {
-				valid.Expect(len(*ptr) <= 16384,
-					"Ticket body must be less than 16 KiB in size").
-					WithField("body")
+	validation.NullableString("body", func(body *string) {
+		if body != nil {
+			validation.Expect(len(*body) <= 16384,
+				"Ticket body must be less than 16 KiB in size").
+				WithField("body")
+			if !validation.Ok() {
+				return
 			}
-			ticket.Body = ptr
-			update = update.Set("description", ptr)
 		}
+		ticket.Body = body
+		update = update.Set("description", body)
+	})
+	if !validation.Ok() {
+		return nil, nil
 	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -1161,7 +1170,6 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 			model.EVENT_ASSIGNED_USER, ticket.PKID,
 			assignee.ID, part.ID)
 
-	valid := valid.New(ctx)
 	columns := database.Columns(ctx, &event)
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
@@ -1176,9 +1184,8 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 		if err, ok := err.(*pq.Error); ok &&
 			err.Code == "23505" && // unique_violation
 			err.Constraint == "idx_ticket_assignee_unique" {
-			valid.Error("This user is already assigned to this ticket").
-				WithField("userId")
-			return errors.New("placeholder") // To rollback the transaction
+			return valid.Error(ctx, "userId",
+				"This user is already assigned to this ticket")
 		} else if err != nil {
 			return err
 		}
@@ -1230,9 +1237,6 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 		builder.SendEmails(subject, ticketAssignedTemplate, &details)
 		return nil
 	}); err != nil {
-		if !valid.Ok() {
-			return nil, nil
-		}
 		return nil, err
 	}
 	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
@@ -1293,7 +1297,6 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 			model.EVENT_UNASSIGNED_USER, ticket.PKID,
 			assignee.ID, part.ID)
 
-	valid := valid.New(ctx)
 	columns := database.Columns(ctx, &event)
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		var taId int
@@ -1304,9 +1307,8 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 			ticket.PKID, userID).
 			Scan(&taId)
 		if err == sql.ErrNoRows {
-			valid.Error("This user is not assigned to this ticket").
-				WithField("userId")
-			return nil
+			return valid.Error(ctx, "userId",
+				"This user is not assigned to this ticket")
 		} else if err != nil {
 			return err
 		}
@@ -1358,9 +1360,6 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 		builder.SendEmails(subject, ticketAssignedTemplate, &details)
 		return nil
 	}); err != nil {
-		if !valid.Ok() {
-			return nil, nil
-		}
 		return nil, err
 	}
 	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
@@ -1408,7 +1407,6 @@ func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticke
 		Values(sq.Expr("now() at time zone 'utc'"),
 			model.EVENT_LABEL_ADDED, ticket.PKID, part.ID, label.ID)
 
-	valid := valid.New(ctx)
 	columns := database.Columns(ctx, &event)
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		_, err := tx.ExecContext(ctx, `
@@ -1421,9 +1419,8 @@ func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticke
 		if err, ok := err.(*pq.Error); ok &&
 			err.Code == "23505" && // unique_violation
 			err.Constraint == "ticket_label_pkey" {
-			valid.Error("This label is already assigned to this ticket").
-				WithField("userId")
-			return errors.New("placeholder") // To rollback the transaction
+			return valid.Error(ctx, "userId",
+				"This label is already assigned to this ticket")
 		} else if err != nil {
 			return err
 		}
@@ -1450,9 +1447,6 @@ func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticke
 		builder.InsertNotifications(event.ID, nil)
 		return nil
 	}); err != nil {
-		if !valid.Ok() {
-			return nil, nil
-		}
 		return nil, err
 	}
 	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
