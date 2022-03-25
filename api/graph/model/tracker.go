@@ -66,6 +66,7 @@ func (t *Tracker) Fields() *database.ModelFields {
 			{"name", "name", &t.Name},
 			{"description", "description", &t.Description},
 			{"visibility", "visibility", &t.Visibility},
+			{"default_access", "defaultACL", &t.DefaultAccess},
 
 			// Always fetch:
 			{"id", "", &t.ID},
