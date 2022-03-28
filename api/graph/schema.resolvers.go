@@ -710,7 +710,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 				DO UPDATE SET created = participant.created
 				RETURNING id
 			`, *input.ExternalID, *input.ExternalURL)
-			participant := &model.Participant{}
+			participant = &model.Participant{}
 			if err := row.Scan(&participant.ID); err != nil {
 				return err
 			}
