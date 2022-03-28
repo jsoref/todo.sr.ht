@@ -295,12 +295,12 @@ func (builder *EventBuilder) SendEmails(subject string,
 			CASE part.participant_type
 			WHEN 'user' THEN '~' || "user".username
 			WHEN 'email' THEN part.email_name
-			ELSE null END
+			ELSE '' END
 		`, `
 			CASE part.participant_type
 			WHEN 'user' THEN "user".email
 			WHEN 'email' THEN part.email
-			ELSE null END
+			ELSE '' END
 		`).
 		Distinct().
 		From(`event_participant evpart`).
@@ -319,6 +319,9 @@ func (builder *EventBuilder) SendEmails(subject string,
 		var name, address string
 		if err := rows.Scan(&name, &address); err != nil {
 			panic(err)
+		}
+		if len(name) == 0 || len(address) == 0 {
+			continue
 		}
 		if address == user.Email {
 			if notifySelf {
