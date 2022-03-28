@@ -706,7 +706,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 					NOW() at time zone 'utc',
 					'external', $1, $2
 				)
-				ON CONFLICT ON CONSTRAINT participant_user_id_key
+				ON CONFLICT ON CONSTRAINT participant_external_id_key
 				DO UPDATE SET created = participant.created
 				RETURNING id
 			`, *input.ExternalID, *input.ExternalURL)
