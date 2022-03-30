@@ -219,7 +219,7 @@ func (ev *Event) Alias() string {
 }
 
 func (ev *Event) Table() string {
-	return `"event"`
+	return "event"
 }
 
 func (ev *Event) Fields() *database.ModelFields {
