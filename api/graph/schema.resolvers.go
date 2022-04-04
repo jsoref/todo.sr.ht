@@ -251,12 +251,13 @@ func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tr
 			DELETE FROM tracker
 			WHERE id = $1 AND owner_id = $2
 			RETURNING
-				id, owner_id, created, updated, name, description, visibility;
+				id, owner_id, created, updated, name, description, visibility,
+				default_access;
 		`, id, user.UserID)
 
 		if err := row.Scan(&tracker.ID, &tracker.OwnerID, &tracker.Created,
 			&tracker.Updated, &tracker.Name, &tracker.Description,
-			&tracker.Visibility); err != nil {
+			&tracker.Visibility, &tracker.DefaultAccess); err != nil {
 			return err
 		}
 		tracker.Access = model.ACCESS_ALL
