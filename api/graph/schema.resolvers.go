@@ -16,7 +16,9 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	coremodel "git.sr.ht/~sircmpwn/core-go/model"
+	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
+	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
@@ -191,6 +193,7 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		return nil, err
 	}
 	webhooks.DeliverLegacyTrackerEvent(ctx, &tracker, "tracker:create")
+	webhooks.DeliverTrackerEvent(ctx, model.WebhookEventTrackerCreated, &tracker)
 	return &tracker, nil
 }
 
@@ -216,30 +219,32 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 		return nil, nil
 	}
 
-	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(id)
-	if err != nil || tracker == nil {
-		return nil, err
-	}
-	if tracker.OwnerID != auth.ForContext(ctx).UserID {
-		return nil, fmt.Errorf("Access denied")
-	}
-
+	var tracker model.Tracker
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		var err error
-		if len(input) != 0 {
-			_, err = query.
-				Where(database.WithAlias(tracker.Alias(), `id`)+"= ?", tracker.ID).
-				Set(database.WithAlias(tracker.Alias(), `updated`),
-					sq.Expr(`now() at time zone 'utc'`)).
-				RunWith(tx).
-				ExecContext(ctx)
+		query = query.
+			Where(`id = ?`, id).
+			Where(`owner_id = ?`, auth.ForContext(ctx).UserID).
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
+			Suffix(`RETURNING
+					id, created, updated, name, description, visibility,
+					default_access, owner_id`)
+
+		row := query.RunWith(tx).QueryRowContext(ctx)
+		if err := row.Scan(&tracker.ID, &tracker.Created, &tracker.Updated,
+			&tracker.Name, &tracker.Description, &tracker.Visibility,
+			&tracker.DefaultAccess, &tracker.OwnerID); err != nil {
+			if err == sql.ErrNoRows {
+				return fmt.Errorf("No tracker by ID %d found for this user", id)
+			}
+			return err
 		}
-		return err
+		return nil
 	}); err != nil {
 		return nil, err
 	}
-	webhooks.DeliverLegacyTrackerEvent(ctx, tracker, "tracker:update")
-	return tracker, nil
+	webhooks.DeliverLegacyTrackerEvent(ctx, &tracker, "tracker:update")
+	webhooks.DeliverTrackerEvent(ctx, model.WebhookEventTrackerUpdate, &tracker)
+	return &tracker, nil
 }
 
 func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tracker, error) {
@@ -270,6 +275,7 @@ func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tr
 	}
 
 	webhooks.DeliverLegacyTrackerDelete(ctx, tracker.ID, user.UserID)
+	webhooks.DeliverTrackerEvent(ctx, model.WebhookEventTrackerDeleted, &tracker)
 	return &tracker, nil
 }
 
@@ -312,19 +318,30 @@ func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, use
 func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, input model.ACLInput) (*model.DefaultACL, error) {
 	bits := aclBits(input)
 	user := auth.ForContext(ctx)
+	var tracker model.Tracker // Need to load tracker data for webhook delivery
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, `
+		row := tx.QueryRowContext(ctx, `
 			UPDATE tracker
 			SET default_access = $1
-			WHERE id = $2 AND owner_id = $3;
+			WHERE id = $2 AND owner_id = $3
+			RETURNING
+				id, created, updated, name, description, visibility,
+				default_access, owner_id;
 		`, bits, trackerID, user.UserID)
-		return err
+		if err := row.Scan(&tracker.ID, &tracker.Created, &tracker.Updated,
+			&tracker.Name, &tracker.Description, &tracker.Visibility,
+			&tracker.DefaultAccess, &tracker.OwnerID); err != nil {
+			return err
+		}
+		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
 			return nil, nil
 		}
 		return nil, err
 	}
+	webhooks.DeliverLegacyTrackerEvent(ctx, &tracker, "tracker:update")
+	webhooks.DeliverTrackerEvent(ctx, model.WebhookEventTrackerUpdate, &tracker)
 	acl := &model.DefaultACL{}
 	acl.SetBits(bits)
 	return acl, nil
@@ -803,6 +820,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 		return nil, err
 	}
 	webhooks.DeliverLegacyTicketCreate(ctx, tracker, &ticket)
+	webhooks.DeliverTicketEvent(ctx, model.WebhookEventTicketCreated, &ticket)
 	return &ticket, nil
 }
 
@@ -1539,6 +1557,110 @@ func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, tic
 	return &event, nil
 }
 
+func (r *mutationResolver) CreateWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
+	schema := server.ForContext(ctx).Schema
+	if err := corewebhooks.Validate(schema, config.Query); err != nil {
+		return nil, err
+	}
+
+	user := auth.ForContext(ctx)
+	ac, err := corewebhooks.NewAuthConfig(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var sub model.UserWebhookSubscription
+	if len(config.Events) == 0 {
+		return nil, fmt.Errorf("Must specify at least one event")
+	}
+	events := make([]string, len(config.Events))
+	for i, ev := range config.Events {
+		events[i] = ev.String()
+		// TODO: gqlgen does not support doing anything useful with directives
+		// on enums at the time of writing, so we have to do a little bit of
+		// manual fuckery
+		var access string
+		switch ev {
+		case model.WebhookEventTrackerCreated, model.WebhookEventTrackerUpdate,
+			model.WebhookEventTrackerDeleted:
+			access = "TRACKERS"
+		case model.WebhookEventTicketCreated:
+			access = "TICKETS"
+		}
+		if !user.Grants.Has(access, auth.RO) {
+			return nil, fmt.Errorf("Insufficient access granted for webhook event %s", ev.String())
+		}
+	}
+
+	u, err := url.Parse(config.URL)
+	if err != nil {
+		return nil, err
+	} else if u.Host == "" {
+		return nil, fmt.Errorf("Cannot use URL without host")
+	} else if u.Scheme != "http" && u.Scheme != "https" {
+		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO gql_user_wh_sub (
+				created, events, url, query,
+				auth_method,
+				token_hash, grants, client_id, expires,
+				node_id,
+				user_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10
+			) RETURNING id, url, query, events, user_id;`,
+			pq.Array(events), config.URL, config.Query,
+			ac.AuthMethod,
+			ac.TokenHash, ac.Grants, ac.ClientID, ac.Expires, // OAUTH2
+			ac.NodeID, // INTERNAL
+			user.UserID)
+
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+func (r *mutationResolver) DeleteWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	var sub model.UserWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := sq.Delete(`gql_user_wh_sub`).
+			PlaceholderFormat(sq.Dollar).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			Suffix(`RETURNING id, url, query, events, user_id`).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(&sub.ID, &sub.URL,
+			&sub.Query, pq.Array(&sub.Events), &sub.UserID); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	return &model.Version{
 		Major:           0,
@@ -1649,6 +1771,79 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 	}
 
 	return &model.ActivitySubscriptionCursor{subs, cursor}, nil
+}
+
+func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	var subs []model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		sub := (&model.UserWebhookSubscription{}).As(`sub`)
+		query := database.
+			Select(ctx, sub).
+			From(`gql_user_wh_sub sub`).
+			Where(filter)
+		subs, cursor = sub.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
+}
+
+func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
+	var sub model.UserWebhookSubscription
+
+	filter, err := corewebhooks.FilterWebhooks(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, &sub).
+			From(`gql_user_wh_sub`).
+			Where(sq.And{sq.Expr(`id = ?`, id), filter}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, &sub)...); err != nil {
+			return err
+		}
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return &sub, nil
+}
+
+func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, error) {
+	raw, err := corewebhooks.Payload(ctx)
+	if err != nil {
+		return nil, err
+	}
+	payload, ok := raw.(model.WebhookPayload)
+	if !ok {
+		panic("Invalid webhook payload context")
+	}
+	return payload, nil
 }
 
 func (r *statusChangeResolver) Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error) {
@@ -1995,6 +2190,78 @@ func (r *userMentionResolver) Mentioned(ctx context.Context, obj *model.UserMent
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.MentionedID)
 }
 
+func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.UserWebhookSubscription) (*model.OAuthClient, error) {
+	if obj.ClientID == nil {
+		return nil, nil
+	}
+	return &model.OAuthClient{
+		UUID: *obj.ClientID,
+	}, nil
+}
+
+func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.UserWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
+	if cursor == nil {
+		cursor = coremodel.NewCursor(nil)
+	}
+
+	var deliveries []*model.WebhookDelivery
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		d := (&model.WebhookDelivery{}).
+			WithName(`profile`).
+			As(`delivery`)
+		query := database.
+			Select(ctx, d).
+			From(`gql_user_wh_delivery delivery`).
+			Where(`delivery.subscription_id = ?`, obj.ID)
+		deliveries, cursor = d.QueryWithCursor(ctx, tx, query, cursor)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
+}
+
+func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event *model.WebhookEvent) (string, error) {
+	// TODO
+	panic(fmt.Errorf("not implemented"))
+}
+
+func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
+	if obj.Name == "" {
+		panic("WebhookDelivery without name")
+	}
+
+	// XXX: This could use a loader but it's unlikely to be a bottleneck
+	var sub model.WebhookSubscription
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		// XXX: This needs some work to generalize to other kinds of webhooks
+		subscription := (&model.UserWebhookSubscription{}).As(`sub`)
+		// Note: No filter needed because, if we have access to the delivery,
+		// we also have access to the subscription.
+		row := database.
+			Select(ctx, subscription).
+			From(`gql_user_wh_sub sub`).
+			Where(`sub.id = ?`, obj.SubscriptionID).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := row.Scan(database.Scan(ctx, subscription)...); err != nil {
+			return err
+		}
+		sub = subscription
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	return sub, nil
+}
+
 // Assignment returns api.AssignmentResolver implementation.
 func (r *Resolver) Assignment() api.AssignmentResolver { return &assignmentResolver{r} }
 
@@ -2050,6 +2317,14 @@ func (r *Resolver) User() api.UserResolver { return &userResolver{r} }
 // UserMention returns api.UserMentionResolver implementation.
 func (r *Resolver) UserMention() api.UserMentionResolver { return &userMentionResolver{r} }
 
+// UserWebhookSubscription returns api.UserWebhookSubscriptionResolver implementation.
+func (r *Resolver) UserWebhookSubscription() api.UserWebhookSubscriptionResolver {
+	return &userWebhookSubscriptionResolver{r}
+}
+
+// WebhookDelivery returns api.WebhookDeliveryResolver implementation.
+func (r *Resolver) WebhookDelivery() api.WebhookDeliveryResolver { return &webhookDeliveryResolver{r} }
+
 type assignmentResolver struct{ *Resolver }
 type commentResolver struct{ *Resolver }
 type createdResolver struct{ *Resolver }
@@ -2067,3 +2342,5 @@ type trackerACLResolver struct{ *Resolver }
 type trackerSubscriptionResolver struct{ *Resolver }
 type userResolver struct{ *Resolver }
 type userMentionResolver struct{ *Resolver }
+type userWebhookSubscriptionResolver struct{ *Resolver }
+type webhookDeliveryResolver struct{ *Resolver }

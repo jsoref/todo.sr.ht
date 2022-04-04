@@ -8,6 +8,7 @@ require (
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/agnivade/levenshtein v1.1.1 // indirect
 	github.com/emersion/go-message v0.15.0
+	github.com/google/uuid v1.0.0
 	github.com/hashicorp/golang-lru v0.5.4 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.8.0

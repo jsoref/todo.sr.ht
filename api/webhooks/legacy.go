@@ -6,7 +6,6 @@ package webhooks
 import (
 	"context"
 	"encoding/json"
-	"net/http"
 	"strings"
 	"time"
 
@@ -113,28 +112,6 @@ type EventWebhookPayload struct {
 	FromTicket *TicketWebhookPayload      `json:"from_ticket"`
 }
 
-func NewLegacyQueue() *webhooks.LegacyQueue {
-	return webhooks.NewLegacyQueue()
-}
-
-var legacyWebhooksCtxKey = &contextKey{"legacy-webhooks"}
-
-type contextKey struct {
-	name string
-}
-
-func LegacyMiddleware(
-	queue *webhooks.LegacyQueue,
-) func(next http.Handler) http.Handler {
-	return func(next http.Handler) http.Handler {
-		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			ctx := context.WithValue(r.Context(), legacyWebhooksCtxKey, queue)
-			r = r.WithContext(ctx)
-			next.ServeHTTP(w, r)
-		})
-	}
-}
-
 func mkaccess(tracker *model.Tracker) []string {
 	var items []string
 	if tracker.DefaultAccess&model.ACCESS_BROWSE != 0 {
@@ -189,11 +166,7 @@ func mkparticipant(part model.Entity) *ParticipantWebhookPayload {
 
 func DeliverLegacyTrackerEvent(ctx context.Context,
 	tracker *model.Tracker, ev string) {
-	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic("No legacy webhooks worker for this context")
-	}
-
+	q := webhooks.LegacyForContext(ctx)
 	user := auth.ForContext(ctx)
 	if user.UserID != tracker.OwnerID {
 		panic("Submitting webhook for another user's context (why?)")
@@ -227,11 +200,7 @@ func DeliverLegacyTrackerEvent(ctx context.Context,
 }
 
 func DeliverLegacyTrackerDelete(ctx context.Context, trackerId, userId int) {
-	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic("No legacy webhooks worker for this context")
-	}
-
+	q := webhooks.LegacyForContext(ctx)
 	type WebhookPayload struct {
 		ID int `json:"id"`
 	}
@@ -252,10 +221,7 @@ func DeliverLegacyTrackerDelete(ctx context.Context, trackerId, userId int) {
 
 func DeliverLegacyLabelCreate(ctx context.Context,
 	tracker *model.Tracker, label *model.Label) {
-	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic("No legacy webhooks worker for this context")
-	}
+	q := webhooks.LegacyForContext(ctx)
 
 	payload := LabelWebhookPayload{
 		Name:    label.Name,
@@ -288,10 +254,7 @@ func DeliverLegacyLabelCreate(ctx context.Context,
 }
 
 func DeliverLegacyLabelDelete(ctx context.Context, trackerID, labelID int) {
-	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic("No legacy webhooks worker for this context")
-	}
+	q := webhooks.LegacyForContext(ctx)
 
 	// It occurs to me that this webhook is completely useless given that the
 	// legacy API doesn't expose label IDs to the user
@@ -315,10 +278,7 @@ func DeliverLegacyLabelDelete(ctx context.Context, trackerID, labelID int) {
 
 func DeliverLegacyTicketCreate(ctx context.Context,
 	tracker *model.Tracker, ticket *model.Ticket) {
-	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic("No legacy webhooks worker for this context")
-	}
+	q := webhooks.LegacyForContext(ctx)
 
 	part, err := loaders.ForContext(ctx).EntitiesByParticipantID.Load(ticket.SubmitterID)
 	if err != nil || part == nil {
@@ -444,10 +404,7 @@ func mkResolution(res *int) *string {
 
 func DeliverLegacyEventCreate(ctx context.Context,
 	tracker *model.Tracker, ticket *model.Ticket, event *model.Event) {
-	q, ok := ctx.Value(legacyWebhooksCtxKey).(*webhooks.LegacyQueue)
-	if !ok {
-		panic("No legacy webhooks worker for this context")
-	}
+	q := webhooks.LegacyForContext(ctx)
 
 	part, err := loaders.ForContext(ctx).EntitiesByParticipantID.Load(event.ParticipantID)
 	if err != nil || part == nil {

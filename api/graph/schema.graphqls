@@ -8,6 +8,12 @@ scalar Upload
 "Used to provide a human-friendly description of an access scope"
 directive @scopehelp(details: String!) on ENUM_VALUE
 
+"""
+This is used to decorate fields which are only accessible with a personal
+access token, and are not available to clients using OAuth 2.0 access tokens.
+"""
+directive @private on FIELD_DEFINITION
+
 enum AccessScope {
   PROFILE       @scopehelp(details: "profile information")
   TRACKERS      @scopehelp(details: "trackers")
@@ -125,6 +131,86 @@ type Tracker {
   archive of the tracker.
   """
   export: URL!
+}
+
+type OAuthClient {
+  uuid: String!
+}
+
+enum WebhookEvent {
+  TRACKER_CREATED @access(scope: TRACKERS, kind: RO)
+  TRACKER_UPDATE  @access(scope: TRACKERS, kind: RO)
+  TRACKER_DELETED @access(scope: TRACKERS, kind: RO)
+  TICKET_CREATED  @access(scope: TICKETS, kind: RO)
+}
+
+interface WebhookSubscription {
+  id: Int!
+  events: [WebhookEvent!]!
+  query: String!
+  url: String!
+
+  """
+  If this webhook was registered by an authorized OAuth 2.0 client, this
+  field is non-null.
+  """
+  client: OAuthClient @private
+
+  "All deliveries which have been sent to this webhook."
+  deliveries(cursor: Cursor): WebhookDeliveryCursor!
+
+  "Returns a sample payload for this subscription, for testing purposes"
+  sample(event: WebhookEvent!): String!
+}
+
+type UserWebhookSubscription implements WebhookSubscription {
+  id: Int!
+  events: [WebhookEvent!]!
+  query: String!
+  url: String!
+  client: OAuthClient @private
+  deliveries(cursor: Cursor): WebhookDeliveryCursor!
+  sample(event: WebhookEvent): String!
+}
+
+type WebhookDelivery {
+  uuid: String!
+  date: Time!
+  event: WebhookEvent!
+  subscription: WebhookSubscription!
+  requestBody: String!
+
+  """
+  These details are provided only after a response is received from the
+  remote server. If a response is sent whose Content-Type is not text/*, or
+  cannot be decoded as UTF-8, the response body will be null. It will be
+  truncated after 64 KiB.
+  """
+  responseBody: String
+  responseHeaders: String
+  responseStatus: Int
+}
+
+interface WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+}
+
+type TrackerEvent implements WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+
+  tracker: Tracker!
+}
+
+type TicketEvent implements WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+
+  ticket: Ticket!
 }
 
 enum TicketStatus {
@@ -439,6 +525,30 @@ type ActivitySubscriptionCursor {
   cursor: Cursor
 }
 
+"""
+A cursor for enumerating a list of webhook deliveries
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
+type WebhookDeliveryCursor {
+  results: [WebhookDelivery!]!
+  cursor: Cursor
+}
+
+"""
+A cursor for enumerating a list of webhook subscriptions
+
+If there are additional results available, the cursor object may be passed
+back into the same endpoint to retrieve another page. If the cursor is null,
+there are no remaining results to return.
+"""
+type WebhookSubscriptionCursor {
+  results: [WebhookSubscription!]!
+  cursor: Cursor
+}
+
 type Query {
   "Returns API version information."
   version: Version!
@@ -481,6 +591,25 @@ type Query {
 
   "List of subscriptions of the authenticated user."
   subscriptions(cursor: Cursor): ActivitySubscriptionCursor @access(scope: SUBSCRIPTIONS, kind: RO)
+
+  """
+  Returns a list of user webhook subscriptions. For clients
+  authenticated with a personal access token, this returns all webhooks
+  configured by all GraphQL clients for your account. For clients
+  authenticated with an OAuth 2.0 access token, this returns only webhooks
+  registered for your client.
+  """
+  userWebhooks(cursor: Cursor): WebhookSubscriptionCursor!
+
+  "Returns details of a user webhook subscription by its ID."
+  userWebhook(id: Int!): WebhookSubscription
+
+  """
+  Returns information about the webhook currently being processed. This is
+  not valid during normal queries over HTTP, and will return an error if used
+  outside of a webhook context.
+  """
+  webhook: WebhookPayload!
 }
 
 "You may omit any fields to leave them unchanged."
@@ -577,6 +706,12 @@ input UpdateStatusInput {
 
   "For use by the tracker owner only"
   import: ImportInput
+}
+
+input UserWebhookInput {
+  url: String!
+  events: [WebhookEvent!]!
+  query: String!
 }
 
 type Mutation {
@@ -695,4 +830,27 @@ type Mutation {
   "Removes a list from the list of labels for a ticket"
   unlabelTicket(trackerId: Int!, ticketId: Int!,
     labelId: Int!): Event @access(scope: TICKETS, kind: RW)
+
+  """
+  Creates a new user webhook subscription. When an event from the
+  provided list of events occurs, the 'query' parameter (a GraphQL query)
+  will be evaluated and the results will be sent to the provided URL as the
+  body of an HTTP POST request. The list of events must include at least one
+  event, and no duplicates.
+
+  This query is evaluated in the webhook context, such that query { webhook }
+  may be used to access details of the event which trigged the webhook. The
+  query may not make any mutations.
+  """
+  createWebhook(config: UserWebhookInput!): WebhookSubscription!
+
+  """
+  Deletes a user webhook. Any events already queued may still be
+  delivered after this request completes. Clients authenticated with a
+  personal access token may delete any webhook registered for their account,
+  but authorized OAuth 2.0 clients may only delete their own webhooks.
+  Manually deleting a webhook configured by a third-party client may cause
+  unexpected behavior with the third-party integration.
+  """
+  deleteWebhook(id: Int!): WebhookSubscription
 }
