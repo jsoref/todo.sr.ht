@@ -45,49 +45,6 @@ class Tracker(Base):
     import_in_progress = sa.Column(sa.Boolean,
             nullable=False, server_default='f')
 
-    @staticmethod
-    def create_from_request(request, user):
-        valid = Validation(request)
-        name = valid.require("name", friendly_name="Name")
-        visibility = valid.require("visibility", cls=Visibility)
-        desc = valid.optional("description")
-        if not valid.ok:
-            return None, valid
-
-        valid.expect(1 <= len(name) < 256,
-                "Must be between 1 and 255 characters",
-                field="name")
-        valid.expect(not valid.ok or name_re.match(name),
-                "Name must match [A-Za-z0-9._-]+",
-                field="name")
-        valid.expect(not valid.ok or name not in [".", ".."],
-                "Name cannot be '.' or '..'",
-                field="name")
-        valid.expect(not valid.ok or name not in [".git", ".hg"],
-                "Name must not be '.git' or '.hg'",
-                field="name")
-        valid.expect(not desc or len(desc) < 4096,
-                "Must be less than 4096 characters",
-                field="description")
-        if not valid.ok:
-            return None, valid
-
-        tracker = (Tracker.query
-                .filter(Tracker.owner_id == user.id)
-                .filter(Tracker.name.ilike(name.replace('_', '\\_')))
-            ).first()
-        valid.expect(not tracker,
-                "A tracker by this name already exists", field="name")
-        if not valid.ok:
-            return None, valid
-
-        tracker = Tracker(owner=user,
-                name=name,
-                description=desc,
-                visibility=visibility)
-
-        return tracker, valid
-
     def ref(self):
         return "{}/{}".format(
             self.owner.canonical_name,
@@ -114,10 +71,3 @@ class Tracker(Base):
                 "visibility": self.visibility,
             } if not short else {})
         }
-
-    def update(self, valid):
-        desc = valid.optional("description", default=self.description)
-        valid.expect(not desc or len(desc) < 4096,
-                "Must be less than 4096 characters",
-                field="description")
-        self.description = desc

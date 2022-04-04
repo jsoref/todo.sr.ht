@@ -2,13 +2,14 @@ import gzip
 import json
 import os
 from collections import OrderedDict
-from flask import Blueprint, render_template, request, url_for, abort, redirect
+from flask import Blueprint, current_app, render_template, request, url_for, abort, redirect
 from flask import current_app, send_file
 from srht.config import get_origin
 from srht.crypto import sign_payload
 from srht.database import db
 from srht.oauth import current_user, loginrequired
 from srht.flask import date_handler, session
+from srht.graphql import exec_gql
 from srht.validation import Validation
 from tempfile import NamedTemporaryFile
 from todosrht.access import get_tracker
@@ -16,7 +17,6 @@ from todosrht.trackers import get_recent_users
 from todosrht.types import Event, EventType, Ticket, TicketAccess, Visibility
 from todosrht.types import ParticipantType, UserAccess, User
 from todosrht.urls import tracker_url
-from todosrht.webhooks import UserWebhook
 from todosrht.tracker_import import tracker_import
 
 settings = Blueprint("settings", __name__)
@@ -63,24 +63,33 @@ def details_POST(owner, name):
         abort(403)
 
     valid = Validation(request)
-    desc = valid.optional("tracker_desc", default=tracker.description)
-    vis = valid.require("visibility", cls=Visibility)
-    valid.expect(not desc or len(desc) < 4096,
-            "Must be less than 4096 characters",
-            field="tracker_desc")
+    rewrite = lambda value: None if value == "" else value
+    input = {
+        key: rewrite(valid.source[key]) for key in [
+            "description", "visibility",
+        ] if valid.source.get(key) is not None
+    }
+
+    resp = exec_gql(current_app.site, """
+        mutation UpdateTracker($id: Int!, $input: TrackerInput!) {
+            updateTracker(id: $id, input: $input) {
+                name
+                owner {
+                    canonicalName
+                }
+            }
+        }
+    """, valid=valid, id=tracker.id, input=input)
+
     if not valid.ok:
         return render_template("tracker-details.html",
             tracker=tracker, **valid.kwargs), 400
 
-    tracker.description = desc
-    tracker.visibility = vis
+    resp = resp["updateTracker"]
 
-    UserWebhook.deliver(UserWebhook.Events.tracker_update,
-            tracker.to_dict(),
-            UserWebhook.Subscription.user_id == tracker.owner_id)
-
-    db.session.commit()
-    return redirect(tracker_url(tracker))
+    return redirect(url_for("settings.details_GET",
+        owner=resp["owner"]["canonicalName"],
+        name=resp["name"]))
 
 
 def render_tracker_access(tracker, **kwargs):
@@ -111,17 +120,23 @@ def access_POST(owner, name):
 
     valid = Validation(request)
     access = parse_html_perms('default', valid)
+    input = {
+        perm: ((access & TicketAccess[perm].value) != 0) for perm in [
+            "browse", "submit", "comment", "edit", "triage",
+        ]
+    }
+
+    resp = exec_gql(current_app.site, """
+        mutation updateTrackerACL($id: Int!, $input: ACLInput!) {
+            updateTrackerACL(trackerId: $id, input: $input) {
+                browse
+            }
+        }
+    """, valid=valid, id=tracker.id, input=input)
 
     if not valid.ok:
         return render_tracker_access(tracker, **valid.kwargs), 400
 
-    tracker.default_access = access
-
-    UserWebhook.deliver(UserWebhook.Events.tracker_update,
-            tracker.to_dict(),
-            UserWebhook.Subscription.user_id == tracker.owner_id)
-
-    db.session.commit()
     return redirect(tracker_url(tracker))
 
 @settings.route("/<owner>/<name>/settings/user-access/create", methods=["POST"])
@@ -198,20 +213,14 @@ def delete_POST(owner, name):
         abort(404)
     if current_user.id != tracker.owner_id:
         abort(403)
+
+    exec_gql(current_app.site, """
+    mutation DeleteTracker($id: Int!) {
+        deleteTracker(id: $id) { id }
+    }
+    """, id=tracker.id);
+
     session["notice"] = f"{tracker.owner}/{tracker.name} was deleted."
-    # SQLAlchemy shits itself on some of our weird constraints/relationships
-    # so fuck it, postgres knows what to do here
-    tracker_id = tracker.id
-    owner_id = tracker.owner_id
-    assert isinstance(tracker_id, int)
-    db.session.expunge_all()
-    db.engine.execute(f"DELETE FROM tracker WHERE id = {tracker_id};")
-    db.session.commit()
-
-    UserWebhook.deliver(UserWebhook.Events.tracker_delete,
-            { "id": tracker_id },
-            UserWebhook.Subscription.user_id == owner_id)
-
     return redirect(url_for("html.index_GET"))
 
 @settings.route("/<owner>/<name>/settings/import-export")

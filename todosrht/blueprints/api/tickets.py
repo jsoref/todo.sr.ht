@@ -1,11 +1,12 @@
 from datetime import datetime, timezone
-from flask import Blueprint, abort, request
+from flask import Blueprint, current_app, abort, request
 from srht.api import paginated_response
 from srht.database import db
+from srht.graphql import exec_gql
 from srht.oauth import oauth, current_token
 from srht.validation import Validation, valid_url
 from todosrht.access import get_tracker, get_ticket
-from todosrht.tickets import add_comment, submit_ticket
+from todosrht.tickets import add_comment
 from todosrht.tickets import get_participant_for_user, get_participant_for_external
 from todosrht.blueprints.api import get_user
 from todosrht.types import Ticket, TicketAccess, TicketStatus, TicketResolution
@@ -79,17 +80,26 @@ def tracker_tickets_POST(username, tracker_name):
         if not valid.ok:
             return valid.response
 
-    if external_id:
-        participant = get_participant_for_external(external_id, external_url)
-    else:
-        participant = get_participant_for_user(current_token.user)
+    input = {
+        "subject": title,
+        "body": desc,
+        "created": created,
+        "externalId": external_id,
+        "externalUrl": external_url,
+    }
 
-    ticket = submit_ticket(tracker, participant, title, desc)
-    if created:
-        ticket._no_autoupdate = True
-        ticket.created = created
-        ticket.updated = created
-        db.session.commit()
+    resp = exec_gql(current_app.site, """
+        mutation SubmitTicket($trackerId: Int!, $input: SubmitTicketInput!) {
+            submitTicket(trackerId: $trackerId, input: $input) {
+                id
+            }
+        }
+    """, user=user, valid=valid, trackerId=tracker.id, input=input)
+
+    if not valid.ok:
+        return valid.response
+
+    ticket, _ = get_ticket(tracker, resp["submitTicket"]["id"])
 
     TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
             ticket.to_dict(),

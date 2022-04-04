@@ -1,20 +1,21 @@
-from flask import Blueprint, render_template, request, url_for, abort, redirect
+from flask import Blueprint, current_app, render_template, request, url_for, abort, redirect
 from srht.config import cfg
 from srht.database import db
 from srht.flask import paginate_query, session
+from srht.graphql import exec_gql
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
-from todosrht.access import get_tracker
+from todosrht.access import get_tracker, get_ticket
 from todosrht.color import color_from_hex, color_to_hex, get_text_color
 from todosrht.color import valid_hex_color_code
 from todosrht.filters import render_markup
 from todosrht.search import apply_search
-from todosrht.tickets import get_participant_for_user, submit_ticket
+from todosrht.tickets import get_participant_for_user
 from todosrht.types import Event, Label, TicketLabel
 from todosrht.types import TicketSubscription, Participant
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.urls import tracker_url, ticket_url
-from todosrht.webhooks import TrackerWebhook, UserWebhook
+from todosrht.webhooks import TrackerWebhook
 from urllib.parse import quote
 import sqlalchemy as sa
 
@@ -41,30 +42,37 @@ def create_GET():
 @tracker.route("/tracker/create", methods=["POST"])
 @loginrequired
 def create_POST():
-    tracker, valid = Tracker.create_from_request(request, current_user)
+    valid = Validation(request)
+    name = valid.require("name", friendly_name="Name")
+    visibility = valid.require("visibility")
+    description = valid.optional("description")
     if not valid.ok:
         return render_template("tracker-create.html", **valid.kwargs), 400
 
-    db.session.add(tracker)
-    db.session.flush()
+    resp = exec_gql(current_app.site, """
+        mutation CreateTracker($name: String!, $description: String, $visibility: Visibility!) {
+            createTracker(name: $name, description: $description, visibility: $visibility) {
+                name
+                owner {
+                    canonicalName
+                }
+            }
+        }
+    """, valid=valid, name=name, description=description, visibility=visibility)
 
-    UserWebhook.deliver(UserWebhook.Events.tracker_create,
-            tracker.to_dict(),
-            UserWebhook.Subscription.user_id == tracker.owner_id)
+    if not valid.ok:
+        return render_template("tracker-create.html", **valid.kwargs), 400
 
-    participant = get_participant_for_user(current_user)
-    sub = TicketSubscription()
-    sub.tracker_id = tracker.id
-    sub.participant_id = participant.id
-    db.session.add(sub)
-    db.session.commit()
+    resp = resp["createTracker"]
 
     if "create-configure" in valid:
         return redirect(url_for("settings.details_GET",
                 owner=current_user.canonical_name,
-                name=tracker.name))
+                name=resp["name"]))
 
-    return redirect(tracker_url(tracker))
+    return redirect(url_for("tracker.tracker_GET",
+        owner=resp["owner"]["canonicalName"],
+        name=resp["name"]))
 
 def return_tracker(tracker, access, **kwargs):
     another = session.get("another") or False
@@ -183,20 +191,14 @@ def tracker_submit_POST(owner, name):
     if not TicketAccess.submit in access:
         abort(403)
 
+    db.session.commit() # Unlock tracker row
+
     valid = Validation(request)
     title = valid.require("title", friendly_name="Title")
     desc = valid.optional("description")
     another = valid.optional("another")
 
-    valid.expect(not title or 3 <= len(title) <= 2048,
-            "Title must be between 3 and 2048 characters.",
-            field="title")
-    valid.expect(not desc or len(desc) < 16384,
-            "Description must be no more than 16384 characters.",
-            field="description")
-
     if not valid.ok:
-        db.session.commit() # Unlock tracker row
         return return_tracker(tracker, access, **valid.kwargs), 400
 
     if "preview" in request.form:
@@ -204,13 +206,24 @@ def tracker_submit_POST(owner, name):
         return return_tracker(tracker, access,
                 rendered_preview=preview, **valid.kwargs), 200
 
-    # TODO: Handle unique constraint failure (contention) and retry?
-    participant = get_participant_for_user(current_user)
-    ticket = submit_ticket(tracker, participant, title, desc)
+    input = {
+        "subject": title,
+        "body": desc,
+    }
 
-    UserWebhook.deliver(UserWebhook.Events.ticket_create,
-            ticket.to_dict(),
-            UserWebhook.Subscription.user_id == current_user.id)
+    resp = exec_gql(current_app.site, """
+        mutation SubmitTicket($trackerId: Int!, $input: SubmitTicketInput!) {
+            submitTicket(trackerId: $trackerId, input: $input) {
+                id
+            }
+        }
+    """, valid=valid, trackerId=tracker.id, input=input)
+
+    if not valid.ok:
+        return return_tracker(tracker, access, **valid.kwargs), 400
+
+    ticket, _ = get_ticket(tracker, resp["submitTicket"]["id"])
+
     TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
             ticket.to_dict(),
             TrackerWebhook.Subscription.tracker_id == tracker.id)
