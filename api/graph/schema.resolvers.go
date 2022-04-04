@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"net/url"
 	"strings"
+	"time"
 
 	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
@@ -689,6 +690,10 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	if input.Created != nil {
 		validation.Expect(tracker.OwnerID == user.UserID,
 			"Cannot configure creation time unless you are the owner of this tracker").
+			WithField("created")
+		var zeroDate time.Time
+		validation.Expect(*input.Created != zeroDate,
+			"Cannot use zero value for creation time").
 			WithField("created")
 	}
 	if !validation.Ok() {
