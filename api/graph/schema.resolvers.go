@@ -824,6 +824,116 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	return &ticket, nil
 }
 
+func (r *mutationResolver) SubmitEmail(ctx context.Context, trackerID int, input model.SubmitEmailInput) (*model.Ticket, error) {
+	validation := valid.New(ctx)
+	validation.Expect(len(input.Subject) <= 2048,
+		"Ticket subject must be fewer than to 2049 characters.").
+		WithField("subject")
+	if input.Body != nil {
+		validation.Expect(len(*input.Body) <= 16384,
+			"Ticket body must be less than 16 KiB in size").
+			WithField("body")
+	}
+	if !validation.Ok() {
+		return nil, nil
+	}
+
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil || tracker == nil {
+		return nil, err
+	}
+
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
+	if err != nil {
+		panic(err)
+	}
+
+	if !tracker.CanSubmit() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	var ticket model.Ticket
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			WITH tr AS (
+				UPDATE tracker
+				SET
+					next_ticket_id = next_ticket_id + 1,
+					updated = NOW() at time zone 'utc'
+				WHERE id = $1
+				RETURNING id, next_ticket_id, name
+			) INSERT INTO ticket (
+				created, updated,
+				tracker_id, scoped_id,
+				submitter_id, title, description
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				(SELECT id FROM tr),
+				(SELECT next_ticket_id - 1 FROM tr),
+				$2, $3, $4
+			)
+			RETURNING
+				id, scoped_id, submitter_id, tracker_id, created, updated,
+				title, description, authenticity, status, resolution;`,
+			trackerID, input.SenderID, input.Subject, input.Body)
+		if err := row.Scan(&ticket.PKID, &ticket.ID, &ticket.SubmitterID,
+			&ticket.TrackerID, &ticket.Created, &ticket.Updated, &ticket.Subject,
+			&ticket.Body, &ticket.RawAuthenticity, &ticket.RawStatus,
+			&ticket.RawResolution); err != nil {
+			return err
+		}
+
+		ticket.OwnerName = owner.Username
+		ticket.TrackerName = tracker.Name
+
+		conf := config.ForContext(ctx)
+		origin := config.GetOrigin(conf, "todo.sr.ht", true)
+
+		builder := NewEventBuilder(ctx, tx, input.SenderID, model.EVENT_CREATED).
+			WithTicket(tracker, &ticket)
+
+		if ticket.Body != nil {
+			mentions := ScanMentions(ctx, tracker, &ticket, *ticket.Body)
+			builder.AddMentions(&mentions)
+		}
+
+		builder.InsertSubscriptions()
+
+		var eventID int
+		row = tx.QueryRowContext(ctx, `
+			INSERT INTO event (
+				created, event_type, participant_id, ticket_id
+			) VALUES (
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			) RETURNING id;
+		`, model.EVENT_CREATED, input.SenderID, ticket.PKID)
+		if err := row.Scan(&eventID); err != nil {
+			panic(err)
+		}
+
+		builder.InsertNotifications(eventID, nil)
+
+		// TODO: In-Reply-To: {{input.MessageID}}
+
+		details := NewTicketDetails{
+			Body: ticket.Body,
+			Root: origin,
+			TicketURL: fmt.Sprintf("/%s/%s/%d",
+				owner.CanonicalName(), tracker.Name, ticket.ID),
+		}
+		subject := fmt.Sprintf("%s: %s", ticket.Ref(), ticket.Subject)
+		builder.SendEmails(subject, newTicketTemplate, &details)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	webhooks.DeliverLegacyTicketCreate(ctx, tracker, &ticket)
+	webhooks.DeliverTicketEvent(ctx, model.WebhookEventTicketCreated, &ticket)
+	return &ticket, nil
+}
+
 func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Ticket, error) {
 	if _, ok := input["import"]; ok {
 		panic(fmt.Errorf("not implemented")) // TODO

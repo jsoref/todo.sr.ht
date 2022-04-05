@@ -18,6 +18,7 @@ func main() {
 	appConfig := config.LoadConfig(":5103")
 
 	gqlConfig := api.Config{Resolvers: &graph.Resolver{}}
+	gqlConfig.Directives.Internal = server.Internal
 	gqlConfig.Directives.Access = func(ctx context.Context, obj interface{},
 		next graphql.Resolver, scope model.AccessScope,
 		kind model.AccessKind) (interface{}, error) {

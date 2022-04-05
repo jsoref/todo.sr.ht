@@ -14,6 +14,12 @@ access token, and are not available to clients using OAuth 2.0 access tokens.
 """
 directive @private on FIELD_DEFINITION
 
+"""
+This is used to decorate fields which are for internal use, and are not
+available to normal API users.
+"""
+directive @internal on FIELD_DEFINITION
+
 enum AccessScope {
   PROFILE       @scopehelp(details: "profile information")
   TRACKERS      @scopehelp(details: "trackers")
@@ -671,6 +677,14 @@ input SubmitTicketInput {
   externalUrl: String
 }
 
+"For internal use only."
+input SubmitEmailInput {
+  subject: String!
+  body: String
+  senderId: Int!
+  messageId: String!
+}
+
 """
 You may omit any fields to leave them unchanged. To remove the ticket body,
 set it to null.
@@ -802,6 +816,10 @@ type Mutation {
   "Creates a new ticket."
   submitTicket(trackerId: Int!,
     input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
+
+  "Creates a new ticket from an incoming email. (For internal use only)"
+  submitEmail(trackerId: Int!,
+    input: SubmitEmailInput!): Ticket @internal
 
   "Updates a ticket's subject or body"
   updateTicket(trackerId: Int!, ticketId: Int!,

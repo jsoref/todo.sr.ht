@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 from srht.config import cfg, get_origin
 from srht.database import db, DbSession
+from srht.graphql import exec_gql
 db = DbSession(cfg("todo.sr.ht", "connection-string"))
 import todosrht.types
 db.init()
@@ -11,7 +12,7 @@ from grp import getgrnam
 from todosrht.access import get_tracker, get_ticket
 from todosrht.types import TicketAccess, TicketResolution, Tracker, Ticket, User
 from todosrht.types import Label, TicketLabel, TicketSubscription, Event, EventType, ParticipantType
-from todosrht.tickets import add_comment, get_participant_for_email, submit_ticket
+from todosrht.tickets import add_comment, get_participant_for_email
 from todosrht.webhooks import UserWebhook, TrackerWebhook, TicketWebhook
 from srht.validation import Validation
 import asyncio
@@ -136,31 +137,29 @@ class MailHandler:
             print("Rejected, insufficient permissions")
             return "550 You do not have permission to post on this tracker."
 
-        subject = mail["Subject"]
-        valid = Validation({
-            "title": subject,
-            "description": body,
-        })
+        valid = Validation({})
 
-        title = valid.require("title")
-        desc = valid.optional("description")
+        input = {
+            "subject": mail["Subject"],
+            "body": body,
+            "senderId": sender.id,
+            "messageId": mail["Message-ID"],
+        }
 
-        valid.expect(not title or 3 <= len(title) <= 2048,
-                "Title must be between 3 and 2048 characters",
-                field="title")
-        valid.expect(not desc or len(desc) < 16384,
-                "Description must be no more than 16384 characters",
-                field="description")
+        resp = exec_gql("todo.sr.ht", """
+            mutation SubmitEmail($trackerId: Int!, $input: SubmitEmailInput!) {
+                submitEmail(trackerId: $trackerId, input: $input) {
+                    id
+                }
+            }
+        """, user=sender.user, valid=valid, trackerId=tracker.id, input=input)
 
         if not valid.ok:
             print("Rejecting email due to validation errors")
             return "550 " + ", ".join([e.message for e in valid.errors])
 
-        ticket = submit_ticket(tracker, sender, title, desc,
-                from_email=True, from_email_id=mail["Message-ID"])
-        UserWebhook.deliver(UserWebhook.Events.ticket_create,
-                ticket.to_dict(),
-                UserWebhook.Subscription.user_id == sender.id)
+        ticket, _ = get_ticket(tracker, resp["submitEmail"]["id"], user=sender.user)
+
         TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
                 ticket.to_dict(),
                 TrackerWebhook.Subscription.tracker_id == tracker.id)
