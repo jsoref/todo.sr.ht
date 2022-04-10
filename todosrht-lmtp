@@ -137,6 +137,9 @@ class MailHandler:
             print("Rejected, insufficient permissions")
             return "550 You do not have permission to post on this tracker."
 
+        # Need to commit in case a new participant was created
+        db.session.commit()
+
         valid = Validation({})
 
         input = {
