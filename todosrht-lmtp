@@ -152,7 +152,7 @@ class MailHandler:
                     id
                 }
             }
-        """, user=sender.user, valid=valid, trackerId=tracker.id, input=input)
+        """, user=tracker.owner, valid=valid, trackerId=tracker.id, input=input)
 
         if not valid.ok:
             print("Rejecting email due to validation errors")
