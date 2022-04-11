@@ -3,7 +3,7 @@ import json
 import re
 from datetime import timedelta
 from functools import wraps
-from jinja2.utils import Markup, escape
+from markupsafe import Markup, escape
 from srht.flask import icon, csrf_token, date_handler
 from srht.markdown import markdown, SRHT_MARKDOWN_VERSION 
 from srht.cache import get_cache, set_cache

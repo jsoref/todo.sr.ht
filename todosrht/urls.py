@@ -1,5 +1,5 @@
 from flask import has_app_context, url_for
-from jinja2.utils import unicode_urlencode
+from jinja2.utils import url_quote
 from todosrht.types import ParticipantType
 
 def tracker_url(tracker):
@@ -62,7 +62,7 @@ def label_search_url(label, terms=""):
         terms += " " + label_term
     return "{}?search={}".format(
         tracker_url(label.tracker),
-        unicode_urlencode(terms))
+        url_quote(terms))
 
 def label_add_url(ticket):
     """Return the URL to add a label to a ticket."""
