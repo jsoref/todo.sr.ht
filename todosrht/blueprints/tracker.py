@@ -15,7 +15,6 @@ from todosrht.types import Event, Label, TicketLabel
 from todosrht.types import TicketSubscription, Participant
 from todosrht.types import Tracker, Ticket, TicketAccess
 from todosrht.urls import tracker_url, ticket_url
-from todosrht.webhooks import TrackerWebhook
 from urllib.parse import quote
 import sqlalchemy as sa
 
@@ -224,10 +223,6 @@ def tracker_submit_POST(owner, name):
 
     ticket, _ = get_ticket(tracker, resp["submitTicket"]["id"])
 
-    TrackerWebhook.deliver(TrackerWebhook.Events.ticket_create,
-            ticket.to_dict(),
-            TrackerWebhook.Subscription.tracker_id == tracker.id)
-
     if another:
         session["another"] = True
         return redirect(url_for(".tracker_GET",
@@ -285,22 +280,19 @@ def tracker_labels_POST(owner, name):
             tracker=tracker, access=access, is_owner=is_owner,
             **valid.kwargs), 400
 
-    existing_label = Label.query.filter_by(
-            tracker=tracker, name=data["name"]).one_or_none()
-    valid.expect(not existing_label,
-            "A label with this name already exists", field="name")
+    exec_gql(current_app.site, """
+        mutation CreateLabel($trackerId: Int!, $name: String!, $foreground: String!, $background: String!) {
+            createLabel(trackerId: $trackerId, name: $name, foreground: $foreground, background: $background) {
+                id
+            }
+        }
+    """, valid=valid, trackerId=tracker.id, name=data["name"], foreground=data["text_color"], background=data["color"])
+
     if not valid.ok:
         return render_template("tracker-labels.html",
             tracker=tracker, access=access, is_owner=is_owner,
             **valid.kwargs), 400
 
-    label = Label(tracker=tracker, **data)
-    db.session.add(label)
-    db.session.commit()
-
-    TrackerWebhook.deliver(TrackerWebhook.Events.label_create,
-            label.to_dict(),
-            TrackerWebhook.Subscription.tracker_id == tracker.id)
     return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
 
 @tracker.route("/<owner>/<name>/labels/<path:label_name>")
@@ -338,18 +330,20 @@ def label_edit_POST(owner, name, label_name):
         return render_template("tracker-label-edit.html",
             tracker=tracker, access=access, label=label, **valid.kwargs), 400
 
-    existing_label = Label.query.filter_by(
-            tracker=tracker, name=data["name"]).one_or_none()
-    valid.expect(not existing_label or existing_label == label,
-            "A label with this name already exists", field="name")
+    input = {
+        "name": data["name"],
+        "foregroundColor": data["text_color"],
+        "backgroundColor": data["color"],
+    }
+
+    exec_gql(current_app.site, """
+        mutation UpdateLabel($id: Int!, $input: UpdateLabelInput!) {
+            updateLabel(id: $id, input: $input) { id }
+        }
+    """, valid=valid, id=label.id, input=input)
     if not valid.ok:
         return render_template("tracker-label-edit.html",
             tracker=tracker, access=access, **valid.kwargs), 400
-
-    label.name = data["name"]
-    label.color = data["color"]
-    label.text_color = data["text_color"]
-    db.session.commit()
 
     return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))
 
@@ -369,15 +363,10 @@ def delete_label(owner, name, label_id):
     if not label:
         abort(404)
 
-    # Remove label from any linked tickets and related events
-    TicketLabel.query.filter(TicketLabel.label_id == label.id).delete()
-    Event.query.filter(Event.label_id == label.id).delete()
+    exec_gql(current_app.site, """
+        mutation DeleteLabel($id: Int!) {
+            deleteLabel(id: $id) { id }
+        }
+    """, id=label.id)
 
-    label_id = label.id
-    db.session.delete(label)
-    db.session.commit()
-
-    TrackerWebhook.deliver(TrackerWebhook.Events.label_delete,
-            { "id": label_id },
-            TrackerWebhook.Subscription.tracker_id == tracker.id)
     return redirect(url_for(".tracker_labels_GET", owner=owner, name=name))

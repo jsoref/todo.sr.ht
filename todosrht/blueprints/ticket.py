@@ -1,8 +1,9 @@
 import re
 from datetime import datetime
-from flask import Blueprint, render_template, request, abort, redirect
+from flask import Blueprint, current_app, render_template, request, abort, redirect
 from srht.config import cfg
 from srht.database import db
+from srht.graphql import exec_gql
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
 from todosrht.access import get_tracker, get_ticket
@@ -16,7 +17,6 @@ from todosrht.types import TicketAccess, TicketResolution, ParticipantType
 from todosrht.types import TicketComment, TicketAuthenticity
 from todosrht.types import TicketSubscription, User, Participant
 from todosrht.urls import ticket_url
-from todosrht.webhooks import TrackerWebhook, TicketWebhook
 from urllib.parse import quote
 
 
@@ -158,11 +158,6 @@ def ticket_comment_POST(owner, name, ticket_id):
     reopen = valid.optional("reopen")
     preview = valid.optional("preview")
 
-    valid.expect(not text or 3 <= len(text) <= 16384,
-            "Comment must be between 3 and 16384 characters.", field="comment")
-    valid.expect(text or resolve or reopen,
-            "Comment is required", field="comment")
-
     if (resolve or reopen) and TicketAccess.edit not in access:
         abort(403)
 
@@ -186,18 +181,25 @@ def ticket_comment_POST(owner, name, ticket_id):
         })
         return render_template("ticket.html", **ctx)
 
-    participant = get_participant_for_user(current_user)
-    event = add_comment(participant, ticket,
-        text=text, resolve=resolve, resolution=resolution, reopen=reopen)
-    if not event:
-        return redirect(ticket_url(ticket))
+    input = {
+        "text": text,
+        "status": "REPORTED" if reopen else "RESOLVED" if resolve else None,
+        "resolution": resolution.name.upper() if resolve else None,
+    }
 
-    TicketWebhook.deliver(TicketWebhook.Events.event_create,
-            event.to_dict(),
-            TicketWebhook.Subscription.ticket_id == ticket.id)
-    TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
-            event.to_dict(),
-            TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
+    resp = exec_gql(current_app.site, """
+        mutation SubmitComment($trackerId: Int!, $ticketId: Int!, $input: SubmitCommentInput!) {
+            submitComment(trackerId: $trackerId, ticketId: $ticketId, input: $input) {
+                id
+            }
+        }
+    """, trackerId=tracker.id, ticketId=ticket.scoped_id, input=input)
+
+    class DummyEvent:
+        def __init__(self, id):
+            self.id = id
+
+    event = DummyEvent(resp["submitComment"]["id"])
     return redirect(ticket_url(ticket, event))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/edit/<int:comment_id>")
@@ -331,9 +333,19 @@ def ticket_edit_POST(owner, name, ticket_id):
                 tracker=tracker, ticket=ticket, rendered_preview=preview,
                 **valid.kwargs)
 
-    ticket.title = title
-    ticket.description = desc
-    db.session.commit()
+    input = {
+        "subject": title,
+        "body": desc,
+    }
+
+    exec_gql(current_app.site, """
+        mutation UpdateTicket($trackerId: Int!, $ticketId: Int!, $input: UpdateTicketInput!) {
+            updateTicket(trackerId: $trackerId, ticketId: $ticketId, input: $input) {
+                id
+            }
+        }
+    """, trackerId=tracker.id, ticketId=ticket.scoped_id, input=input)
+
     return redirect(ticket_url(ticket))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/add_label", methods=["POST"])
@@ -365,33 +377,13 @@ def ticket_add_label(owner, name, ticket_id):
     if not label:
         abort(404)
 
-    ticket_label = (TicketLabel.query
-            .filter(TicketLabel.label_id == label.id)
-            .filter(TicketLabel.ticket_id == ticket.id)).first()
-
-    if not ticket_label:
-        ticket_label = TicketLabel()
-        ticket_label.ticket_id = ticket.id
-        ticket_label.label_id = label.id
-        ticket_label.user_id = current_user.id
-
-        participant = get_participant_for_user(current_user)
-        event = Event()
-        event.event_type = EventType.label_added
-        event.participant_id = participant.id
-        event.ticket_id = ticket.id
-        event.label_id = label.id
-
-        db.session.add(ticket_label)
-        db.session.add(event)
-        db.session.commit()
-
-        TicketWebhook.deliver(TicketWebhook.Events.event_create,
-                event.to_dict(),
-                TicketWebhook.Subscription.ticket_id == ticket.id)
-        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
-                event.to_dict(),
-                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
+    exec_gql(current_app.site, """
+        mutation LabelTicket($trackerId: Int!, $ticketId: Int!, $labelId: Int!) {
+            labelTicket(trackerId: $trackerId, ticketId: $ticketId, labelId: $labelId) {
+                id
+            }
+        }
+    """, trackerId=tracker.id, ticketId=ticket.scoped_id, labelId=label_id)
 
     return redirect(ticket_url(ticket))
 
@@ -411,28 +403,13 @@ def ticket_remove_label(owner, name, ticket_id, label_id):
     if not label:
         abort(404)
 
-    ticket_label = (TicketLabel.query
-            .filter(TicketLabel.label_id == label_id)
-            .filter(TicketLabel.ticket_id == ticket.id)).first()
-
-    if ticket_label:
-        participant = get_participant_for_user(current_user)
-        event = Event()
-        event.event_type = EventType.label_removed
-        event.participant_id = participant.id
-        event.ticket_id = ticket.id
-        event.label_id = label.id
-
-        db.session.add(event)
-        db.session.delete(ticket_label)
-        db.session.commit()
-
-        TicketWebhook.deliver(TicketWebhook.Events.event_create,
-                event.to_dict(),
-                TicketWebhook.Subscription.ticket_id == ticket.id)
-        TrackerWebhook.deliver(TrackerWebhook.Events.event_create,
-                event.to_dict(),
-                TrackerWebhook.Subscription.tracker_id == ticket.tracker_id)
+    exec_gql(current_app.site, """
+        mutation UnlabelTicket($trackerId: Int!, $ticketId: Int!, $labelId: Int!) {
+            unlabelTicket(trackerId: $trackerId, ticketId: $ticketId, labelId: $labelId) {
+                id
+            }
+        }
+    """, trackerId=tracker.id, ticketId=ticket.scoped_id, labelId=label.id)
 
     return redirect(ticket_url(ticket))
 
@@ -447,7 +424,7 @@ def _assignment_get_ticket(owner, name, ticket_id):
     if TicketAccess.triage not in access:
         abort(401)
 
-    return ticket
+    return (tracker, ticket)
 
 def _assignment_get_user(valid):
     if 'myself' in valid:
@@ -468,15 +445,20 @@ def _assignment_get_user(valid):
 @loginrequired
 def ticket_assign(owner, name, ticket_id):
     valid = Validation(request)
-    ticket = _assignment_get_ticket(owner, name, ticket_id)
+    tracker, ticket = _assignment_get_ticket(owner, name, ticket_id)
     user = _assignment_get_user(valid)
     if not valid.ok:
         _, access = get_ticket(ticket.tracker, ticket_id)
         ctx = get_ticket_context(ticket, ticket.tracker, access)
         return render_template("ticket.html", **valid.kwargs, **ctx)
 
-    assign(ticket, user, current_user)
-    db.session.commit()
+    exec_gql(current_app.site, """
+        mutation AssignUser($trackerId: Int!, $ticketId: Int!, $userId: Int!) {
+            assignUser(trackerId: $trackerId, ticketId: $ticketId, userId: $userId) {
+                id
+            }
+        }
+    """, trackerId=tracker.id, ticketId=ticket.scoped_id, userId=user.id)
 
     return redirect(ticket_url(ticket))
 
@@ -484,15 +466,20 @@ def ticket_assign(owner, name, ticket_id):
 @loginrequired
 def ticket_unassign(owner, name, ticket_id):
     valid = Validation(request)
-    ticket = _assignment_get_ticket(owner, name, ticket_id)
+    tracker, ticket = _assignment_get_ticket(owner, name, ticket_id)
     user = _assignment_get_user(valid)
     if not valid.ok:
         _, access = get_ticket(ticket.tracker, ticket_id)
         ctx = get_ticket_context(ticket, ticket.tracker, access)
         return render_template("ticket.html", valid, **ctx)
 
-    unassign(ticket, user, current_user)
-    db.session.commit()
+    exec_gql(current_app.site, """
+        mutation UnassignUser($trackerId: Int!, $ticketId: Int!, $userId: Int!) {
+            unassignUser(trackerId: $trackerId, ticketId: $ticketId, userId: $userId) {
+                id
+            }
+        }
+    """, trackerId=tracker.id, ticketId=ticket.scoped_id, userId=user.id)
 
     return redirect(ticket_url(ticket))
 
