@@ -1049,11 +1049,19 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 			"old_resolution", "new_resolution")
 
 	resolution := ticket.Resolution()
-	if input.Resolution != nil {
+	if input.Status.ToInt() == model.STATUS_RESOLVED {
+		if input.Resolution == nil {
+			return nil, errors.New("Resolution is required when setting status to RESOLVED")
+		}
 		resolution = *input.Resolution
 		update = update.Set("resolution", resolution.ToInt())
-	} else if input.Status.ToInt() == model.STATUS_RESOLVED {
-		return nil, fmt.Errorf("resolution is required when status is RESOLVED")
+	} else {
+		if input.Resolution != nil {
+			return nil, errors.New("Resolution may only be provided when status is set to RESOLVED")
+		}
+		// Other statuses should have resolution = UNRESOLVED
+		resolution = model.TicketResolutionUnresolved
+		update = update.Set("resolution", resolution.ToInt())
 	}
 
 	var event model.Event
@@ -1162,6 +1170,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		_newResolution int
 		eventType      uint = model.EVENT_COMMENT
 	)
+
 	if input.Status != nil {
 		eventType |= model.EVENT_STATUS_CHANGE
 		oldStatus = &_oldStatus
@@ -1173,11 +1182,20 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		*newStatus = input.Status.ToInt()
 		*newResolution = ticket.Resolution().ToInt()
 		updateTicket = updateTicket.Set("status", *newStatus)
-		if input.Resolution != nil {
+
+		if input.Status.ToInt() == model.STATUS_RESOLVED {
+			if input.Resolution == nil {
+				return nil, errors.New("Resolution is required when setting status to RESOLVED")
+			}
 			*newResolution = input.Resolution.ToInt()
 			updateTicket = updateTicket.Set("resolution", *newResolution)
-		} else if input.Status.ToInt() == model.STATUS_RESOLVED {
-			return nil, fmt.Errorf("resolution is required when status is RESOLVED")
+		} else {
+			if input.Resolution != nil {
+				return nil, errors.New("Resolution may only be provided when status is set to RESOLVED")
+			}
+			// Other statuses should have resolution = UNRESOLVED
+			*newResolution = model.RESOLVED_UNRESOLVED
+			updateTicket = updateTicket.Set("resolution", *newResolution)
 		}
 	}
 
