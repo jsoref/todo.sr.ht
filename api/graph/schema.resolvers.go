@@ -275,7 +275,7 @@ func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tr
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No tracker by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -311,7 +311,7 @@ func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, use
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, errors.New("No such ACL")
 		}
 		return nil, err
 	}
@@ -339,7 +339,7 @@ func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, 
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 		}
 		return nil, err
 	}
@@ -375,7 +375,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Tracke
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No ACL by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -439,7 +439,7 @@ func (r *mutationResolver) TrackerUnsubscribe(ctx context.Context, trackerID int
 		return row.Scan(&sub.ID, &sub.Created, &sub.TrackerID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, errors.New("No such subscription")
 		}
 		return nil, err
 	}
@@ -460,7 +460,7 @@ func (r *mutationResolver) TicketSubscribe(ctx context.Context, trackerID int, t
 	if err != nil {
 		return nil, err
 	} else if ticket == nil {
-		return nil, nil
+		return nil, errors.New("No such ticket")
 	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -497,7 +497,7 @@ func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int,
 	if err != nil {
 		return nil, err
 	} else if ticket == nil {
-		return nil, nil
+		return nil, errors.New("No such ticket")
 	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -509,7 +509,7 @@ func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int,
 		return row.Scan(&sub.ID, &sub.Created, &sub.TicketID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, errors.New("No such subscription")
 		}
 		return nil, err
 	}
@@ -535,7 +535,7 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 	if err != nil {
 		return nil, err
 	} else if tracker == nil {
-		return nil, nil
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 	}
 	if tracker.OwnerID != user.UserID {
 		return nil, fmt.Errorf("Access denied")
@@ -559,7 +559,7 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 			if err, ok := err.(*pq.Error); ok &&
 				err.Code == "23505" && // unique_violation
 				err.Constraint == "idx_tracker_name_unique" {
-				return fmt.Errorf("A label by this name already exists")
+				return valid.Errorf(ctx, "name", "A label by this name already exists")
 			}
 			// XXX: This is not ideal
 			if err, ok := err.(*pq.Error); ok &&
@@ -571,7 +571,7 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 		}
 		return nil, err
 	}
@@ -624,13 +624,18 @@ func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[st
 			QueryRowContext(ctx)
 		if err := row.Scan(&label.ID, &label.TrackerID, &label.Created,
 			&label.Name, &label.BackgroundColor, &label.ForegroundColor); err != nil {
-			if err == sql.ErrNoRows {
-				return fmt.Errorf("No label by ID %d found for this user", id)
+			if err, ok := err.(*pq.Error); ok &&
+				err.Code == "23505" && // unique_violation
+				err.Constraint == "idx_tracker_name_unique" {
+				return valid.Errorf(ctx, "name", "A label by this name already exists")
 			}
 			return err
 		}
 		return nil
 	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, fmt.Errorf("No label by ID %d found for this user", id)
+		}
 		return nil, err
 	}
 	webhooks.DeliverTrackerLabelEvent(ctx, model.WebhookEventLabelUpdate, label.TrackerID, &label)
@@ -654,7 +659,7 @@ func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Labe
 			&label.BackgroundColor, &label.ForegroundColor, &label.TrackerID)
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No label by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -951,7 +956,7 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 	if err != nil {
 		return nil, err
 	} else if tracker == nil {
-		return nil, nil
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 	}
 	if !tracker.CanEdit() {
 		return nil, fmt.Errorf("Access denied")
@@ -962,7 +967,7 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 	if err != nil {
 		return nil, err
 	} else if ticket == nil {
-		return nil, nil
+		return nil, errors.New("No such ticket")
 	}
 
 	validation := valid.New(ctx).WithInput(input)
@@ -1020,7 +1025,7 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 	if err != nil {
 		return nil, err
 	} else if tracker == nil {
-		return nil, nil
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 	}
 	if !tracker.CanTriage() {
 		return nil, fmt.Errorf("Access denied")
@@ -1031,7 +1036,7 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 	if err != nil {
 		return nil, err
 	} else if ticket == nil {
-		return nil, nil
+		return nil, errors.New("No such ticket")
 	}
 
 	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
@@ -1135,7 +1140,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 	if err != nil {
 		return nil, err
 	} else if tracker == nil {
-		return nil, nil
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 	}
 	if !tracker.CanComment() {
 		return nil, fmt.Errorf("Access denied")
@@ -1149,7 +1154,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 	if err != nil {
 		return nil, err
 	} else if ticket == nil {
-		return nil, nil
+		return nil, errors.New("No such ticket")
 	}
 
 	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
@@ -1288,7 +1293,7 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 	if err != nil {
 		return nil, err
 	} else if tracker == nil {
-		return nil, nil
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 	}
 	if !tracker.CanTriage() {
 		return nil, fmt.Errorf("Access denied")
@@ -1304,21 +1309,21 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 	if err != nil {
 		return nil, err
 	} else if ticket == nil {
-		return nil, nil
+		return nil, fmt.Errorf("No ticket by ID %d found for this user", ticketID)
 	}
 
 	assignedUser, err := loaders.ForContext(ctx).UsersByID.Load(userID)
 	if err != nil {
 		return nil, err
 	} else if assignedUser == nil {
-		return nil, nil
+		return nil, errors.New("No such user")
 	}
 
 	assignee, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(userID)
 	if err != nil {
 		return nil, err
 	} else if assignee == nil {
-		return nil, nil
+		return nil, errors.New("No such user")
 	}
 
 	user := auth.ForContext(ctx)
@@ -1417,7 +1422,7 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 	if err != nil {
 		return nil, err
 	} else if tracker == nil {
-		return nil, nil
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
 	}
 	if !tracker.CanTriage() {
 		return nil, fmt.Errorf("Access denied")
@@ -1433,21 +1438,21 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 	if err != nil {
 		return nil, err
 	} else if ticket == nil {
-		return nil, nil
+		return nil, errors.New("No such ticket")
 	}
 
 	assignedUser, err := loaders.ForContext(ctx).UsersByID.Load(userID)
 	if err != nil {
 		return nil, err
 	} else if assignedUser == nil {
-		return nil, nil
+		return nil, errors.New("No such user")
 	}
 
 	assignee, err := loaders.ForContext(ctx).ParticipantsByUserID.Load(userID)
 	if err != nil {
 		return nil, err
 	} else if assignee == nil {
-		return nil, nil
+		return nil, errors.New("No such user")
 	}
 
 	user := auth.ForContext(ctx)
@@ -1805,7 +1810,7 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -1916,7 +1921,7 @@ func (r *mutationResolver) DeleteTrackerWebhook(ctx context.Context, id int) (mo
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No tracker webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -2185,7 +2190,7 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No user webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -2377,7 +2382,7 @@ func (r *ticketResolver) Webhook(ctx context.Context, obj *model.Ticket, id int)
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No ticket webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
@@ -2731,7 +2736,7 @@ func (r *trackerResolver) Webhook(ctx context.Context, obj *model.Tracker, id in
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, fmt.Errorf("No tracker webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
