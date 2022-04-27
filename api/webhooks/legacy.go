@@ -462,6 +462,6 @@ func DeliverLegacyEventCreate(ctx context.Context,
 	query = sq.
 		Select().
 		From("ticket_webhook_subscription sub").
-		Where("sub.ticket_id = ?", ticket.ID)
+		Where("sub.ticket_id = ?", ticket.PKID)
 	q.Schedule(ctx, query, "ticket", "event:create", encoded)
 }
