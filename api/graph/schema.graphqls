@@ -807,28 +807,28 @@ type Mutation {
     name: String!,
     description: String,
     visibility: Visibility!,
-    import: Upload): Tracker @access(scope: TRACKERS, kind: RW)
+    import: Upload): Tracker! @access(scope: TRACKERS, kind: RW)
 
   "Updates an existing bug tracker"
   updateTracker(
     id: Int!,
-    input: TrackerInput!): Tracker @access(scope: TRACKERS, kind: RW)
+    input: TrackerInput!): Tracker! @access(scope: TRACKERS, kind: RW)
 
   "Deletes a bug tracker"
-  deleteTracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RW)
+  deleteTracker(id: Int!): Tracker! @access(scope: TRACKERS, kind: RW)
 
   "Adds or updates the ACL for a specific user on a bug tracker"
   updateUserACL(
     trackerId: Int!,
     userId: Int!,
-    input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
+    input: ACLInput!): TrackerACL! @access(scope: ACLS, kind: RW)
 
   # "Adds or updates the ACL for an email address on a bug tracker"
   # TODO: This requires internal changes
   #updateSenderACL(
   #  trackerId: Int!,
   #  address: String!,
-  #  input: ACLInput!): TrackerACL @access(scope: ACLS, kind: RW)
+  #  input: ACLInput!): TrackerACL! @access(scope: ACLS, kind: RW)
 
   """
   Updates the default ACL for a bug tracker, which applies to users and
@@ -836,17 +836,17 @@ type Mutation {
   """
   updateTrackerACL(
     trackerId: Int!,
-    input: ACLInput!): DefaultACL @access(scope: ACLS, kind: RW)
+    input: ACLInput!): DefaultACL! @access(scope: ACLS, kind: RW)
 
   """
   Removes a tracker ACL. Following this change, the default tracker ACL will
   apply to this user.
   """
-  deleteACL(id: Int!): TrackerACL @access(scope: ACLS, kind: RW)
+  deleteACL(id: Int!): TrackerACL! @access(scope: ACLS, kind: RW)
 
   "Subscribes to all email notifications for a tracker"
   trackerSubscribe(
-    trackerId: Int!): TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+    trackerId: Int!): TrackerSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
 
   """
   Unsubscribes from email notifications for a tracker. If "tickets" is true,
@@ -854,17 +854,17 @@ type Mutation {
   """
   trackerUnsubscribe(
     trackerId: Int!,
-    tickets: Boolean!): TrackerSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+    tickets: Boolean!): TrackerSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
 
   "Subscribes to all email notifications for a ticket"
   ticketSubscribe(
     trackerId: Int!,
-    ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+    ticketId: Int!): TicketSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
 
   "Unsubscribes from email notifications for a ticket"
   ticketUnsubscribe(
     trackerId: Int!,
-    ticketId: Int!): TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RW)
+    ticketId: Int!): TicketSubscription! @access(scope: SUBSCRIPTIONS, kind: RW)
 
   """
   Creates a new ticket label for a tracker. The colors must be in CSS
@@ -872,52 +872,52 @@ type Mutation {
   red.
   """
   createLabel(trackerId: Int!, name: String!,
-    foregroundColor: String!, backgroundColor: String!): Label @access(scope: TRACKERS, kind: RW)
+    foregroundColor: String!, backgroundColor: String!): Label! @access(scope: TRACKERS, kind: RW)
 
   "Changes the name or colors for a label."
-  updateLabel(id: Int!, input: UpdateLabelInput!): Label @access(scope: TRACKERS, kind: RW)
+  updateLabel(id: Int!, input: UpdateLabelInput!): Label! @access(scope: TRACKERS, kind: RW)
 
   """
   Deletes a label, removing it from any tickets which currently have it
   applied.
   """
-  deleteLabel(id: Int!): Label @access(scope: TRACKERS, kind: RW)
+  deleteLabel(id: Int!): Label! @access(scope: TRACKERS, kind: RW)
 
   "Creates a new ticket."
   submitTicket(trackerId: Int!,
-    input: SubmitTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
+    input: SubmitTicketInput!): Ticket! @access(scope: TICKETS, kind: RW)
 
   "Creates a new ticket from an incoming email. (For internal use only)"
   submitEmail(trackerId: Int!,
-    input: SubmitEmailInput!): Ticket @internal
+    input: SubmitEmailInput!): Ticket! @internal
 
   "Updates a ticket's subject or body"
   updateTicket(trackerId: Int!, ticketId: Int!,
-    input: UpdateTicketInput!): Ticket @access(scope: TICKETS, kind: RW)
+    input: UpdateTicketInput!): Ticket! @access(scope: TICKETS, kind: RW)
 
   "Updates the status or resolution of a ticket"
   updateTicketStatus(trackerId: Int!, ticketId: Int!,
-    input: UpdateStatusInput!): Event @access(scope: TICKETS, kind: RW)
+    input: UpdateStatusInput!): Event! @access(scope: TICKETS, kind: RW)
 
   "Submits a comment for a ticket"
   submitComment(trackerId: Int!, ticketId: Int!,
-    input: SubmitCommentInput!): Event @access(scope: TICKETS, kind: RW)
+    input: SubmitCommentInput!): Event! @access(scope: TICKETS, kind: RW)
 
   "Adds a user to the list of assigned users for a ticket"
   assignUser(trackerId: Int!, ticketId: Int!,
-    userId: Int!): Event @access(scope: TICKETS, kind: RW)
+    userId: Int!): Event! @access(scope: TICKETS, kind: RW)
 
   "Removes a user from the list of assigned users for a ticket"
   unassignUser(trackerId: Int!, ticketId: Int!,
-    userId: Int!): Event @access(scope: TICKETS, kind: RW)
+    userId: Int!): Event! @access(scope: TICKETS, kind: RW)
 
   "Adds a label to the list of labels for a ticket"
   labelTicket(trackerId: Int!, ticketId: Int!,
-    labelId: Int!): Event @access(scope: TICKETS, kind: RW)
+    labelId: Int!): Event! @access(scope: TICKETS, kind: RW)
 
   "Removes a list from the list of labels for a ticket"
   unlabelTicket(trackerId: Int!, ticketId: Int!,
-    labelId: Int!): Event @access(scope: TICKETS, kind: RW)
+    labelId: Int!): Event! @access(scope: TICKETS, kind: RW)
 
   """
   Creates a new user webhook subscription. When an event from the
@@ -940,17 +940,17 @@ type Mutation {
   Manually deleting a webhook configured by a third-party client may cause
   unexpected behavior with the third-party integration.
   """
-  deleteUserWebhook(id: Int!): WebhookSubscription
+  deleteUserWebhook(id: Int!): WebhookSubscription!
 
   "Creates a new tracker webhook."
   createTrackerWebhook(trackerId: Int!, config: TrackerWebhookInput!): WebhookSubscription!
 
   "Deletes a tracker webhook."
-  deleteTrackerWebhook(id: Int!): WebhookSubscription
+  deleteTrackerWebhook(id: Int!): WebhookSubscription!
 
   "Creates a new ticket webhook."
   createTicketWebhook(trackerId: Int!, ticketId: Int!, config: TicketWebhookInput!): WebhookSubscription!
 
   "Deletes a ticket webhook."
-  deleteTicketWebhook(id: Int!): WebhookSubscription
+  deleteTicketWebhook(id: Int!): WebhookSubscription!
 }
