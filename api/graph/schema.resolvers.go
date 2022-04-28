@@ -516,16 +516,16 @@ func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int,
 	return &sub, nil
 }
 
-func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name string, foreground string, background string) (*model.Label, error) {
+func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name string, foregroundColor string, backgroundColor string) (*model.Label, error) {
 	var (
 		err   error
 		label model.Label
 	)
 	user := auth.ForContext(ctx)
-	if _, err = parseColor(foreground); err != nil {
+	if _, err = parseColor(foregroundColor); err != nil {
 		return nil, err
 	}
-	if _, err = parseColor(background); err != nil {
+	if _, err = parseColor(backgroundColor); err != nil {
 		return nil, err
 	}
 	if len(name) <= 0 {
@@ -551,7 +551,7 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 				NOW() at time zone 'utc',
 				$1, $2, $3, $4
 			) RETURNING id, created, name, color, text_color, tracker_id;
-		`, tracker.ID, name, background, foreground)
+		`, tracker.ID, name, backgroundColor, foregroundColor)
 
 		if err := row.Scan(&label.ID, &label.Created, &label.Name,
 			&label.BackgroundColor, &label.ForegroundColor,

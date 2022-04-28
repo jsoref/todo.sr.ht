@@ -281,12 +281,12 @@ def tracker_labels_POST(owner, name):
             **valid.kwargs), 400
 
     exec_gql(current_app.site, """
-        mutation CreateLabel($trackerId: Int!, $name: String!, $foreground: String!, $background: String!) {
-            createLabel(trackerId: $trackerId, name: $name, foreground: $foreground, background: $background) {
+        mutation CreateLabel($trackerId: Int!, $name: String!, $foregroundColor: String!, $backgroundColor: String!) {
+            createLabel(trackerId: $trackerId, name: $name, foregroundColor: $foregroundColor, backgroundColor: $backgroundColor) {
                 id
             }
         }
-    """, valid=valid, trackerId=tracker.id, name=data["name"], foreground=data["text_color"], background=data["color"])
+    """, valid=valid, trackerId=tracker.id, name=data["name"], foregroundColor=data["text_color"], backgroundColor=data["color"])
 
     if not valid.ok:
         return render_template("tracker-labels.html",

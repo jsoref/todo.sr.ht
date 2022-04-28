@@ -883,7 +883,7 @@ type Mutation {
   red.
   """
   createLabel(trackerId: Int!, name: String!,
-    foreground: String!, background: String!): Label @access(scope: TRACKERS, kind: RW)
+    foregroundColor: String!, backgroundColor: String!): Label @access(scope: TRACKERS, kind: RW)
 
   "Changes the name or colors for a label."
   updateLabel(id: Int!, input: UpdateLabelInput!): Label @access(scope: TRACKERS, kind: RW)
