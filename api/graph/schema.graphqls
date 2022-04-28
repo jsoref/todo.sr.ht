@@ -69,6 +69,9 @@ type User implements Entity {
   location: String
   bio: String
 
+  "Returns a specific tracker."
+  tracker(name: String!): Tracker @access(scope: TRACKERS, kind: RO)
+
   trackers(cursor: Cursor): TrackerCursor! @access(scope: TRACKERS, kind: RO)
 }
 
@@ -643,20 +646,6 @@ type Query {
   ACLs or (2) has implicit access to either by ownership or group membership.
   """
   trackers(cursor: Cursor): TrackerCursor @access(scope: TRACKERS, kind: RO)
-
-  "Returns a specific tracker by ID."
-  tracker(id: Int!): Tracker @access(scope: TRACKERS, kind: RO)
-
-  "Returns a specific tracker, owned by the authenticated user."
-  trackerByName(name: String!): Tracker @access(scope: TRACKERS, kind: RO)
-
-  """
-  Returns a specific tracker, owned by the given canonical name (e.g.
-  "~sircmpwn").
-  """
-  trackerByOwner(owner: String!, tracker: String!): Tracker @access(scope: TRACKERS, kind: RO)
-
-  # TODO: Add ticket by tracker ID and ticket ID
 
   """
   List of events which the authenticated user is subscribed to or implicated

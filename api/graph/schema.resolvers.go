@@ -2088,23 +2088,6 @@ func (r *queryResolver) Trackers(ctx context.Context, cursor *coremodel.Cursor) 
 	return &model.TrackerCursor{trackers, cursor}, nil
 }
 
-func (r *queryResolver) Tracker(ctx context.Context, id int) (*model.Tracker, error) {
-	return loaders.ForContext(ctx).TrackersByID.Load(id)
-}
-
-func (r *queryResolver) TrackerByName(ctx context.Context, name string) (*model.Tracker, error) {
-	return loaders.ForContext(ctx).TrackersByName.Load(name)
-}
-
-func (r *queryResolver) TrackerByOwner(ctx context.Context, owner string, tracker string) (*model.Tracker, error) {
-	if strings.HasPrefix(owner, "~") {
-		owner = owner[1:]
-	} else {
-		return nil, fmt.Errorf("Expected owner to be a canonical name")
-	}
-	return loaders.ForContext(ctx).TrackersByOwnerName.Load([2]string{owner, tracker})
-}
-
 func (r *queryResolver) Events(ctx context.Context, cursor *coremodel.Cursor) (*model.EventCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2921,6 +2904,11 @@ func (r *trackerWebhookSubscriptionResolver) Sample(ctx context.Context, obj *mo
 
 func (r *trackerWebhookSubscriptionResolver) Tracker(ctx context.Context, obj *model.TrackerWebhookSubscription) (*model.Tracker, error) {
 	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
+}
+
+func (r *userResolver) Tracker(ctx context.Context, obj *model.User, name string) (*model.Tracker, error) {
+	// TODO: TrackersByOwnerIDTrackerName loader
+	return loaders.ForContext(ctx).TrackersByOwnerName.Load([2]string{obj.Username, name})
 }
 
 func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {
