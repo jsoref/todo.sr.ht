@@ -208,6 +208,18 @@ type TrackerWebhookSubscription implements WebhookSubscription {
   tracker: Tracker!
 }
 
+type TicketWebhookSubscription implements WebhookSubscription {
+  id: Int!
+  events: [WebhookEvent!]!
+  query: String!
+  url: String!
+  client: OAuthClient @private
+  deliveries(cursor: Cursor): WebhookDeliveryCursor!
+  sample(event: WebhookEvent!): String!
+
+  ticket: Ticket!
+}
+
 type WebhookDelivery {
   uuid: String!
   date: Time!
@@ -335,6 +347,18 @@ type Ticket {
   subscription.
   """
   subscription: TicketSubscription @access(scope: SUBSCRIPTIONS, kind: RO)
+
+  """
+  Returns a list of ticket webhook subscriptions. For clients
+  authenticated with a personal access token, this returns all webhooks
+  configured by all GraphQL clients for your account. For clients
+  authenticated with an OAuth 2.0 access token, this returns only webhooks
+  registered for your client.
+  """
+  webhooks(cursor: Cursor): WebhookSubscriptionCursor!
+
+  "Returns details of a ticket webhook subscription by its ID."
+  webhook(id: Int!): WebhookSubscription
 }
 
 interface ACL {
@@ -779,6 +803,12 @@ input TrackerWebhookInput {
   query: String!
 }
 
+input TicketWebhookInput {
+  url: String!
+  events: [WebhookEvent!]!
+  query: String!
+}
+
 type Mutation {
   """
   Creates a new bug tracker. If specified, the 'import' field specifies a
@@ -928,4 +958,10 @@ type Mutation {
 
   "Deletes a tracker webhook."
   deleteTrackerWebhook(id: Int!): WebhookSubscription
+
+  "Creates a new ticket webhook."
+  createTicketWebhook(trackerId: Int!, ticketId: Int!, config: TicketWebhookInput!): WebhookSubscription!
+
+  "Deletes a ticket webhook."
+  deleteTicketWebhook(id: Int!): WebhookSubscription
 }

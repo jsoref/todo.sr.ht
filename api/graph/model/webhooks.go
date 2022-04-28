@@ -338,3 +338,112 @@ func (sub *TrackerWebhookSubscription) QueryWithCursor(ctx context.Context,
 
 	return subs, cur
 }
+
+type TicketWebhookSubscription struct {
+	ID        int            `json:"id"`
+	Events    []WebhookEvent `json:"events"`
+	Query     string         `json:"query"`
+	URL       string         `json:"url"`
+	TrackerID int            `json:"trackerId"`
+	TicketID  int            `json:"ticketId"`
+
+	UserID     int
+	AuthMethod string
+	ClientID   *string
+	TokenHash  *string
+	Expires    *time.Time
+	Grants     *string
+	NodeID     *string
+
+	alias  string
+	fields *database.ModelFields
+}
+
+func (TicketWebhookSubscription) IsWebhookSubscription() {}
+
+func (sub *TicketWebhookSubscription) As(alias string) *TicketWebhookSubscription {
+	sub.alias = alias
+	return sub
+}
+
+func (sub *TicketWebhookSubscription) Alias() string {
+	return sub.alias
+}
+
+func (sub *TicketWebhookSubscription) Table() string {
+	return "gql_ticket_wh_sub"
+}
+
+func (sub *TicketWebhookSubscription) Fields() *database.ModelFields {
+	if sub.fields != nil {
+		return sub.fields
+	}
+	sub.fields = &database.ModelFields{
+		Fields: []*database.FieldMap{
+			{"events", "events", pq.Array(&sub.Events)},
+			{"url", "url", &sub.URL},
+
+			// Always fetch:
+			{"id", "", &sub.ID},
+			{"query", "", &sub.Query},
+			{"user_id", "", &sub.UserID},
+			{"auth_method", "", &sub.AuthMethod},
+			{"token_hash", "", &sub.TokenHash},
+			{"client_id", "", &sub.ClientID},
+			{"grants", "", &sub.Grants},
+			{"expires", "", &sub.Expires},
+			{"node_id", "", &sub.NodeID},
+			{"tracker_id", "", &sub.TrackerID},
+			{"scoped_id", "", &sub.TicketID},
+		},
+	}
+	return sub.fields
+}
+
+func (sub *TicketWebhookSubscription) QueryWithCursor(ctx context.Context,
+	runner sq.BaseRunner, q sq.SelectBuilder,
+	cur *model.Cursor) ([]WebhookSubscription, *model.Cursor) {
+	var (
+		err  error
+		rows *sql.Rows
+	)
+
+	if cur.Next != "" {
+		next, _ := strconv.ParseInt(cur.Next, 10, 64)
+		q = q.Where(database.WithAlias(sub.alias, "id")+"<= ?", next)
+	}
+	q = q.
+		OrderBy(database.WithAlias(sub.alias, "id")).
+		Limit(uint64(cur.Count + 1))
+
+	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	var (
+		subs   []WebhookSubscription
+		lastID int
+	)
+	for rows.Next() {
+		var sub TicketWebhookSubscription
+		if err := rows.Scan(database.Scan(ctx, &sub)...); err != nil {
+			panic(err)
+		}
+		subs = append(subs, &sub)
+		lastID = sub.ID
+	}
+
+	if len(subs) > cur.Count {
+		cur = &model.Cursor{
+			Count:  cur.Count,
+			Next:   strconv.Itoa(lastID),
+			Search: cur.Search,
+		}
+		subs = subs[:cur.Count]
+	} else {
+		cur = nil
+	}
+
+	return subs, cur
+}
