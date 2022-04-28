@@ -233,6 +233,7 @@ func (ev *Event) Fields() *database.ModelFields {
 
 			// Always fetch:
 			{"id", "", &ev.ID},
+			{"created", "", &ev.Created},
 			{"event_type", "", &ev.EventType},
 			{"participant_id", "", &ev.ParticipantID},
 			{"ticket_id", "", &ev.TicketID},

@@ -137,6 +137,18 @@ type Tracker {
   archive of the tracker.
   """
   export: URL!
+
+  """
+  Returns a list of tracker webhook subscriptions. For clients
+  authenticated with a personal access token, this returns all webhooks
+  configured by all GraphQL clients for your account. For clients
+  authenticated with an OAuth 2.0 access token, this returns only webhooks
+  registered for your client.
+  """
+  webhooks(cursor: Cursor): WebhookSubscriptionCursor!
+
+  "Returns details of a tracker webhook subscription by its ID."
+  webhook(id: Int!): WebhookSubscription
 }
 
 type OAuthClient {
@@ -148,6 +160,11 @@ enum WebhookEvent {
   TRACKER_UPDATE  @access(scope: TRACKERS, kind: RO)
   TRACKER_DELETED @access(scope: TRACKERS, kind: RO)
   TICKET_CREATED  @access(scope: TICKETS, kind: RO)
+  TICKET_UPDATE   @access(scope: TICKETS, kind: RO)
+  LABEL_CREATED   @access(scope: TRACKERS, kind: RO)
+  LABEL_UPDATE    @access(scope: TRACKERS, kind: RO)
+  LABEL_DELETED   @access(scope: TRACKERS, kind: RO)
+  EVENT_CREATED   @access(scope: EVENTS, kind: RO)
 }
 
 interface WebhookSubscription {
@@ -177,6 +194,18 @@ type UserWebhookSubscription implements WebhookSubscription {
   client: OAuthClient @private
   deliveries(cursor: Cursor): WebhookDeliveryCursor!
   sample(event: WebhookEvent): String!
+}
+
+type TrackerWebhookSubscription implements WebhookSubscription {
+  id: Int!
+  events: [WebhookEvent!]!
+  query: String!
+  url: String!
+  client: OAuthClient @private
+  deliveries(cursor: Cursor): WebhookDeliveryCursor!
+  sample(event: WebhookEvent!): String!
+
+  tracker: Tracker!
 }
 
 type WebhookDelivery {
@@ -217,6 +246,22 @@ type TicketEvent implements WebhookPayload {
   date: Time!
 
   ticket: Ticket!
+}
+
+type EventCreated implements WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+
+  newEvent: Event!
+}
+
+type LabelEvent implements WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+
+  label: Label!
 }
 
 enum TicketStatus {
@@ -728,6 +773,12 @@ input UserWebhookInput {
   query: String!
 }
 
+input TrackerWebhookInput {
+  url: String!
+  events: [WebhookEvent!]!
+  query: String!
+}
+
 type Mutation {
   """
   Creates a new bug tracker. If specified, the 'import' field specifies a
@@ -860,7 +911,7 @@ type Mutation {
   may be used to access details of the event which trigged the webhook. The
   query may not make any mutations.
   """
-  createWebhook(config: UserWebhookInput!): WebhookSubscription!
+  createUserWebhook(config: UserWebhookInput!): WebhookSubscription!
 
   """
   Deletes a user webhook. Any events already queued may still be
@@ -870,5 +921,11 @@ type Mutation {
   Manually deleting a webhook configured by a third-party client may cause
   unexpected behavior with the third-party integration.
   """
-  deleteWebhook(id: Int!): WebhookSubscription
+  deleteUserWebhook(id: Int!): WebhookSubscription
+
+  "Creates a new tracker webhook."
+  createTrackerWebhook(trackerId: Int!, config: TrackerWebhookInput!): WebhookSubscription!
+
+  "Deletes a tracker webhook."
+  deleteTrackerWebhook(id: Int!): WebhookSubscription
 }

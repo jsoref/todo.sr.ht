@@ -24,7 +24,19 @@ func deliverUserWebhook(ctx context.Context, event model.WebhookEvent,
 		payloadUUID, payload)
 }
 
-func DeliverTrackerEvent(ctx context.Context,
+func deliverTrackerWebhook(ctx context.Context, trackerID int,
+	event model.WebhookEvent, payload model.WebhookPayload, payloadUUID uuid.UUID) {
+	q := webhooks.ForContext(ctx)
+	userID := auth.ForContext(ctx).UserID
+	query := sq.
+		Select().
+		From("gql_tracker_wh_sub sub").
+		Where("sub.user_id = ? AND sub.tracker_id = ?", userID, trackerID)
+	q.Schedule(ctx, query, "tracker", event.String(),
+		payloadUUID, payload)
+}
+
+func DeliverUserTrackerEvent(ctx context.Context,
 	event model.WebhookEvent, tracker *model.Tracker) {
 	payloadUUID := uuid.New()
 	payload := model.TrackerEvent{
@@ -36,14 +48,62 @@ func DeliverTrackerEvent(ctx context.Context,
 	deliverUserWebhook(ctx, event, &payload, payloadUUID)
 }
 
-func DeliverTicketEvent(ctx context.Context,
+func DeliverUserTicketEvent(ctx context.Context,
 	event model.WebhookEvent, ticket *model.Ticket) {
 	payloadUUID := uuid.New()
 	payload := model.TicketEvent{
-		UUID:    payloadUUID.String(),
-		Event:   event,
-		Date:    time.Now().UTC(),
+		UUID:   payloadUUID.String(),
+		Event:  event,
+		Date:   time.Now().UTC(),
 		Ticket: ticket,
 	}
 	deliverUserWebhook(ctx, event, &payload, payloadUUID)
+}
+
+func DeliverTrackerEvent(ctx context.Context,
+	event model.WebhookEvent, tracker *model.Tracker) {
+	payloadUUID := uuid.New()
+	payload := model.TrackerEvent{
+		UUID:    payloadUUID.String(),
+		Event:   event,
+		Date:    time.Now().UTC(),
+		Tracker: tracker,
+	}
+	deliverTrackerWebhook(ctx, tracker.ID, event, &payload, payloadUUID)
+}
+
+func DeliverTrackerLabelEvent(ctx context.Context,
+	event model.WebhookEvent, trackerID int, label *model.Label) {
+	payloadUUID := uuid.New()
+	payload := model.LabelEvent{
+		UUID:  payloadUUID.String(),
+		Event: event,
+		Date:  time.Now().UTC(),
+		Label: label,
+	}
+	deliverTrackerWebhook(ctx, trackerID, event, &payload, payloadUUID)
+}
+
+func DeliverTrackerTicketEvent(ctx context.Context,
+	event model.WebhookEvent, trackerID int, ticket *model.Ticket) {
+	payloadUUID := uuid.New()
+	payload := model.TicketEvent{
+		UUID:   payloadUUID.String(),
+		Event:  event,
+		Date:   time.Now().UTC(),
+		Ticket: ticket,
+	}
+	deliverTrackerWebhook(ctx, trackerID, event, &payload, payloadUUID)
+}
+
+func DeliverTrackerEventCreated(ctx context.Context, trackerID int, newEvent *model.Event) {
+	event := model.WebhookEventEventCreated
+	payloadUUID := uuid.New()
+	payload := model.EventCreated{
+		UUID:     payloadUUID.String(),
+		Event:    event,
+		Date:     time.Now().UTC(),
+		NewEvent: newEvent,
+	}
+	deliverTrackerWebhook(ctx, trackerID, event, &payload, payloadUUID)
 }
