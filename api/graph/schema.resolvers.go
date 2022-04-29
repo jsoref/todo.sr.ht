@@ -325,7 +325,9 @@ func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			UPDATE tracker
-			SET default_access = $1
+			SET
+				updated = NOW() at time zone 'utc',
+				default_access = $1
 			WHERE id = $2 AND owner_id = $3
 			RETURNING
 				id, created, updated, name, description, visibility,
@@ -1000,6 +1002,7 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		_, err := update.
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
 			Where(`ticket.id = ?`, ticket.PKID).
 			RunWith(tx).
 			ExecContext(ctx)
@@ -1085,6 +1088,7 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := update.
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
 			Where(`ticket.id = ?`, ticket.PKID).
 			Suffix(`RETURNING ticket.status, ticket.resolution`).
 			RunWith(tx).
@@ -1226,6 +1230,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 		builder.AddMentions(&mentions)
 
 		_, err := updateTicket.
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
 			Set(`comment_count`, sq.Expr(`comment_count + 1`)).
 			Where(`ticket.id = ?`, ticket.PKID).
 			RunWith(tx).
