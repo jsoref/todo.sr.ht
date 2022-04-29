@@ -334,6 +334,9 @@ func mkEventTypes(eventType int) []string {
 	if eventType&model.EVENT_CREATED != 0 {
 		results = append(results, "created")
 	}
+	if eventType&model.EVENT_COMMENT != 0 {
+		results = append(results, "comment")
+	}
 	if eventType&model.EVENT_STATUS_CHANGE != 0 {
 		results = append(results, "status_change")
 	}
