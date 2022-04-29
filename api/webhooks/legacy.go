@@ -425,7 +425,7 @@ func DeliverLegacyEventCreate(ctx context.Context,
 		NewResolution: mkResolution(event.NewResolution),
 
 		Ticket: &TicketWebhookPayload{
-			ID:    ticket.PKID,
+			ID:    ticket.ID,
 			Ref:   ticket.Ref(),
 			Title: ticket.Subject,
 			Tracker: &TrackerWebhookPayload{
