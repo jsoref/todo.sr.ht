@@ -835,7 +835,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	return &ticket, nil
 }
 
-func (r *mutationResolver) SubmitEmail(ctx context.Context, trackerID int, input model.SubmitEmailInput) (*model.Ticket, error) {
+func (r *mutationResolver) SubmitTicketEmail(ctx context.Context, trackerID int, input model.SubmitTicketEmailInput) (*model.Ticket, error) {
 	validation := valid.New(ctx)
 	validation.Expect(len(input.Subject) <= 2048,
 		"Ticket subject must be fewer than to 2049 characters.").
@@ -944,6 +944,244 @@ func (r *mutationResolver) SubmitEmail(ctx context.Context, trackerID int, input
 	webhooks.DeliverUserTicketEvent(ctx, model.WebhookEventTicketCreated, &ticket)
 	webhooks.DeliverTrackerTicketEvent(ctx, model.WebhookEventTicketCreated, ticket.TrackerID, &ticket)
 	return &ticket, nil
+}
+
+func (r *mutationResolver) SubmitCommentEmail(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentEmailInput) (*model.Event, error) {
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
+	}
+	if !tracker.CanComment() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	ticket, err := loaders.ForContext(ctx).
+		TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, errors.New("No such ticket")
+	}
+
+	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
+	if err != nil {
+		panic(err)
+	}
+
+	updateTicket := sq.Update("ticket").
+		PlaceholderFormat(sq.Dollar)
+	insertEvent := sq.Insert("event").
+		PlaceholderFormat(sq.Dollar).
+		Columns("created", "event_type",
+			"ticket_id", "participant_id", "comment_id",
+			"old_status", "new_status", "old_resolution", "new_resolution")
+
+	var (
+		oldStatus      *int
+		_oldStatus     int
+		newStatus      *int
+		_newStatus     int
+		oldResolution  *int
+		_oldResolution int
+		newResolution  *int
+		_newResolution int
+		eventType      uint = model.EVENT_COMMENT
+	)
+
+	if input.Cmd != nil {
+		switch *input.Cmd {
+		case model.EmailCmdResolve:
+			if input.Resolution == nil {
+				return nil, errors.New("Resolution is required when cmd is RESOLVE")
+			}
+			eventType |= model.EVENT_STATUS_CHANGE
+			oldStatus = &_oldStatus
+			newStatus = &_newStatus
+			oldResolution = &_oldResolution
+			newResolution = &_newResolution
+			*oldStatus = ticket.Status().ToInt()
+			*oldResolution = ticket.Resolution().ToInt()
+			*newStatus = model.STATUS_RESOLVED
+			*newResolution = input.Resolution.ToInt()
+			updateTicket = updateTicket.
+				Set("status", *newStatus).
+				Set("resolution", *newResolution)
+		case model.EmailCmdReopen:
+			eventType |= model.EVENT_STATUS_CHANGE
+			oldStatus = &_oldStatus
+			newStatus = &_newStatus
+			oldResolution = &_oldResolution
+			newResolution = &_newResolution
+			*oldStatus = ticket.Status().ToInt()
+			*oldResolution = ticket.Resolution().ToInt()
+			*newStatus = model.STATUS_REPORTED
+			*newResolution = model.RESOLVED_UNRESOLVED
+			updateTicket = updateTicket.
+				Set("status", *newStatus).
+				Set("resolution", *newResolution)
+		}
+	}
+
+	var event model.Event
+	columns := database.Columns(ctx, &event)
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := updateTicket.
+			Set(`updated`, sq.Expr(`now() at time zone 'utc'`)).
+			Set(`comment_count`, sq.Expr(`comment_count + 1`)).
+			Where(`ticket.id = ?`, ticket.PKID).
+			RunWith(tx).
+			ExecContext(ctx)
+		if err != nil {
+			return err
+		}
+
+		row := tx.QueryRowContext(ctx, `
+			INSERT INTO ticket_comment (
+				created, updated, submitter_id, ticket_id, text
+			) VALUES (
+				NOW() at time zone 'utc',
+				NOW() at time zone 'utc',
+				$1, $2, $3
+			) RETURNING id;
+		`, input.SenderID, ticket.PKID, input.Text)
+
+		var commentID int
+		if err := row.Scan(&commentID); err != nil {
+			return err
+		}
+
+		if input.Cmd != nil {
+			switch *input.Cmd {
+			case model.EmailCmdLabel:
+				for _, labelID := range input.LabelIds {
+					var event model.Event
+					insertEvent := sq.Insert("event").
+						PlaceholderFormat(sq.Dollar).
+						Columns("created", "event_type", "ticket_id",
+							"participant_id", "label_id").
+						Values(sq.Expr("now() at time zone 'utc'"),
+							model.EVENT_LABEL_ADDED, ticket.PKID, input.SenderID, labelID)
+
+					_, err := tx.ExecContext(ctx, `
+						INSERT INTO ticket_label (
+							created, ticket_id, label_id, user_id
+						) VALUES (
+							NOW() at time zone 'utc',
+							$1, $2,
+							(SELECT user_id FROM participant WHERE id = $3)
+						)`, ticket.PKID, labelID, input.SenderID)
+					if err, ok := err.(*pq.Error); ok &&
+						err.Code == "23505" && // unique_violation
+						err.Constraint == "idx_label_ticket_unique" {
+						return errors.New("This label is already assigned to this ticket.")
+					} else if err != nil {
+						return err
+					}
+
+					row := insertEvent.
+						Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+						RunWith(tx).
+						QueryRowContext(ctx)
+					if err := row.Scan(database.Scan(ctx, &event)...); err != nil {
+						return err
+					}
+
+					builder := NewEventBuilder(ctx, tx, input.SenderID, model.EVENT_LABEL_ADDED).
+						WithTicket(tracker, ticket)
+					builder.InsertNotifications(event.ID, nil)
+					_, err = tx.ExecContext(ctx, `DROP TABLE event_participant;`)
+					if err != nil {
+						return err
+					}
+				}
+			case model.EmailCmdUnlabel:
+				for _, labelID := range input.LabelIds {
+					var event model.Event
+					insertEvent := sq.Insert("event").
+						PlaceholderFormat(sq.Dollar).
+						Columns("created", "event_type", "ticket_id",
+							"participant_id", "label_id").
+						Values(sq.Expr("now() at time zone 'utc'"),
+							model.EVENT_LABEL_REMOVED, ticket.PKID, input.SenderID, labelID)
+
+					{
+						row := tx.QueryRowContext(ctx, `
+						DELETE FROM ticket_label
+						WHERE ticket_id = $1 AND label_id = $2
+						RETURNING 1`,
+							ticket.PKID, labelID)
+						var success bool
+						if err := row.Scan(&success); err != nil {
+							if err == sql.ErrNoRows {
+								return errors.New("This label is not assigned to this ticket.")
+							}
+							return err
+						}
+					}
+
+					row := insertEvent.
+						Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+						RunWith(tx).
+						QueryRowContext(ctx)
+					if err := row.Scan(database.Scan(ctx, &event)...); err != nil {
+						return err
+					}
+
+					builder := NewEventBuilder(ctx, tx, input.SenderID, model.EVENT_LABEL_REMOVED).
+						WithTicket(tracker, ticket)
+					builder.InsertNotifications(event.ID, nil)
+					_, err = tx.ExecContext(ctx, `DROP TABLE event_participant;`)
+					if err != nil {
+						return err
+					}
+				}
+			}
+		}
+
+		builder := NewEventBuilder(ctx, tx, input.SenderID, eventType).
+			WithTicket(tracker, ticket)
+
+		mentions := ScanMentions(ctx, tracker, ticket, input.Text)
+		builder.AddMentions(&mentions)
+		builder.InsertSubscriptions()
+
+		eventRow := insertEvent.Values(sq.Expr("now() at time zone 'utc'"),
+			eventType, ticket.PKID, input.SenderID, commentID,
+			oldStatus, newStatus, oldResolution, newResolution).
+			Suffix(`RETURNING ` + strings.Join(columns, ", ")).
+			RunWith(tx).
+			QueryRowContext(ctx)
+		if err := eventRow.Scan(database.Scan(ctx, &event)...); err != nil {
+			return err
+		}
+		builder.InsertNotifications(event.ID, &commentID)
+
+		conf := config.ForContext(ctx)
+		origin := config.GetOrigin(conf, "todo.sr.ht", true)
+		details := SubmitCommentDetails{
+			Root: origin,
+			TicketURL: fmt.Sprintf("/%s/%s/%d",
+				owner.CanonicalName(), tracker.Name, ticket.ID),
+			EventID:       event.ID,
+			Comment:       input.Text,
+			StatusUpdated: newStatus != nil,
+		}
+		if details.StatusUpdated {
+			details.Status = model.TicketStatusFromInt(*newStatus).String()
+			details.Resolution = model.TicketResolutionFromInt(*newResolution).String()
+		}
+		subject := fmt.Sprintf("Re: %s: %s", ticket.Ref(), ticket.Subject)
+		builder.SendEmails(subject, submitCommentTemplate, &details)
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+	webhooks.DeliverLegacyEventCreate(ctx, tracker, ticket, &event)
+	webhooks.DeliverTrackerEventCreated(ctx, ticket.TrackerID, &event)
+	webhooks.DeliverTicketEventCreated(ctx, ticket.PKID, &event)
+	return &event, nil
 }
 
 func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Ticket, error) {

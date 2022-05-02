@@ -735,12 +735,29 @@ input SubmitTicketInput {
   externalUrl: String
 }
 
-"For internal use only."
-input SubmitEmailInput {
+# For internal use only.
+input SubmitTicketEmailInput {
   subject: String!
   body: String
   senderId: Int!
   messageId: String!
+}
+
+# For internal use only.
+enum EmailCmd {
+	RESOLVE
+	REOPEN
+	LABEL
+	UNLABEL
+}
+
+# For internal use only.
+input SubmitCommentEmailInput {
+  text: String!
+  senderId: Int!
+  cmd: EmailCmd
+  resolution: TicketResolution
+  labelIds: [Int!]
 }
 
 """
@@ -887,9 +904,13 @@ type Mutation {
   submitTicket(trackerId: Int!,
     input: SubmitTicketInput!): Ticket! @access(scope: TICKETS, kind: RW)
 
-  "Creates a new ticket from an incoming email. (For internal use only)"
-  submitEmail(trackerId: Int!,
-    input: SubmitEmailInput!): Ticket! @internal
+  # Creates a new ticket from an incoming email. (For internal use only)
+  submitTicketEmail(trackerId: Int!,
+    input: SubmitTicketEmailInput!): Ticket! @internal
+
+  # Creates a new comment from an incoming email. (For internal use only)
+  submitCommentEmail(trackerId: Int!, ticketId: Int!,
+    input: SubmitCommentEmailInput!): Event! @internal
 
   "Updates a ticket's subject or body"
   updateTicket(trackerId: Int!, ticketId: Int!,
