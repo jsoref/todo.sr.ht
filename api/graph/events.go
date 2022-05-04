@@ -359,22 +359,45 @@ func (builder *EventBuilder) SendEmails(subject string,
 	} else if addr, ok := conf.Get("mail", "smtp-from"); ok {
 		notifyFrom = addr
 	} else {
-		panic("Invalid mail configuratiojn")
+		panic("Invalid mail configuration")
+	}
+
+	smtpUser, ok := conf.Get("mail", "smtp-user")
+	if !ok {
+		panic("Invalid mail configuration")
+	}
+
+	postingDomain, ok := conf.Get("todo.sr.ht::mail", "posting-domain")
+	if !ok {
+		panic("Invalid mail configuration")
 	}
 
 	from := mail.Address{
 		Name:    "~" + user.Username,
 		Address: notifyFrom,
 	}
+	sender := mail.Address{
+		Address: smtpUser + "@" + postingDomain,
+	}
+
+	ticketRef := builder.ticket.EmailRef(postingDomain)
+	ticketAddress := mail.Address{
+		Name:    builder.ticket.Ref(),
+		Address: ticketRef,
+	}
+
 	for _, rcpt := range rcpts {
 		var header mail.Header
-		// TODO: Add these headers:
-		// - In-Reply-To
-		// - Reply-To
-		// - Sender
-		// - List-Unsubscribe
+		// TODO: List-Unsubscribe header
 		header.SetAddressList("To", []*mail.Address{&rcpt})
 		header.SetAddressList("From", []*mail.Address{&from})
+		header.SetAddressList("Reply-To", []*mail.Address{&ticketAddress})
+		header.SetAddressList("Sender", []*mail.Address{&sender})
+		if builder.eventType == model.EVENT_CREATED {
+			header.SetMessageID(ticketRef)
+		} else {
+			header.SetMsgIDList("In-Reply-To", []string{ticketRef})
+		}
 		header.SetSubject(subject)
 
 		// TODO: Fetch user PGP key (or send via meta.sr.ht API?)

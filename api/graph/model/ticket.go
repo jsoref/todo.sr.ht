@@ -52,6 +52,10 @@ func (t *Ticket) Ref() string {
 	return fmt.Sprintf("~%s/%s#%d", t.OwnerName, t.TrackerName, t.ID)
 }
 
+func (t *Ticket) EmailRef(domain string) string {
+	return fmt.Sprintf("~%s/%s/%d@%s", t.OwnerName, t.TrackerName, t.ID, domain)
+}
+
 func (t *Ticket) Status() TicketStatus {
 	return TicketStatusFromInt(t.RawStatus)
 }
