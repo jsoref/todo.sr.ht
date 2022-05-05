@@ -6,7 +6,6 @@ import (
 	"strings"
 	"text/template"
 
-	"git.sr.ht/~sircmpwn/core-go/auth"
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/email"
 	sq "github.com/Masterminds/squirrel"
@@ -277,14 +276,29 @@ func (builder *EventBuilder) SendEmails(subject string,
 	template *template.Template, context interface{}) {
 	var (
 		rcpts                  []mail.Address
+		submitterName          string
+		submitterEmail         string
 		notifySelf, copiedSelf bool
 	)
 
-	user := auth.ForContext(builder.ctx)
 	row := builder.tx.QueryRowContext(builder.ctx, `
-		SELECT notify_self FROM "user" WHERE id = $1
-	`, user.UserID)
-	if err := row.Scan(&notifySelf); err != nil {
+		SELECT
+			CASE part.participant_type
+			WHEN 'user' THEN '~' || "user".username
+			WHEN 'email' THEN part.email_name
+			ELSE '' END,
+			CASE part.participant_type
+			WHEN 'user' THEN '~' || "user".email
+			WHEN 'email' THEN part.email
+			ELSE '' END,
+			CASE part.participant_type
+			WHEN 'user' THEN "user".notify_self
+			ELSE false END
+		FROM participant part
+		LEFT JOIN "user" ON "user".id = part.user_id
+		WHERE part.id = $1
+	`, builder.submitterID)
+	if err := row.Scan(&submitterName, &submitterEmail, &notifySelf); err != nil {
 		panic(err)
 	}
 
@@ -323,7 +337,7 @@ func (builder *EventBuilder) SendEmails(subject string,
 		if len(name) == 0 || len(address) == 0 {
 			continue
 		}
-		if address == user.Email {
+		if address == submitterEmail {
 			if notifySelf {
 				copiedSelf = true
 			} else {
@@ -341,8 +355,8 @@ func (builder *EventBuilder) SendEmails(subject string,
 	}
 	if notifySelf && !copiedSelf {
 		rcpts = append(rcpts, mail.Address{
-			Name:    "~" + user.Username,
-			Address: user.Email,
+			Name:    submitterName,
+			Address: submitterEmail,
 		})
 	}
 
@@ -373,7 +387,7 @@ func (builder *EventBuilder) SendEmails(subject string,
 	}
 
 	from := mail.Address{
-		Name:    "~" + user.Username,
+		Name:    submitterName,
 		Address: notifyFrom,
 	}
 	sender := mail.Address{
