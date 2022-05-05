@@ -3,7 +3,7 @@ module git.sr.ht/~sircmpwn/todo.sr.ht/api
 go 1.15
 
 require (
-	git.sr.ht/~sircmpwn/core-go v0.0.0-20220321082727-3f80f677f56d
+	git.sr.ht/~sircmpwn/core-go v0.0.0-20220505085249-8c2729f421a1
 	github.com/99designs/gqlgen v0.17.2
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/agnivade/levenshtein v1.1.1 // indirect
