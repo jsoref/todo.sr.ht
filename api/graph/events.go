@@ -288,7 +288,7 @@ func (builder *EventBuilder) SendEmails(subject string,
 			WHEN 'email' THEN part.email_name
 			ELSE '' END,
 			CASE part.participant_type
-			WHEN 'user' THEN '~' || "user".email
+			WHEN 'user' THEN "user".email
 			WHEN 'email' THEN part.email
 			ELSE '' END,
 			CASE part.participant_type
