@@ -835,6 +835,44 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	return &ticket, nil
 }
 
+func (r *mutationResolver) DeleteTicket(ctx context.Context, trackerID int, ticketID int) (*model.Ticket, error) {
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, fmt.Errorf("No tracker by ID %d found for this user", trackerID)
+	}
+	if !tracker.CanEdit() {
+		return nil, fmt.Errorf("Access denied")
+	}
+
+	var ticket model.Ticket
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		row := tx.QueryRowContext(ctx, `
+			DELETE FROM ticket tk
+			WHERE tk.tracker_id = $1 AND tk.scoped_id = $2
+			RETURNING
+				id, scoped_id, submitter_id, tracker_id, created, updated,
+				title, description, authenticity, status, resolution
+		`, trackerID, ticketID)
+		if err := row.Scan(&ticket.PKID, &ticket.ID, &ticket.SubmitterID,
+			&ticket.TrackerID, &ticket.Created, &ticket.Updated, &ticket.Subject,
+			&ticket.Body, &ticket.RawAuthenticity, &ticket.RawStatus,
+			&ticket.RawResolution); err != nil {
+			return err
+		}
+		webhooks.DeliverTrackerTicketDeletedEvent(ctx, ticket.TrackerID, &ticket)
+		webhooks.DeliverTicketDeletedEvent(ctx, ticket.PKID, &ticket)
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, errors.New("No such ticket")
+		}
+		return nil, err
+	}
+	return &ticket, nil
+}
+
 func (r *mutationResolver) SubmitTicketEmail(ctx context.Context, trackerID int, input model.SubmitTicketEmailInput) (*model.Ticket, error) {
 	validation := valid.New(ctx)
 	validation.Expect(len(input.Subject) <= 2048,
@@ -2089,7 +2127,8 @@ func (r *mutationResolver) CreateTrackerWebhook(ctx context.Context, trackerID i
 			model.WebhookEventLabelCreated, model.WebhookEventLabelUpdate,
 			model.WebhookEventLabelDeleted:
 			access = "TRACKERS"
-		case model.WebhookEventTicketCreated, model.WebhookEventTicketUpdate:
+		case model.WebhookEventTicketCreated, model.WebhookEventTicketUpdate,
+			model.WebhookEventTicketDeleted:
 			access = "TICKETS"
 		case model.WebhookEventEventCreated:
 			access = "EVENTS"
@@ -2196,7 +2235,7 @@ func (r *mutationResolver) CreateTicketWebhook(ctx context.Context, trackerID in
 		// manual fuckery
 		var access string
 		switch ev {
-		case model.WebhookEventTicketUpdate:
+		case model.WebhookEventTicketUpdate, model.WebhookEventTicketDeleted:
 			access = "TICKETS"
 		case model.WebhookEventEventCreated:
 			access = "EVENTS"

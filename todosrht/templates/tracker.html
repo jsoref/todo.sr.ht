@@ -193,6 +193,11 @@
         An import operation is currently in progress.
       </div>
       {% endif %}
+      {% if notice %}
+      <div class="alert alert-success">
+        {{ notice }}
+      </div>
+      {% endif %}
       {% if TicketAccess.browse not in access and TicketAccess.submit in access %}
       <div class="alert alert-warning">
         You do not have permission to view tickets on this tracker unless you

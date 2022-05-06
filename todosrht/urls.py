@@ -34,6 +34,12 @@ def ticket_edit_url(ticket):
         name=ticket.tracker.name,
         ticket_id=ticket.scoped_id)
 
+def ticket_delete_url(ticket):
+    return url_for("ticket.ticket_delete_GET",
+        owner=ticket.tracker.owner.canonical_name,
+        name=ticket.tracker.name,
+        ticket_id=ticket.scoped_id)
+
 def ticket_assign_url(ticket):
     return url_for("ticket.ticket_assign",
         owner=ticket.tracker.owner.canonical_name,

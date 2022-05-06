@@ -43,6 +43,10 @@
         <a href="{{ ticket|ticket_edit_url }}"
           class="nav-link">edit</a>
       </li>
+      <li class="nav-item">
+        <a href="{{ ticket|ticket_delete_url }}"
+          class="nav-link">delete</a>
+      </li>
       {% endif %}
       <li class="flex-grow-1 d-none d-md-block"></li>
       <li class="nav-item">

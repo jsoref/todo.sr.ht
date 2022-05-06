@@ -132,6 +132,7 @@ def tracker_GET(owner, name):
     kwargs = {
         "title": request.args.get("title"),
         "description": request.args.get("description"),
+        "notice": session.pop("notice", None),
     }
 
     return return_tracker(tracker, access, **kwargs)

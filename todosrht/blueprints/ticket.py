@@ -3,6 +3,7 @@ from datetime import datetime
 from flask import Blueprint, current_app, render_template, request, abort, redirect
 from srht.config import cfg
 from srht.database import db
+from srht.flask import session
 from srht.graphql import exec_gql
 from srht.oauth import current_user, loginrequired
 from srht.validation import Validation
@@ -16,7 +17,7 @@ from todosrht.types import Event, EventType, Label, TicketLabel
 from todosrht.types import TicketAccess, TicketResolution, ParticipantType
 from todosrht.types import TicketComment, TicketAuthenticity
 from todosrht.types import TicketSubscription, User, Participant
-from todosrht.urls import ticket_url
+from todosrht.urls import tracker_url, ticket_url
 from urllib.parse import quote
 
 
@@ -347,6 +348,39 @@ def ticket_edit_POST(owner, name, ticket_id):
     """, trackerId=tracker.id, ticketId=ticket.scoped_id, input=input)
 
     return redirect(ticket_url(ticket))
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/delete")
+@loginrequired
+def ticket_delete_GET(owner, name, ticket_id):
+    tracker, _ = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+    ticket, access = get_ticket(tracker, ticket_id)
+    if not ticket:
+        abort(404)
+    if not TicketAccess.edit in access:
+        abort(401)
+
+    return render_template("ticket-delete.html",
+        view="delete", tracker=tracker, ticket=ticket, access=access)
+
+@ticket.route("/<owner>/<name>/<int:ticket_id>/delete", methods=["POST"])
+@loginrequired
+def ticket_delete_POST(owner, name, ticket_id):
+    tracker, _ = get_tracker(owner, name)
+    if not tracker:
+        abort(404)
+
+    exec_gql(current_app.site, """
+        mutation DeleteTicket($trackerId: Int!, $ticketId: Int!) {
+            deleteTicket(trackerId: $trackerId, ticketId: $ticketId) {
+                id
+            }
+        }
+    """, trackerId=tracker.id, ticketId=ticket_id)
+
+    session["notice"] = f"{owner}/{name}#{ticket_id} was deleted."
+    return redirect(tracker_url(tracker))
 
 @ticket.route("/<owner>/<name>/<int:ticket_id>/add_label", methods=["POST"])
 @loginrequired

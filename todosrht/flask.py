@@ -37,6 +37,7 @@ class TodoApp(SrhtFlask):
         self.add_template_filter(urls.participant_url)
         self.add_template_filter(urls.ticket_assign_url)
         self.add_template_filter(urls.ticket_edit_url)
+        self.add_template_filter(urls.ticket_delete_url)
         self.add_template_filter(urls.ticket_unassign_url)
         self.add_template_filter(urls.ticket_url)
         self.add_template_filter(urls.tracker_labels_url)

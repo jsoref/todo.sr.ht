@@ -108,6 +108,19 @@ func DeliverTrackerTicketEvent(ctx context.Context,
 	deliverTrackerWebhook(ctx, trackerID, event, &payload, payloadUUID)
 }
 
+func DeliverTrackerTicketDeletedEvent(ctx context.Context, trackerID int, ticket *model.Ticket) {
+	event := model.WebhookEventTicketDeleted
+	payloadUUID := uuid.New()
+	payload := model.TicketDeletedEvent{
+		UUID:      payloadUUID.String(),
+		Event:     event,
+		Date:      time.Now().UTC(),
+		TrackerID: ticket.TrackerID,
+		TicketID:  ticket.ID,
+	}
+	deliverTrackerWebhook(ctx, trackerID, event, &payload, payloadUUID)
+}
+
 func DeliverTrackerEventCreated(ctx context.Context, trackerID int, newEvent *model.Event) {
 	event := model.WebhookEventEventCreated
 	payloadUUID := uuid.New()
@@ -128,6 +141,19 @@ func DeliverTicketEvent(ctx context.Context,
 		Event:  event,
 		Date:   time.Now().UTC(),
 		Ticket: ticket,
+	}
+	deliverTicketWebhook(ctx, ticketID, event, &payload, payloadUUID)
+}
+
+func DeliverTicketDeletedEvent(ctx context.Context, ticketID int, ticket *model.Ticket) {
+	event := model.WebhookEventTicketDeleted
+	payloadUUID := uuid.New()
+	payload := model.TicketDeletedEvent{
+		UUID:      payloadUUID.String(),
+		Event:     event,
+		Date:      time.Now().UTC(),
+		TrackerID: ticket.TrackerID,
+		TicketID:  ticket.ID,
 	}
 	deliverTicketWebhook(ctx, ticketID, event, &payload, payloadUUID)
 }

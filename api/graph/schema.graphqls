@@ -164,6 +164,7 @@ enum WebhookEvent {
   TRACKER_DELETED @access(scope: TRACKERS, kind: RO)
   TICKET_CREATED  @access(scope: TICKETS, kind: RO)
   TICKET_UPDATE   @access(scope: TICKETS, kind: RO)
+  TICKET_DELETED  @access(scope: TICKETS, kind: RO)
   LABEL_CREATED   @access(scope: TRACKERS, kind: RO)
   LABEL_UPDATE    @access(scope: TRACKERS, kind: RO)
   LABEL_DELETED   @access(scope: TRACKERS, kind: RO)
@@ -261,6 +262,15 @@ type TicketEvent implements WebhookPayload {
   date: Time!
 
   ticket: Ticket!
+}
+
+type TicketDeletedEvent implements WebhookPayload {
+  uuid: String!
+  event: WebhookEvent!
+  date: Time!
+
+  trackerId: Int!
+  ticketId: Int!
 }
 
 type EventCreated implements WebhookPayload {
@@ -903,6 +913,9 @@ type Mutation {
   "Creates a new ticket."
   submitTicket(trackerId: Int!,
     input: SubmitTicketInput!): Ticket! @access(scope: TICKETS, kind: RW)
+
+  "Deletes a ticket."
+  deleteTicket(trackerId: Int!, ticketId: Int!): Ticket! @access(scope: TICKETS, kind: RW)
 
   # Creates a new ticket from an incoming email. (For internal use only)
   submitTicketEmail(trackerId: Int!,
