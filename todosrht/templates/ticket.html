@@ -423,7 +423,7 @@
           value="true"
           class="btn btn-default pull-right"
         >Preview {{icon("caret-right")}}</button>
-        {% if TicketAccess.edit in access %}
+        {% if TicketAccess.triage in access %}
         {% if ticket.status != TicketStatus.resolved %}
         <button
           type="submit"
