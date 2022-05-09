@@ -157,7 +157,7 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 			query := database.
 				Select(ctx, (&model.Tracker{}).As(`tr`)).
 				From(`"tracker" tr`).
-				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id AND ua.user_id = ?`, auser.UserID).
 				Column(`COALESCE(
 					ua.permissions,
 					CASE WHEN tr.owner_id = ?
@@ -172,10 +172,7 @@ func fetchTrackersByID(ctx context.Context) func(ids []int) ([]*model.Tracker, [
 					sq.Or{
 						sq.Expr(`tr.owner_id = ?`, auser.UserID),
 						sq.Expr(`tr.visibility != 'PRIVATE'`),
-						sq.And{
-							sq.Expr(`ua.user_id = ?`, auser.UserID),
-							sq.Expr(`ua.permissions > 0`),
-						},
+						sq.Expr(`ua.permissions > 0`),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
@@ -291,7 +288,7 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 				Join(`"user" u on ut.owner = u.username`).
 				Join(`"tracker" tr ON ut.tracker = tr.name
 					AND u.id = tr.owner_id`).
-				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id AND ua.user_id = ?`, auser.UserID).
 				Column(`COALESCE(
 					ua.permissions,
 					CASE WHEN tr.owner_id = ?
@@ -302,10 +299,7 @@ func fetchTrackersByOwnerName(ctx context.Context) func(tuples [][2]string) ([]*
 				Where(sq.Or{
 					sq.Expr(`tr.owner_id = ?`, auser.UserID),
 					sq.Expr(`tr.visibility != 'PRIVATE'`),
-					sq.And{
-						sq.Expr(`ua.user_id = ?`, auser.UserID),
-						sq.Expr(`ua.permissions > 0`),
-					},
+					sq.Expr(`ua.permissions > 0`),
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
 				return err
@@ -356,16 +350,13 @@ func fetchTicketsByID(ctx context.Context) func(ids []int) ([]*model.Ticket, []e
 				Select(ctx, (&model.Ticket{}).As(`ti`)).
 				From(`"ticket" ti`).
 				Join(`"tracker" tr ON tr.id = ti.tracker_id`).
-				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id AND ua.user_id = ?`, auser.UserID).
 				Where(sq.And{
 					sq.Expr(`ti.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
 						sq.Expr(`tr.owner_id = ?`, auser.UserID),
 						sq.Expr(`tr.visibility != 'PRIVATE'`),
-						sq.And{
-							sq.Expr(`ua.user_id = ?`, auser.UserID),
-							sq.Expr(`ua.permissions > 0`),
-						},
+						sq.Expr(`ua.permissions > 0`),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
@@ -427,16 +418,13 @@ func fetchTicketsByTrackerID(ctx context.Context) func(ids [][2]int) ([]*model.T
 				Columns(`tk.tracker_id`, `tk.scoped_id`).
 				From(`"ticket" tk`).
 				Join(`"tracker" tr ON tr.id = tk.tracker_id`).
-				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id AND ua.user_id = ?`, auser.UserID).
 				Where(sq.And{
 					sq.Expr(`(tk.tracker_id, tk.scoped_id) IN (SELECT * FROM lut)`),
 					sq.Or{
 						sq.Expr(`tr.owner_id = ?`, auser.UserID),
 						sq.Expr(`tr.visibility != 'PRIVATE'`),
-						sq.And{
-							sq.Expr(`ua.user_id = ?`, auser.UserID),
-							sq.Expr(`ua.permissions > 0`),
-						},
+						sq.Expr(`ua.permissions > 0`),
 					},
 				})
 
@@ -642,16 +630,13 @@ func fetchLabelsByID(ctx context.Context) func(ids []int) ([]*model.Label, []err
 				Select(ctx, (&model.Label{}).As(`l`)).
 				From(`"label" l`).
 				Join(`"tracker" tr ON tr.id = l.tracker_id`).
-				LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
+				LeftJoin(`user_access ua ON ua.tracker_id = tr.id AND ua.user_id = ?`, auser.UserID).
 				Where(sq.And{
 					sq.Expr(`l.id = ANY(?)`, pq.Array(ids)),
 					sq.Or{
 						sq.Expr(`tr.owner_id = ?`, auser.UserID),
 						sq.Expr(`tr.visibility != 'PRIVATE'`),
-						sq.And{
-							sq.Expr(`ua.user_id = ?`, auser.UserID),
-							sq.Expr(`ua.permissions > 0`),
-						},
+						sq.Expr(`ua.permissions > 0`),
 					},
 				})
 			if rows, err = query.RunWith(tx).QueryContext(ctx); err != nil {
