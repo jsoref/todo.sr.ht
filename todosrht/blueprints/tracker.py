@@ -181,7 +181,7 @@ def disable_notifications(owner, name):
     db.session.commit()
     return redirect(tracker_url(tracker))
 
-@tracker.route("/<owner>/<name>/submit", methods=["POST"])
+@tracker.route("/<owner>/<name>", methods=["POST"])
 @loginrequired
 def tracker_submit_POST(owner, name):
     tracker, access = get_tracker(owner, name, True)
