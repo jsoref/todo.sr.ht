@@ -27,11 +27,19 @@ func deliverUserWebhook(ctx context.Context, event model.WebhookEvent,
 func deliverTrackerWebhook(ctx context.Context, trackerID int,
 	event model.WebhookEvent, payload model.WebhookPayload, payloadUUID uuid.UUID) {
 	q := webhooks.ForContext(ctx)
-	userID := auth.ForContext(ctx).UserID
 	query := sq.
 		Select().
-		From("gql_tracker_wh_sub sub").
-		Where("sub.user_id = ? AND sub.tracker_id = ?", userID, trackerID)
+		From(`gql_tracker_wh_sub sub`).
+		Join(`tracker tr ON tr.id = sub.tracker_id`).
+		LeftJoin(`user_access ua ON ua.tracker_id = sub.tracker_id AND ua.user_id = sub.user_id`).
+		Where(sq.And{
+			sq.Expr(`sub.tracker_id = ?`, trackerID),
+			sq.Or{
+				sq.Expr(`tr.owner_id = sub.user_id`),
+				sq.Expr(`tr.visibility != 'PRIVATE'`),
+				sq.Expr(`ua.permissions > 0`),
+			},
+		})
 	q.Schedule(ctx, query, "tracker", event.String(),
 		payloadUUID, payload)
 }
@@ -39,11 +47,19 @@ func deliverTrackerWebhook(ctx context.Context, trackerID int,
 func deliverTicketWebhook(ctx context.Context, ticketID int,
 	event model.WebhookEvent, payload model.WebhookPayload, payloadUUID uuid.UUID) {
 	q := webhooks.ForContext(ctx)
-	userID := auth.ForContext(ctx).UserID
 	query := sq.
 		Select().
 		From("gql_ticket_wh_sub sub").
-		Where("sub.user_id = ? AND sub.ticket_id = ?", userID, ticketID)
+		Join(`tracker tr ON tr.id = sub.tracker_id`).
+		LeftJoin(`user_access ua ON ua.tracker_id = sub.tracker_id AND ua.user_id = sub.user_id`).
+		Where(sq.And{
+			sq.Expr(`sub.ticket_id = ?`, ticketID),
+			sq.Or{
+				sq.Expr(`tr.owner_id = sub.user_id`),
+				sq.Expr(`tr.visibility != 'PRIVATE'`),
+				sq.Expr(`ua.permissions > 0`),
+			},
+		})
 	q.Schedule(ctx, query, "ticket", event.String(),
 		payloadUUID, payload)
 }
