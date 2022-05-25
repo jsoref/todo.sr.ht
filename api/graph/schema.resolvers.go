@@ -2149,6 +2149,13 @@ func (r *mutationResolver) CreateTrackerWebhook(ctx context.Context, trackerID i
 		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
 	}
 
+	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
+	if err != nil {
+		return nil, err
+	} else if tracker == nil {
+		return nil, errors.New("Access denied")
+	}
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO gql_tracker_wh_sub (
@@ -2167,7 +2174,7 @@ func (r *mutationResolver) CreateTrackerWebhook(ctx context.Context, trackerID i
 			ac.TokenHash, ac.Grants, ac.ClientID, ac.Expires, // OAUTH2
 			ac.NodeID, // INTERNAL
 			user.UserID,
-			trackerID)
+			tracker.ID)
 
 		if err := row.Scan(&sub.ID, &sub.URL,
 			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.TrackerID); err != nil {
@@ -2256,11 +2263,15 @@ func (r *mutationResolver) CreateTicketWebhook(ctx context.Context, trackerID in
 		return nil, fmt.Errorf("Cannot use non-HTTP or HTTPS URL")
 	}
 
+	ticket, err := loaders.ForContext(ctx).TicketsByTrackerID.Load([2]int{trackerID, ticketID})
+	if err != nil {
+		return nil, err
+	} else if ticket == nil {
+		return nil, errors.New("Access denied")
+	}
+
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		row := tx.QueryRowContext(ctx, `
-			WITH tk AS (
-				SELECT id FROM ticket WHERE tracker_id = $11 AND scoped_id = $12
-			)
 			INSERT INTO gql_ticket_wh_sub (
 				created, events, url, query,
 				auth_method,
@@ -2272,15 +2283,16 @@ func (r *mutationResolver) CreateTicketWebhook(ctx context.Context, trackerID in
 				ticket_id
 			) VALUES (
 				NOW() at time zone 'utc',
-				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, (SELECT id FROM tk)
+				$1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13
 			) RETURNING id, url, query, events, user_id, tracker_id, scoped_id;`,
 			pq.Array(events), config.URL, config.Query,
 			ac.AuthMethod,
 			ac.TokenHash, ac.Grants, ac.ClientID, ac.Expires, // OAUTH2
 			ac.NodeID, // INTERNAL
 			user.UserID,
-			trackerID,
-			ticketID)
+			ticket.TrackerID,
+			ticket.ID,
+			ticket.PKID)
 
 		if err := row.Scan(&sub.ID, &sub.URL,
 			&sub.Query, pq.Array(&sub.Events), &sub.UserID, &sub.TrackerID, &sub.TicketID); err != nil {
