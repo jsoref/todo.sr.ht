@@ -2328,7 +2328,7 @@ func (r *mutationResolver) DeleteTicketWebhook(ctx context.Context, id int) (mod
 		return nil
 	}); err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("No tracker webhook by ID %d found for this user", id)
+			return nil, fmt.Errorf("No ticket webhook by ID %d found for this user", id)
 		}
 		return nil, err
 	}
