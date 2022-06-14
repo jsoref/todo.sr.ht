@@ -29,7 +29,7 @@ StatusChange = namedtuple("StatusChange", [
 USER_MENTION_PATTERN = re.compile(r"""
     (?<![^\s(])  # No leading non-whitespace characters
     ~            # Literal tilde
-    (\w+)        # The username
+    ([\w-]+)     # The username
     \b           # Word boundary
     (?!/)        # Not followed by slash, possible qualified ticket mention
 """, re.VERBOSE)
