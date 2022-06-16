@@ -3293,7 +3293,7 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
-func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event *model.WebhookEvent) (string, error) {
+func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event model.WebhookEvent) (string, error) {
 	// TODO
 	panic(fmt.Errorf("not implemented"))
 }
