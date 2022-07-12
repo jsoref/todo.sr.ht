@@ -299,6 +299,7 @@ enum TicketStatus {
 
 enum TicketResolution {
   UNRESOLVED
+  CLOSED
   FIXED
   IMPLEMENTED
   WONT_FIX

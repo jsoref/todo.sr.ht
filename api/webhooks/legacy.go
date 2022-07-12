@@ -389,6 +389,8 @@ func mkResolution(res *int) *string {
 	switch *res {
 	case model.RESOLVED_UNRESOLVED:
 		r = "unresolved"
+	case model.RESOLVED_CLOSED:
+		r = "closed"
 	case model.RESOLVED_FIXED:
 		r = "fixed"
 	case model.RESOLVED_IMPLEMENTED:

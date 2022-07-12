@@ -101,6 +101,7 @@ type TicketResolution string
 
 const (
 	TicketResolutionUnresolved  TicketResolution = "UNRESOLVED"
+	TicketResolutionClosed      TicketResolution = "CLOSED"
 	TicketResolutionFixed       TicketResolution = "FIXED"
 	TicketResolutionImplemented TicketResolution = "IMPLEMENTED"
 	TicketResolutionWontFix     TicketResolution = "WONT_FIX"
@@ -112,6 +113,7 @@ const (
 
 var AllTicketResolution = []TicketResolution{
 	TicketResolutionUnresolved,
+	TicketResolutionClosed,
 	TicketResolutionFixed,
 	TicketResolutionImplemented,
 	TicketResolutionWontFix,
@@ -123,7 +125,7 @@ var AllTicketResolution = []TicketResolution{
 
 func (e TicketResolution) IsValid() bool {
 	switch e {
-	case TicketResolutionUnresolved, TicketResolutionFixed, TicketResolutionImplemented, TicketResolutionWontFix, TicketResolutionByDesign, TicketResolutionInvalid, TicketResolutionDuplicate, TicketResolutionNotOurBug:
+	case TicketResolutionUnresolved, TicketResolutionClosed, TicketResolutionFixed, TicketResolutionImplemented, TicketResolutionWontFix, TicketResolutionByDesign, TicketResolutionInvalid, TicketResolutionDuplicate, TicketResolutionNotOurBug:
 		return true
 	}
 	return false
@@ -159,6 +161,7 @@ const (
 	RESOLVED_INVALID     = 16
 	RESOLVED_DUPLICATE   = 32
 	RESOLVED_NOT_OUR_BUG = 64
+	RESOLVED_CLOSED      = 128
 )
 
 // Creates a TicketResolution from its database representation
@@ -180,6 +183,8 @@ func TicketResolutionFromInt(resolution int) TicketResolution {
 		return TicketResolutionDuplicate
 	case RESOLVED_NOT_OUR_BUG:
 		return TicketResolutionNotOurBug
+	case RESOLVED_CLOSED:
+		return TicketResolutionClosed
 	default:
 		panic("database invariant broken")
 	}
@@ -204,6 +209,8 @@ func (e TicketResolution) ToInt() int {
 		return RESOLVED_DUPLICATE
 	case TicketResolutionNotOurBug:
 		return RESOLVED_NOT_OUR_BUG
+	case TicketResolutionClosed:
+		return RESOLVED_CLOSED
 	default:
 		panic("Invalid TicketResolution")
 	}

@@ -16,6 +16,7 @@ class TicketResolution(IntFlag):
     invalid = 16
     duplicate = 32
     not_our_bug = 64
+    closed = 128
 
 class TicketAuthenticity(Enum):
     authentic = 0
