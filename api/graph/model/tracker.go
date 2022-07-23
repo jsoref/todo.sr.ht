@@ -91,15 +91,15 @@ func (t *Tracker) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 	q = q.
 		OrderBy(database.WithAlias(t.alias, "id")+" DESC").
 		Limit(uint64(cur.Count+1)).
-		LeftJoin(`user_access tr_ua ON tr_ua.tracker_id = tr.id AND tr_ua.user_id = ?`, auser.UserID).
+		LeftJoin(`user_access ua ON ua.tracker_id = tr.id AND ua.user_id = ?`, auser.UserID).
 		Column(`COALESCE(
-			tr_ua.permissions,
+			ua.permissions,
 			CASE WHEN tr.owner_id = ?
 				THEN ?
 				ELSE tr.default_access
 			END)`,
 			auser.UserID, ACCESS_ALL).
-		Column(`tr_ua.id`)
+		Column(`ua.id`)
 
 	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
 		panic(err)

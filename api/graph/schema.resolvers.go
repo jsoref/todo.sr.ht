@@ -3225,7 +3225,6 @@ func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *co
 		query := database.
 			Select(ctx, tracker).
 			From(`tracker tr`).
-			LeftJoin(`user_access ua ON ua.tracker_id = tr.id`).
 			Where(sq.And{
 				sq.Expr(`tr.owner_id = ?`, obj.ID),
 				sq.Or{
