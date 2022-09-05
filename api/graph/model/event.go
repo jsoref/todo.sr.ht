@@ -17,7 +17,7 @@ type Event struct {
 	Created time.Time `json:"created"`
 
 	EventType     int
-	ParticipantID int
+	ParticipantID *int
 	TicketID      int
 
 	ByParticipantID *int
@@ -125,7 +125,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, Created{
 			EventType:     EventTypeCreated,
 			TicketID:      ev.TicketID,
-			ParticipantID: ev.ParticipantID,
+			ParticipantID: *ev.ParticipantID,
 		})
 	}
 
@@ -133,7 +133,7 @@ func (ev *Event) Changes() []EventDetail {
 		comment := Comment{
 			EventType:     EventTypeComment,
 			TicketID:      ev.TicketID,
-			ParticipantID: ev.ParticipantID,
+			ParticipantID: *ev.ParticipantID,
 		}
 		comment.Database.ID = *ev.CommentID
 		changes = append(changes, comment)
@@ -143,7 +143,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, StatusChange{
 			EventType:     EventTypeStatusChange,
 			TicketID:      ev.TicketID,
-			ParticipantID: ev.ParticipantID,
+			ParticipantID: *ev.ParticipantID,
 
 			OldStatus:     TicketStatusFromInt(*ev.OldStatus),
 			NewStatus:     TicketStatusFromInt(*ev.NewStatus),
@@ -156,7 +156,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, LabelUpdate{
 			EventType:     EventTypeLabelAdded,
 			TicketID:      ev.TicketID,
-			ParticipantID: ev.ParticipantID,
+			ParticipantID: *ev.ParticipantID,
 			LabelID:       *ev.LabelID,
 		})
 	}
@@ -165,7 +165,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, LabelUpdate{
 			EventType:     EventTypeLabelRemoved,
 			TicketID:      ev.TicketID,
-			ParticipantID: ev.ParticipantID,
+			ParticipantID: *ev.ParticipantID,
 			LabelID:       *ev.LabelID,
 		})
 	}
@@ -174,7 +174,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, Assignment{
 			EventType:  EventTypeAssignedUser,
 			TicketID:   ev.TicketID,
-			AssigneeID: ev.ParticipantID,
+			AssigneeID: *ev.ParticipantID,
 			AssignerID: *ev.ByParticipantID,
 		})
 	}
@@ -183,7 +183,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, Assignment{
 			EventType:  EventTypeUnassignedUser,
 			TicketID:   ev.TicketID,
-			AssigneeID: ev.ParticipantID,
+			AssigneeID: *ev.ParticipantID,
 			AssignerID: *ev.ByParticipantID,
 		})
 	}
@@ -193,7 +193,7 @@ func (ev *Event) Changes() []EventDetail {
 			EventType:     EventTypeUserMentioned,
 			TicketID:      ev.TicketID,
 			ParticipantID: *ev.ByParticipantID,
-			MentionedID:   ev.ParticipantID,
+			MentionedID:   *ev.ParticipantID,
 		})
 	}
 
@@ -201,7 +201,7 @@ func (ev *Event) Changes() []EventDetail {
 		changes = append(changes, TicketMention{
 			EventType:     EventTypeTicketMentioned,
 			TicketID:      *ev.FromTicketID,
-			ParticipantID: ev.ParticipantID,
+			ParticipantID: *ev.ByParticipantID,
 			MentionedID:   ev.TicketID,
 		})
 	}

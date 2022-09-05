@@ -411,7 +411,10 @@ func DeliverLegacyEventCreate(ctx context.Context,
 	tracker *model.Tracker, ticket *model.Ticket, event *model.Event) {
 	q := webhooks.LegacyForContext(ctx)
 
-	part, err := loaders.ForContext(ctx).EntitiesByParticipantID.Load(event.ParticipantID)
+	if event.ParticipantID == nil {
+		return
+	}
+	part, err := loaders.ForContext(ctx).EntitiesByParticipantID.Load(*event.ParticipantID)
 	if err != nil || part == nil {
 		panic("Invalid event participant")
 	}

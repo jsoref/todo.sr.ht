@@ -2784,6 +2784,7 @@ func (r *ticketWebhookSubscriptionResolver) Sample(ctx context.Context, obj *mod
 		newStatus := model.STATUS_RESOLVED
 		oldResolution := model.RESOLVED_UNRESOLVED
 		newResolution := model.RESOLVED_FIXED
+		participantId := -1
 		webhook.Payload = &model.EventCreated{
 			UUID:  payloadUUID.String(),
 			Event: event,
@@ -2792,7 +2793,7 @@ func (r *ticketWebhookSubscriptionResolver) Sample(ctx context.Context, obj *mod
 				ID:              -1,
 				Created:         time.Now().UTC(),
 				EventType:       model.EVENT_STATUS_CHANGE,
-				ParticipantID:   -1,
+				ParticipantID:   &participantId,
 				TicketID:        -1,
 				ByParticipantID: nil,
 				CommentID:       nil,
@@ -3169,6 +3170,7 @@ func (r *trackerWebhookSubscriptionResolver) Sample(ctx context.Context, obj *mo
 		newStatus := model.STATUS_RESOLVED
 		oldResolution := model.RESOLVED_UNRESOLVED
 		newResolution := model.RESOLVED_FIXED
+		participantId := -1
 		webhook.Payload = &model.EventCreated{
 			UUID:  payloadUUID.String(),
 			Event: event,
@@ -3177,7 +3179,7 @@ func (r *trackerWebhookSubscriptionResolver) Sample(ctx context.Context, obj *mo
 				ID:              -1,
 				Created:         time.Now().UTC(),
 				EventType:       model.EVENT_STATUS_CHANGE,
-				ParticipantID:   -1,
+				ParticipantID:   &participantId,
 				TicketID:        -1,
 				ByParticipantID: nil,
 				CommentID:       nil,
