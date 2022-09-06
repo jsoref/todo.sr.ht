@@ -43,7 +43,7 @@ def get_tracker(owner, name, with_for_update=False, user=None):
             return None, None
     tracker = (Tracker.query
         .filter(Tracker.owner_id == owner.id)
-        .filter(Tracker.name.ilike(name.replace('_', '\\_'))))
+        .filter(Tracker.name == name))
     if with_for_update:
         tracker = tracker.with_for_update()
     tracker = tracker.one_or_none()
