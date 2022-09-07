@@ -6,11 +6,13 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/webhooks"
+	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/99designs/gqlgen/graphql"
 
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/imports"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 )
 
@@ -32,6 +34,7 @@ func main() {
 		scopes[i] = s.String()
 	}
 
+	importsQueue := work.NewQueue("imports")
 	webhookQueue := webhooks.NewQueue(schema)
 	legacyWebhooks := webhooks.NewLegacyQueue()
 
@@ -39,10 +42,11 @@ func main() {
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
+			imports.Middleware(importsQueue),
 			webhooks.Middleware(webhookQueue),
 			webhooks.LegacyMiddleware(legacyWebhooks),
 		).
 		WithSchema(schema, scopes).
-		WithQueues(webhookQueue.Queue, legacyWebhooks.Queue).
+		WithQueues(importsQueue, webhookQueue.Queue, legacyWebhooks.Queue).
 		Run()
 }

@@ -4,6 +4,7 @@ package graph
 // will be copied through when generating and any unknown code will be moved to the end.
 
 import (
+	"compress/gzip"
 	"context"
 	"database/sql"
 	"errors"
@@ -21,6 +22,7 @@ import (
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/imports"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/webhooks"
 	"github.com/99designs/gqlgen/graphql"
@@ -1991,6 +1993,25 @@ func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, tic
 	webhooks.DeliverTrackerEventCreated(ctx, ticket.TrackerID, &event)
 	webhooks.DeliverTicketEventCreated(ctx, ticket.PKID, &event)
 	return &event, nil
+}
+
+func (r *mutationResolver) ImportTrackerDump(ctx context.Context, trackerID int, dump graphql.Upload) (bool, error) {
+	gr, err := gzip.NewReader(dump.File)
+	if err != nil {
+		return false, err
+	}
+	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		_, err := tx.ExecContext(ctx, `
+			UPDATE tracker
+			SET import_in_progress = true
+			WHERE id = $1 AND owner_id = $2
+		`, trackerID, auth.ForContext(ctx).UserID)
+		return err
+	}); err != nil {
+		return false, err
+	}
+	imports.ImportTrackerDump(ctx, trackerID, gr)
+	return true, nil
 }
 
 func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
