@@ -292,7 +292,7 @@ def export_POST(owner, name):
         f = open(ntf.name, "rb")
 
     return send_file(f, as_attachment=True,
-            attachment_filename=f"{tracker.owner.username}-{tracker.name}.json.gz",
+            download_name=f"{tracker.owner.username}-{tracker.name}.json.gz",
             mimetype="application/gzip")
 
 @settings.route("/<owner>/<name>/settings/import", methods=["POST"])
