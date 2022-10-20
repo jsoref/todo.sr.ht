@@ -69,3 +69,5 @@ models:
   UpdateLabelInput:
     model:
       - "map[string]interface{}"
+
+omit_getters: true

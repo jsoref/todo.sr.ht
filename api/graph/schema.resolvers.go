@@ -31,26 +31,32 @@ import (
 	"github.com/lib/pq"
 )
 
+// Ticket is the resolver for the ticket field.
 func (r *assignmentResolver) Ticket(ctx context.Context, obj *model.Assignment) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Assigner is the resolver for the assigner field.
 func (r *assignmentResolver) Assigner(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.AssignerID)
 }
 
+// Assignee is the resolver for the assignee field.
 func (r *assignmentResolver) Assignee(ctx context.Context, obj *model.Assignment) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.AssigneeID)
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *commentResolver) Ticket(ctx context.Context, obj *model.Comment) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Author is the resolver for the author field.
 func (r *commentResolver) Author(ctx context.Context, obj *model.Comment) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
+// Text is the resolver for the text field.
 func (r *commentResolver) Text(ctx context.Context, obj *model.Comment) (string, error) {
 	// The only route to this resolver is via event details, which is already
 	// authenticated. Further access to other resources is limited to
@@ -59,6 +65,7 @@ func (r *commentResolver) Text(ctx context.Context, obj *model.Comment) (string,
 	return comment.Database.Text, err
 }
 
+// Authenticity is the resolver for the authenticity field.
 func (r *commentResolver) Authenticity(ctx context.Context, obj *model.Comment) (model.Authenticity, error) {
 	// The only route to this resolver is via event details, which is already
 	// authenticated. Further access to other resources is limited to
@@ -67,6 +74,7 @@ func (r *commentResolver) Authenticity(ctx context.Context, obj *model.Comment) 
 	return comment.Database.Authenticity, err
 }
 
+// SupersededBy is the resolver for the supersededBy field.
 func (r *commentResolver) SupersededBy(ctx context.Context, obj *model.Comment) (*model.Comment, error) {
 	if obj.Database.SuperceededByID == nil {
 		return nil, nil
@@ -77,22 +85,27 @@ func (r *commentResolver) SupersededBy(ctx context.Context, obj *model.Comment) 
 	return loaders.ForContext(ctx).CommentsByIDUnsafe.Load(*obj.Database.SuperceededByID)
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *createdResolver) Ticket(ctx context.Context, obj *model.Created) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Author is the resolver for the author field.
 func (r *createdResolver) Author(ctx context.Context, obj *model.Created) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *eventResolver) Ticket(ctx context.Context, obj *model.Event) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Tracker is the resolver for the tracker field.
 func (r *labelResolver) Tracker(ctx context.Context, obj *model.Label) (*model.Tracker, error) {
 	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
 }
 
+// Tickets is the resolver for the tickets field.
 func (r *labelResolver) Tickets(ctx context.Context, obj *model.Label, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -120,18 +133,22 @@ func (r *labelResolver) Tickets(ctx context.Context, obj *model.Label, cursor *c
 	return &model.TicketCursor{tickets, cursor}, nil
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *labelUpdateResolver) Ticket(ctx context.Context, obj *model.LabelUpdate) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Labeler is the resolver for the labeler field.
 func (r *labelUpdateResolver) Labeler(ctx context.Context, obj *model.LabelUpdate) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
+// Label is the resolver for the label field.
 func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate) (*model.Label, error) {
 	return loaders.ForContext(ctx).LabelsByID.Load(obj.LabelID)
 }
 
+// CreateTracker is the resolver for the createTracker field.
 func (r *mutationResolver) CreateTracker(ctx context.Context, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error) {
 	validation := valid.New(ctx)
 	validation.Expect(trackerNameRE.MatchString(name), "Name must match %s", trackerNameRE.String()).
@@ -200,6 +217,7 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 	return &tracker, nil
 }
 
+// UpdateTracker is the resolver for the updateTracker field.
 func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[string]interface{}) (*model.Tracker, error) {
 	query := sq.Update("tracker").
 		PlaceholderFormat(sq.Dollar)
@@ -251,6 +269,7 @@ func (r *mutationResolver) UpdateTracker(ctx context.Context, id int, input map[
 	return &tracker, nil
 }
 
+// DeleteTracker is the resolver for the deleteTracker field.
 func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tracker, error) {
 	user := auth.ForContext(ctx)
 
@@ -284,6 +303,7 @@ func (r *mutationResolver) DeleteTracker(ctx context.Context, id int) (*model.Tr
 	return &tracker, nil
 }
 
+// UpdateUserACL is the resolver for the updateUserACL field.
 func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, userID int, input model.ACLInput) (*model.TrackerACL, error) {
 	var acl model.TrackerACL
 	bits := aclBits(input)
@@ -320,6 +340,7 @@ func (r *mutationResolver) UpdateUserACL(ctx context.Context, trackerID int, use
 	return &acl, nil
 }
 
+// UpdateTrackerACL is the resolver for the updateTrackerACL field.
 func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, input model.ACLInput) (*model.DefaultACL, error) {
 	bits := aclBits(input)
 	user := auth.ForContext(ctx)
@@ -355,6 +376,7 @@ func (r *mutationResolver) UpdateTrackerACL(ctx context.Context, trackerID int, 
 	return acl, nil
 }
 
+// DeleteACL is the resolver for the deleteACL field.
 func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.TrackerACL, error) {
 	var acl model.TrackerACL
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -386,6 +408,7 @@ func (r *mutationResolver) DeleteACL(ctx context.Context, id int) (*model.Tracke
 	return &acl, nil
 }
 
+// TrackerSubscribe is the resolver for the trackerSubscribe field.
 func (r *mutationResolver) TrackerSubscribe(ctx context.Context, trackerID int) (*model.TrackerSubscription, error) {
 	var sub model.TrackerSubscription
 
@@ -421,6 +444,7 @@ func (r *mutationResolver) TrackerSubscribe(ctx context.Context, trackerID int) 
 	return &sub, nil
 }
 
+// TrackerUnsubscribe is the resolver for the trackerUnsubscribe field.
 func (r *mutationResolver) TrackerUnsubscribe(ctx context.Context, trackerID int, tickets bool) (*model.TrackerSubscription, error) {
 	var sub model.TrackerSubscription
 
@@ -450,6 +474,7 @@ func (r *mutationResolver) TrackerUnsubscribe(ctx context.Context, trackerID int
 	return &sub, nil
 }
 
+// TicketSubscribe is the resolver for the ticketSubscribe field.
 func (r *mutationResolver) TicketSubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error) {
 	var sub model.TicketSubscription
 
@@ -487,6 +512,7 @@ func (r *mutationResolver) TicketSubscribe(ctx context.Context, trackerID int, t
 	return &sub, nil
 }
 
+// TicketUnsubscribe is the resolver for the ticketUnsubscribe field.
 func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int, ticketID int) (*model.TicketSubscription, error) {
 	var sub model.TicketSubscription
 
@@ -520,6 +546,7 @@ func (r *mutationResolver) TicketUnsubscribe(ctx context.Context, trackerID int,
 	return &sub, nil
 }
 
+// CreateLabel is the resolver for the createLabel field.
 func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name string, foregroundColor string, backgroundColor string) (*model.Label, error) {
 	var (
 		err   error
@@ -584,6 +611,7 @@ func (r *mutationResolver) CreateLabel(ctx context.Context, trackerID int, name 
 	return &label, nil
 }
 
+// UpdateLabel is the resolver for the updateLabel field.
 func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[string]interface{}) (*model.Label, error) {
 	query := sq.Update("label").
 		PlaceholderFormat(sq.Dollar)
@@ -646,6 +674,7 @@ func (r *mutationResolver) UpdateLabel(ctx context.Context, id int, input map[st
 	return &label, nil
 }
 
+// DeleteLabel is the resolver for the deleteLabel field.
 func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Label, error) {
 	var label model.Label
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
@@ -672,6 +701,7 @@ func (r *mutationResolver) DeleteLabel(ctx context.Context, id int) (*model.Labe
 	return &label, nil
 }
 
+// SubmitTicket is the resolver for the submitTicket field.
 func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, input model.SubmitTicketInput) (*model.Ticket, error) {
 	validation := valid.New(ctx)
 	validation.Expect(len(input.Subject) <= 2048,
@@ -837,6 +867,7 @@ func (r *mutationResolver) SubmitTicket(ctx context.Context, trackerID int, inpu
 	return &ticket, nil
 }
 
+// DeleteTicket is the resolver for the deleteTicket field.
 func (r *mutationResolver) DeleteTicket(ctx context.Context, trackerID int, ticketID int) (*model.Ticket, error) {
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
 	if err != nil {
@@ -875,6 +906,7 @@ func (r *mutationResolver) DeleteTicket(ctx context.Context, trackerID int, tick
 	return &ticket, nil
 }
 
+// SubmitTicketEmail is the resolver for the submitTicketEmail field.
 func (r *mutationResolver) SubmitTicketEmail(ctx context.Context, trackerID int, input model.SubmitTicketEmailInput) (*model.Ticket, error) {
 	validation := valid.New(ctx)
 	validation.Expect(len(input.Subject) <= 2048,
@@ -986,6 +1018,7 @@ func (r *mutationResolver) SubmitTicketEmail(ctx context.Context, trackerID int,
 	return &ticket, nil
 }
 
+// SubmitCommentEmail is the resolver for the submitCommentEmail field.
 func (r *mutationResolver) SubmitCommentEmail(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentEmailInput) (*model.Event, error) {
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
 	if err != nil {
@@ -1224,6 +1257,7 @@ func (r *mutationResolver) SubmitCommentEmail(ctx context.Context, trackerID int
 	return &event, nil
 }
 
+// UpdateTicket is the resolver for the updateTicket field.
 func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, ticketID int, input map[string]interface{}) (*model.Ticket, error) {
 	if _, ok := input["import"]; ok {
 		panic(fmt.Errorf("not implemented")) // TODO
@@ -1297,6 +1331,7 @@ func (r *mutationResolver) UpdateTicket(ctx context.Context, trackerID int, tick
 	return ticket, nil
 }
 
+// UpdateTicketStatus is the resolver for the updateTicketStatus field.
 func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int, ticketID int, input model.UpdateStatusInput) (*model.Event, error) {
 	if input.Import != nil {
 		panic(fmt.Errorf("not implemented")) // TODO
@@ -1413,6 +1448,7 @@ func (r *mutationResolver) UpdateTicketStatus(ctx context.Context, trackerID int
 	return &event, nil
 }
 
+// SubmitComment is the resolver for the submitComment field.
 func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, ticketID int, input model.SubmitCommentInput) (*model.Event, error) {
 	if input.Import != nil {
 		panic(fmt.Errorf("not implemented")) // TODO
@@ -1571,6 +1607,7 @@ func (r *mutationResolver) SubmitComment(ctx context.Context, trackerID int, tic
 	return &event, nil
 }
 
+// AssignUser is the resolver for the assignUser field.
 func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error) {
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
 	if err != nil {
@@ -1699,6 +1736,7 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 	return &event, nil
 }
 
+// UnassignUser is the resolver for the unassignUser field.
 func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, ticketID int, userID int) (*model.Event, error) {
 	// XXX: I wonder how much of this can be shared with AssignUser
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
@@ -1824,6 +1862,7 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 	return &event, nil
 }
 
+// LabelTicket is the resolver for the labelTicket field.
 func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
 	if err != nil {
@@ -1913,6 +1952,7 @@ func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticke
 	return &event, nil
 }
 
+// UnlabelTicket is the resolver for the unlabelTicket field.
 func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, ticketID int, labelID int) (*model.Event, error) {
 	// XXX: Some of this can be shared with labelTicket
 	tracker, err := loaders.ForContext(ctx).TrackersByID.Load(trackerID)
@@ -1995,6 +2035,7 @@ func (r *mutationResolver) UnlabelTicket(ctx context.Context, trackerID int, tic
 	return &event, nil
 }
 
+// ImportTrackerDump is the resolver for the importTrackerDump field.
 func (r *mutationResolver) ImportTrackerDump(ctx context.Context, trackerID int, dump graphql.Upload) (bool, error) {
 	gr, err := gzip.NewReader(dump.File)
 	if err != nil {
@@ -2014,6 +2055,7 @@ func (r *mutationResolver) ImportTrackerDump(ctx context.Context, trackerID int,
 	return true, nil
 }
 
+// CreateUserWebhook is the resolver for the createUserWebhook field.
 func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.UserWebhookInput) (model.WebhookSubscription, error) {
 	schema := server.ForContext(ctx).Schema
 	if err := corewebhooks.Validate(schema, config.Query); err != nil {
@@ -2090,6 +2132,7 @@ func (r *mutationResolver) CreateUserWebhook(ctx context.Context, config model.U
 	return &sub, nil
 }
 
+// DeleteUserWebhook is the resolver for the deleteUserWebhook field.
 func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.UserWebhookSubscription
 
@@ -2120,6 +2163,7 @@ func (r *mutationResolver) DeleteUserWebhook(ctx context.Context, id int) (model
 	return &sub, nil
 }
 
+// CreateTrackerWebhook is the resolver for the createTrackerWebhook field.
 func (r *mutationResolver) CreateTrackerWebhook(ctx context.Context, trackerID int, config model.TrackerWebhookInput) (model.WebhookSubscription, error) {
 	schema := server.ForContext(ctx).Schema
 	if err := corewebhooks.Validate(schema, config.Query); err != nil {
@@ -2209,6 +2253,7 @@ func (r *mutationResolver) CreateTrackerWebhook(ctx context.Context, trackerID i
 	return &sub, nil
 }
 
+// DeleteTrackerWebhook is the resolver for the deleteTrackerWebhook field.
 func (r *mutationResolver) DeleteTrackerWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.TrackerWebhookSubscription
 
@@ -2239,6 +2284,7 @@ func (r *mutationResolver) DeleteTrackerWebhook(ctx context.Context, id int) (mo
 	return &sub, nil
 }
 
+// CreateTicketWebhook is the resolver for the createTicketWebhook field.
 func (r *mutationResolver) CreateTicketWebhook(ctx context.Context, trackerID int, ticketID int, config model.TicketWebhookInput) (model.WebhookSubscription, error) {
 	schema := server.ForContext(ctx).Schema
 	if err := corewebhooks.Validate(schema, config.Query); err != nil {
@@ -2327,6 +2373,7 @@ func (r *mutationResolver) CreateTicketWebhook(ctx context.Context, trackerID in
 	return &sub, nil
 }
 
+// DeleteTicketWebhook is the resolver for the deleteTicketWebhook field.
 func (r *mutationResolver) DeleteTicketWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.TicketWebhookSubscription
 
@@ -2357,6 +2404,7 @@ func (r *mutationResolver) DeleteTicketWebhook(ctx context.Context, id int) (mod
 	return &sub, nil
 }
 
+// Version is the resolver for the version field.
 func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	return &model.Version{
 		Major:           0,
@@ -2366,6 +2414,7 @@ func (r *queryResolver) Version(ctx context.Context) (*model.Version, error) {
 	}, nil
 }
 
+// Me is the resolver for the me field.
 func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	user := auth.ForContext(ctx)
 	return &model.User{
@@ -2380,10 +2429,12 @@ func (r *queryResolver) Me(ctx context.Context) (*model.User, error) {
 	}, nil
 }
 
+// User is the resolver for the user field.
 func (r *queryResolver) User(ctx context.Context, username string) (*model.User, error) {
 	return loaders.ForContext(ctx).UsersByName.Load(username)
 }
 
+// Trackers is the resolver for the trackers field.
 func (r *queryResolver) Trackers(ctx context.Context, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2408,6 +2459,7 @@ func (r *queryResolver) Trackers(ctx context.Context, cursor *coremodel.Cursor) 
 	return &model.TrackerCursor{trackers, cursor}, nil
 }
 
+// Events is the resolver for the events field.
 func (r *queryResolver) Events(ctx context.Context, cursor *coremodel.Cursor) (*model.EventCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2430,6 +2482,7 @@ func (r *queryResolver) Events(ctx context.Context, cursor *coremodel.Cursor) (*
 	return &model.EventCursor{events, cursor}, nil
 }
 
+// Subscriptions is the resolver for the subscriptions field.
 func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cursor) (*model.ActivitySubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2452,6 +2505,7 @@ func (r *queryResolver) Subscriptions(ctx context.Context, cursor *coremodel.Cur
 	return &model.ActivitySubscriptionCursor{subs, cursor}, nil
 }
 
+// UserWebhooks is the resolver for the userWebhooks field.
 func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2481,6 +2535,7 @@ func (r *queryResolver) UserWebhooks(ctx context.Context, cursor *coremodel.Curs
 	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
+// UserWebhook is the resolver for the userWebhook field.
 func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookSubscription, error) {
 	var sub model.UserWebhookSubscription
 
@@ -2513,6 +2568,7 @@ func (r *queryResolver) UserWebhook(ctx context.Context, id int) (model.WebhookS
 	return &sub, nil
 }
 
+// Webhook is the resolver for the webhook field.
 func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, error) {
 	raw, err := corewebhooks.Payload(ctx)
 	if err != nil {
@@ -2525,22 +2581,27 @@ func (r *queryResolver) Webhook(ctx context.Context) (model.WebhookPayload, erro
 	return payload, nil
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *statusChangeResolver) Ticket(ctx context.Context, obj *model.StatusChange) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Editor is the resolver for the editor field.
 func (r *statusChangeResolver) Editor(ctx context.Context, obj *model.StatusChange) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
+// Submitter is the resolver for the submitter field.
 func (r *ticketResolver) Submitter(ctx context.Context, obj *model.Ticket) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.SubmitterID)
 }
 
+// Tracker is the resolver for the tracker field.
 func (r *ticketResolver) Tracker(ctx context.Context, obj *model.Ticket) (*model.Tracker, error) {
 	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
 }
 
+// Labels is the resolver for the labels field.
 func (r *ticketResolver) Labels(ctx context.Context, obj *model.Ticket) ([]*model.Label, error) {
 	var labels []*model.Label
 	if err := database.WithTx(ctx, &sql.TxOptions{
@@ -2577,6 +2638,7 @@ func (r *ticketResolver) Labels(ctx context.Context, obj *model.Ticket) ([]*mode
 	return labels, nil
 }
 
+// Assignees is the resolver for the assignees field.
 func (r *ticketResolver) Assignees(ctx context.Context, obj *model.Ticket) ([]model.Entity, error) {
 	var entities []model.Entity
 	if err := database.WithTx(ctx, &sql.TxOptions{
@@ -2613,6 +2675,7 @@ func (r *ticketResolver) Assignees(ctx context.Context, obj *model.Ticket) ([]mo
 	return entities, nil
 }
 
+// Events is the resolver for the events field.
 func (r *ticketResolver) Events(ctx context.Context, obj *model.Ticket, cursor *coremodel.Cursor) (*model.EventCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2634,12 +2697,14 @@ func (r *ticketResolver) Events(ctx context.Context, obj *model.Ticket, cursor *
 	return &model.EventCursor{events, cursor}, nil
 }
 
+// Subscription is the resolver for the subscription field.
 func (r *ticketResolver) Subscription(ctx context.Context, obj *model.Ticket) (*model.TicketSubscription, error) {
 	// Regarding unsafe: if they have access to this ticket resource, they were
 	// already authenticated for it.
 	return loaders.ForContext(ctx).SubsByTicketIDUnsafe.Load(obj.PKID)
 }
 
+// Webhooks is the resolver for the webhooks field.
 func (r *ticketResolver) Webhooks(ctx context.Context, obj *model.Ticket, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2669,6 +2734,7 @@ func (r *ticketResolver) Webhooks(ctx context.Context, obj *model.Ticket, cursor
 	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
+// Webhook is the resolver for the webhook field.
 func (r *ticketResolver) Webhook(ctx context.Context, obj *model.Ticket, id int) (model.WebhookSubscription, error) {
 	var sub model.TicketWebhookSubscription
 
@@ -2705,22 +2771,27 @@ func (r *ticketResolver) Webhook(ctx context.Context, obj *model.Ticket, id int)
 	return &sub, nil
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *ticketMentionResolver) Ticket(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Author is the resolver for the author field.
 func (r *ticketMentionResolver) Author(ctx context.Context, obj *model.TicketMention) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
+// Mentioned is the resolver for the mentioned field.
 func (r *ticketMentionResolver) Mentioned(ctx context.Context, obj *model.TicketMention) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.MentionedID)
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *ticketSubscriptionResolver) Ticket(ctx context.Context, obj *model.TicketSubscription) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Client is the resolver for the client field.
 func (r *ticketWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.TicketWebhookSubscription) (*model.OAuthClient, error) {
 	if obj.ClientID == nil {
 		return nil, nil
@@ -2730,6 +2801,7 @@ func (r *ticketWebhookSubscriptionResolver) Client(ctx context.Context, obj *mod
 	}, nil
 }
 
+// Deliveries is the resolver for the deliveries field.
 func (r *ticketWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.TicketWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2756,6 +2828,7 @@ func (r *ticketWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj 
 	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
+// Sample is the resolver for the sample field.
 func (r *ticketWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.TicketWebhookSubscription, event model.WebhookEvent) (string, error) {
 	payloadUUID := uuid.New()
 	webhook := corewebhooks.WebhookContext{
@@ -2838,18 +2911,22 @@ func (r *ticketWebhookSubscriptionResolver) Sample(ctx context.Context, obj *mod
 	return string(bytes), nil
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *ticketWebhookSubscriptionResolver) Ticket(ctx context.Context, obj *model.TicketWebhookSubscription) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByTrackerID.Load([2]int{obj.TrackerID, obj.TicketID})
 }
 
+// Owner is the resolver for the owner field.
 func (r *trackerResolver) Owner(ctx context.Context, obj *model.Tracker) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.OwnerID)
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *trackerResolver) Ticket(ctx context.Context, obj *model.Tracker, id int) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByTrackerID.Load([2]int{obj.ID, id})
 }
 
+// Tickets is the resolver for the tickets field.
 func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.TicketCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2887,6 +2964,7 @@ func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, curso
 	return &model.TicketCursor{tickets, cursor}, nil
 }
 
+// Labels is the resolver for the labels field.
 func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.LabelCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -2911,12 +2989,14 @@ func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor
 	return &model.LabelCursor{labels, cursor}, nil
 }
 
+// Subscription is the resolver for the subscription field.
 func (r *trackerResolver) Subscription(ctx context.Context, obj *model.Tracker) (*model.TrackerSubscription, error) {
 	// Regarding unsafe: if they have access to this tracker resource, they
 	// were already authenticated for it.
 	return loaders.ForContext(ctx).SubsByTrackerIDUnsafe.Load(obj.ID)
 }
 
+// ACL is the resolver for the acl field.
 func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.ACL, error) {
 	if obj.ACLID == nil {
 		return &model.DefaultACL{
@@ -2957,12 +3037,14 @@ func (r *trackerResolver) ACL(ctx context.Context, obj *model.Tracker) (model.AC
 	return acl, nil
 }
 
+// DefaultACL is the resolver for the defaultACL field.
 func (r *trackerResolver) DefaultACL(ctx context.Context, obj *model.Tracker) (*model.DefaultACL, error) {
 	acl := &model.DefaultACL{}
 	acl.SetBits(obj.DefaultAccess)
 	return acl, nil
 }
 
+// Acls is the resolver for the acls field.
 func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.ACLCursor, error) {
 	if obj.OwnerID != auth.ForContext(ctx).UserID {
 		return nil, errors.New("Access denied")
@@ -2991,10 +3073,12 @@ func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *
 	return &model.ACLCursor{acls, cursor}, nil
 }
 
+// Export is the resolver for the export field.
 func (r *trackerResolver) Export(ctx context.Context, obj *model.Tracker) (string, error) {
 	panic(fmt.Errorf("not implemented")) // TODO
 }
 
+// Webhooks is the resolver for the webhooks field.
 func (r *trackerResolver) Webhooks(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.WebhookSubscriptionCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -3024,6 +3108,7 @@ func (r *trackerResolver) Webhooks(ctx context.Context, obj *model.Tracker, curs
 	return &model.WebhookSubscriptionCursor{subs, cursor}, nil
 }
 
+// Webhook is the resolver for the webhook field.
 func (r *trackerResolver) Webhook(ctx context.Context, obj *model.Tracker, id int) (model.WebhookSubscription, error) {
 	var sub model.TrackerWebhookSubscription
 
@@ -3060,18 +3145,22 @@ func (r *trackerResolver) Webhook(ctx context.Context, obj *model.Tracker, id in
 	return &sub, nil
 }
 
+// Tracker is the resolver for the tracker field.
 func (r *trackerACLResolver) Tracker(ctx context.Context, obj *model.TrackerACL) (*model.Tracker, error) {
 	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
 }
 
+// Entity is the resolver for the entity field.
 func (r *trackerACLResolver) Entity(ctx context.Context, obj *model.TrackerACL) (model.Entity, error) {
 	return loaders.ForContext(ctx).UsersByID.Load(obj.UserID)
 }
 
+// Tracker is the resolver for the tracker field.
 func (r *trackerSubscriptionResolver) Tracker(ctx context.Context, obj *model.TrackerSubscription) (*model.Tracker, error) {
 	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
 }
 
+// Client is the resolver for the client field.
 func (r *trackerWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.TrackerWebhookSubscription) (*model.OAuthClient, error) {
 	if obj.ClientID == nil {
 		return nil, nil
@@ -3081,6 +3170,7 @@ func (r *trackerWebhookSubscriptionResolver) Client(ctx context.Context, obj *mo
 	}, nil
 }
 
+// Deliveries is the resolver for the deliveries field.
 func (r *trackerWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.TrackerWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -3107,6 +3197,7 @@ func (r *trackerWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj
 	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
+// Sample is the resolver for the sample field.
 func (r *trackerWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.TrackerWebhookSubscription, event model.WebhookEvent) (string, error) {
 	payloadUUID := uuid.New()
 	webhook := corewebhooks.WebhookContext{
@@ -3224,15 +3315,18 @@ func (r *trackerWebhookSubscriptionResolver) Sample(ctx context.Context, obj *mo
 	return string(bytes), nil
 }
 
+// Tracker is the resolver for the tracker field.
 func (r *trackerWebhookSubscriptionResolver) Tracker(ctx context.Context, obj *model.TrackerWebhookSubscription) (*model.Tracker, error) {
 	return loaders.ForContext(ctx).TrackersByID.Load(obj.TrackerID)
 }
 
+// Tracker is the resolver for the tracker field.
 func (r *userResolver) Tracker(ctx context.Context, obj *model.User, name string) (*model.Tracker, error) {
 	// TODO: TrackersByOwnerIDTrackerName loader
 	return loaders.ForContext(ctx).TrackersByOwnerName.Load([2]string{obj.Username, name})
 }
 
+// Trackers is the resolver for the trackers field.
 func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *coremodel.Cursor) (*model.TrackerCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -3268,18 +3362,22 @@ func (r *userResolver) Trackers(ctx context.Context, obj *model.User, cursor *co
 	return &model.TrackerCursor{trackers, cursor}, nil
 }
 
+// Ticket is the resolver for the ticket field.
 func (r *userMentionResolver) Ticket(ctx context.Context, obj *model.UserMention) (*model.Ticket, error) {
 	return loaders.ForContext(ctx).TicketsByID.Load(obj.TicketID)
 }
 
+// Author is the resolver for the author field.
 func (r *userMentionResolver) Author(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.ParticipantID)
 }
 
+// Mentioned is the resolver for the mentioned field.
 func (r *userMentionResolver) Mentioned(ctx context.Context, obj *model.UserMention) (model.Entity, error) {
 	return loaders.ForContext(ctx).EntitiesByParticipantID.Load(obj.MentionedID)
 }
 
+// Client is the resolver for the client field.
 func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model.UserWebhookSubscription) (*model.OAuthClient, error) {
 	if obj.ClientID == nil {
 		return nil, nil
@@ -3289,6 +3387,7 @@ func (r *userWebhookSubscriptionResolver) Client(ctx context.Context, obj *model
 	}, nil
 }
 
+// Deliveries is the resolver for the deliveries field.
 func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *model.UserWebhookSubscription, cursor *coremodel.Cursor) (*model.WebhookDeliveryCursor, error) {
 	if cursor == nil {
 		cursor = coremodel.NewCursor(nil)
@@ -3315,11 +3414,13 @@ func (r *userWebhookSubscriptionResolver) Deliveries(ctx context.Context, obj *m
 	return &model.WebhookDeliveryCursor{deliveries, cursor}, nil
 }
 
+// Sample is the resolver for the sample field.
 func (r *userWebhookSubscriptionResolver) Sample(ctx context.Context, obj *model.UserWebhookSubscription, event model.WebhookEvent) (string, error) {
 	// TODO
 	panic(fmt.Errorf("not implemented"))
 }
 
+// Subscription is the resolver for the subscription field.
 func (r *webhookDeliveryResolver) Subscription(ctx context.Context, obj *model.WebhookDelivery) (model.WebhookSubscription, error) {
 	if obj.Name == "" {
 		panic("WebhookDelivery without name")
