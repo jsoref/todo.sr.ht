@@ -991,4 +991,9 @@ type Mutation {
 
   "Deletes a ticket webhook."
   deleteTicketWebhook(id: Int!): WebhookSubscription!
+
+  """
+  Deletes the authenticated user's account. Internal use only.
+  """
+  deleteUser: Int! @internal
 }

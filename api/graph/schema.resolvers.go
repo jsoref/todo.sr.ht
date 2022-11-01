@@ -20,6 +20,7 @@ import (
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/valid"
 	corewebhooks "git.sr.ht/~sircmpwn/core-go/webhooks"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/imports"
@@ -2402,6 +2403,13 @@ func (r *mutationResolver) DeleteTicketWebhook(ctx context.Context, id int) (mod
 	}
 
 	return &sub, nil
+}
+
+// DeleteUser is the resolver for the deleteUser field.
+func (r *mutationResolver) DeleteUser(ctx context.Context) (int, error) {
+	user := auth.ForContext(ctx)
+	account.Delete(ctx, user.UserID, user.Username)
+	return user.UserID, nil
 }
 
 // Version is the resolver for the version field.

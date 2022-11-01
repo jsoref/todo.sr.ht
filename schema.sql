@@ -70,7 +70,7 @@ CREATE TABLE participant (
 
 CREATE TABLE tracker (
 	id serial PRIMARY KEY,
-	owner_id integer NOT NULL REFERENCES "user"(id),
+	owner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	name character varying(1024),
@@ -113,7 +113,7 @@ CREATE TABLE ticket (
 	status integer DEFAULT 0 NOT NULL,
 	resolution integer DEFAULT 0 NOT NULL,
 	scoped_id integer NOT NULL,
-	submitter_id integer NOT NULL REFERENCES participant(id),
+	submitter_id integer NOT NULL REFERENCES participant(id) ON DELETE CASCADE,
 	authenticity integer DEFAULT 0 NOT NULL,
 	comment_count integer DEFAULT 0 NOT NULL,
 	CONSTRAINT uq_ticket_scoped_id_tracker_id UNIQUE (scoped_id, tracker_id),
@@ -135,8 +135,8 @@ CREATE TABLE ticket_assignee (
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
 	ticket_id integer NOT NULL REFERENCES ticket(id) ON DELETE CASCADE,
-	assignee_id integer NOT NULL REFERENCES "user"(id),
-	assigner_id integer NOT NULL REFERENCES "user"(id),
+	assignee_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
+	assigner_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	CONSTRAINT idx_ticket_assignee_unique UNIQUE (ticket_id, assignee_id)
 );
 
@@ -162,7 +162,7 @@ CREATE INDEX ticket_comment_ticket_id ON ticket_comment USING btree (ticket_id);
 CREATE TABLE ticket_label (
 	ticket_id integer NOT NULL REFERENCES ticket(id) ON DELETE CASCADE,
 	label_id integer NOT NULL REFERENCES label(id) ON DELETE CASCADE,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	created timestamp without time zone NOT NULL,
 	PRIMARY KEY (ticket_id, label_id)
 );
@@ -175,7 +175,7 @@ CREATE TABLE ticket_subscription (
 	updated timestamp without time zone NOT NULL,
 	ticket_id integer REFERENCES ticket(id) ON DELETE CASCADE,
 	tracker_id integer REFERENCES tracker(id) ON DELETE CASCADE,
-	participant_id integer REFERENCES participant(id),
+	participant_id integer REFERENCES participant(id) ON DELETE CASCADE,
 	CONSTRAINT subscription_ticket_participant_uq UNIQUE (ticket_id, participant_id),
 	CONSTRAINT subscription_tracker_participant_uq UNIQUE (tracker_id, participant_id)
 );
@@ -192,8 +192,8 @@ CREATE TABLE event (
 	comment_id integer REFERENCES ticket_comment(id) ON DELETE CASCADE,
 	label_id integer REFERENCES label(id) ON DELETE CASCADE,
 	from_ticket_id integer REFERENCES ticket(id) ON DELETE CASCADE,
-	participant_id integer REFERENCES participant(id),
-	by_participant_id integer REFERENCES participant(id)
+	participant_id integer REFERENCES participant(id) ON DELETE CASCADE,
+	by_participant_id integer REFERENCES participant(id) ON DELETE CASCADE
 );
 
 CREATE INDEX event_comment_id ON event USING btree (comment_id);
@@ -210,7 +210,7 @@ CREATE TABLE event_notification (
 	id serial PRIMARY KEY,
 	created timestamp without time zone NOT NULL,
 	event_id integer NOT NULL REFERENCES event(id) ON DELETE CASCADE,
-	user_id integer NOT NULL REFERENCES "user"(id)
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE
 );
 
 CREATE INDEX event_notification_event_id ON event_notification USING btree (event_id);
@@ -228,7 +228,7 @@ CREATE TABLE gql_user_wh_sub (
 	client_id uuid,
 	expires timestamp without time zone,
 	node_id character varying,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	CONSTRAINT gql_user_wh_sub_auth_method_check
 		CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
 	CONSTRAINT gql_user_wh_sub_check
@@ -267,7 +267,7 @@ CREATE TABLE gql_tracker_wh_sub (
 	client_id uuid,
 	expires timestamp without time zone,
 	node_id character varying,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	tracker_id integer NOT NULL REFERENCES tracker(id) ON DELETE CASCADE,
 	CONSTRAINT gql_tracker_wh_sub_auth_method_check
 		CHECK ((auth_method = ANY (ARRAY['OAUTH2'::auth_method, 'INTERNAL'::auth_method]))),
@@ -307,7 +307,7 @@ CREATE TABLE gql_ticket_wh_sub (
 	client_id uuid,
 	expires timestamp without time zone,
 	node_id character varying,
-	user_id integer NOT NULL REFERENCES "user"(id),
+	user_id integer NOT NULL REFERENCES "user"(id) ON DELETE CASCADE,
 	tracker_id integer NOT NULL REFERENCES tracker(id) ON DELETE CASCADE,
 	ticket_id integer NOT NULL REFERENCES ticket(id) ON DELETE CASCADE,
 	scoped_id integer NOT NULL,
@@ -346,7 +346,7 @@ CREATE TABLE oauthtoken (
 	token_hash character varying(128) NOT NULL,
 	token_partial character varying(8) NOT NULL,
 	scopes character varying(512) NOT NULL,
-	user_id integer REFERENCES "user"(id)
+	user_id integer REFERENCES "user"(id) ON DELETE CASCADE
 );
 
 -- Legacy webhooks (TODO: Remove)
@@ -355,8 +355,8 @@ CREATE TABLE user_webhook_subscription (
 	created timestamp without time zone NOT NULL,
 	url character varying(2048) NOT NULL,
 	events character varying NOT NULL,
-	user_id integer REFERENCES "user"(id),
-	token_id integer REFERENCES oauthtoken(id)
+	user_id integer REFERENCES "user"(id), ON DELETE CASCADE
+	token_id integer REFERENCES oauthtoken(id) ON DELETE CASCADE
 );
 
 CREATE TABLE user_webhook_delivery (
@@ -370,7 +370,7 @@ CREATE TABLE user_webhook_delivery (
 	response character varying(65536),
 	response_status integer NOT NULL,
 	response_headers character varying(16384),
-	subscription_id integer NOT NULL REFERENCES user_webhook_subscription(id)
+	subscription_id integer NOT NULL REFERENCES user_webhook_subscription(id) ON DELETE CASCADE
 );
 
 CREATE TABLE tracker_webhook_subscription (

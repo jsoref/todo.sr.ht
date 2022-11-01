@@ -9,6 +9,7 @@ import (
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/99designs/gqlgen/graphql"
 
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
@@ -34,6 +35,7 @@ func main() {
 		scopes[i] = s.String()
 	}
 
+	accountQueue := work.NewQueue("account")
 	importsQueue := work.NewQueue("imports")
 	webhookQueue := webhooks.NewQueue(schema)
 	legacyWebhooks := webhooks.NewLegacyQueue()
@@ -43,10 +45,16 @@ func main() {
 		WithMiddleware(
 			loaders.Middleware,
 			imports.Middleware(importsQueue),
+			account.Middleware(accountQueue),
 			webhooks.Middleware(webhookQueue),
 			webhooks.LegacyMiddleware(legacyWebhooks),
 		).
 		WithSchema(schema, scopes).
-		WithQueues(importsQueue, webhookQueue.Queue, legacyWebhooks.Queue).
+		WithQueues(
+			importsQueue,
+			accountQueue,
+			webhookQueue.Queue,
+			legacyWebhooks.Queue,
+		).
 		Run()
 }
