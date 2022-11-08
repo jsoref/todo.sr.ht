@@ -13,8 +13,8 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
-	"git.sr.ht/~sircmpwn/todo.sr.ht/api/imports"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/trackers"
 )
 
 func main() {
@@ -36,7 +36,7 @@ func main() {
 	}
 
 	accountQueue := work.NewQueue("account")
-	importsQueue := work.NewQueue("imports")
+	trackersQueue := work.NewQueue("trackers")
 	webhookQueue := webhooks.NewQueue(schema)
 	legacyWebhooks := webhooks.NewLegacyQueue()
 
@@ -44,15 +44,15 @@ func main() {
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
-			imports.Middleware(importsQueue),
 			account.Middleware(accountQueue),
+			trackers.Middleware(trackersQueue),
 			webhooks.Middleware(webhookQueue),
 			webhooks.LegacyMiddleware(legacyWebhooks),
 		).
 		WithSchema(schema, scopes).
 		WithQueues(
-			importsQueue,
 			accountQueue,
+			trackersQueue,
 			webhookQueue.Queue,
 			legacyWebhooks.Queue,
 		).

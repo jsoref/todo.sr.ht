@@ -23,8 +23,8 @@ import (
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/api"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
-	"git.sr.ht/~sircmpwn/todo.sr.ht/api/imports"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
+	"git.sr.ht/~sircmpwn/todo.sr.ht/api/trackers"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/webhooks"
 	"github.com/99designs/gqlgen/graphql"
 	sq "github.com/Masterminds/squirrel"
@@ -2052,7 +2052,7 @@ func (r *mutationResolver) ImportTrackerDump(ctx context.Context, trackerID int,
 	}); err != nil {
 		return false, err
 	}
-	imports.ImportTrackerDump(ctx, trackerID, gr)
+	trackers.ImportTrackerDump(ctx, trackerID, gr)
 	return true, nil
 }
 
