@@ -1112,80 +1112,84 @@ func fetchSubsByTrackerIDUnsafe(ctx context.Context) func(ids []int) ([]*model.T
 
 func Middleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), loadersCtxKey, &Loaders{
-			UsersByID: UsersByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchUsersByID(r.Context()),
-			},
-			UsersByName: UsersByNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchUsersByName(r.Context()),
-			},
-			TrackersByID: TrackersByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchTrackersByID(r.Context()),
-			},
-			TrackersByName: TrackersByNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchTrackersByName(r.Context()),
-			},
-			TrackersByOwnerName: TrackersByOwnerNameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchTrackersByOwnerName(r.Context()),
-			},
-			TicketsByID: TicketsByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchTicketsByID(r.Context()),
-			},
-			TicketsByTrackerID: TicketsByTrackerIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchTicketsByTrackerID(r.Context()),
-			},
-			CommentsByIDUnsafe: CommentsByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchCommentsByIDUnsafe(r.Context()),
-			},
-			EntitiesByParticipantID: EntitiesByParticipantIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchEntitiesByParticipantID(r.Context()),
-			},
-			LabelsByID: LabelsByIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchLabelsByID(r.Context()),
-			},
-			ParticipantsByUserID: ParticipantsByUserIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchParticipantsByUserID(r.Context()),
-			},
-			ParticipantsByUsername: ParticipantsByUsernameLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchParticipantsByUsername(r.Context()),
-			},
-			SubsByTicketIDUnsafe: SubsByTicketIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchSubsByTicketIDUnsafe(r.Context()),
-			},
-			SubsByTrackerIDUnsafe: SubsByTrackerIDLoader{
-				maxBatch: 100,
-				wait:     1 * time.Millisecond,
-				fetch:    fetchSubsByTrackerIDUnsafe(r.Context()),
-			},
-		})
+		ctx := Context(r.Context())
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
+	})
+}
+
+func Context(ctx context.Context) context.Context {
+	return context.WithValue(ctx, loadersCtxKey, &Loaders{
+		UsersByID: UsersByIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchUsersByID(ctx),
+		},
+		UsersByName: UsersByNameLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchUsersByName(ctx),
+		},
+		TrackersByID: TrackersByIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchTrackersByID(ctx),
+		},
+		TrackersByName: TrackersByNameLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchTrackersByName(ctx),
+		},
+		TrackersByOwnerName: TrackersByOwnerNameLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchTrackersByOwnerName(ctx),
+		},
+		TicketsByID: TicketsByIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchTicketsByID(ctx),
+		},
+		TicketsByTrackerID: TicketsByTrackerIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchTicketsByTrackerID(ctx),
+		},
+		CommentsByIDUnsafe: CommentsByIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchCommentsByIDUnsafe(ctx),
+		},
+		EntitiesByParticipantID: EntitiesByParticipantIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchEntitiesByParticipantID(ctx),
+		},
+		LabelsByID: LabelsByIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchLabelsByID(ctx),
+		},
+		ParticipantsByUserID: ParticipantsByUserIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchParticipantsByUserID(ctx),
+		},
+		ParticipantsByUsername: ParticipantsByUsernameLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchParticipantsByUsername(ctx),
+		},
+		SubsByTicketIDUnsafe: SubsByTicketIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchSubsByTicketIDUnsafe(ctx),
+		},
+		SubsByTrackerIDUnsafe: SubsByTrackerIDLoader{
+			maxBatch: 100,
+			wait:     1 * time.Millisecond,
+			fetch:    fetchSubsByTrackerIDUnsafe(ctx),
+		},
 	})
 }
 
