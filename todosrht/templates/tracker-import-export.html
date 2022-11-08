@@ -36,20 +36,21 @@
             after preparing the following JSON data as UTF-8:
           </p>
 <pre>{
-  "description": <strong>$description</strong>,
-  "ref": "{{tracker.ref()}}#<strong>$id</strong>",
-  "submitter": "~<strong>$username</strong>",
-  "title": <strong>$title</strong>,
+  "tracker_id": <strong>$trackerId</strong>,
+  "ticket_id": <strong>$ticketId</strong>,
+  "subject": <strong>$subject</strong>,
+  "body": <strong>$body</strong>,
+  "submitter_id": "<strong>$userId</strong>",
   "upstream": "{{get_origin('todo.sr.ht', external=True)}}",
 }</pre>
           <p>
             Comments use the same process with the following JSON data as UTF-8:
           </p>
 <pre>{
+  "tracker_id": <strong>$trackerId</strong>,
+  "ticket_id": <strong>$ticketId</strong>,
   "comment": <strong>$comment</strong>,
-  "id": <strong>$id</strong>,
-  "ticket": "{{tracker.ref()}}#<strong>$id</strong>",
-  "user": "~<strong>$username</strong>",
+  "author_id": "<strong>$userId</strong>",
   "upstream": "{{get_origin('todo.sr.ht', external=True)}}",
 }</pre>
           <p>

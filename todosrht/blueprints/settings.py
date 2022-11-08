@@ -9,7 +9,7 @@ from srht.crypto import sign_payload
 from srht.database import db
 from srht.oauth import current_user, loginrequired
 from srht.flask import date_handler, session
-from srht.graphql import exec_gql
+from srht.graphql import exec_gql, GraphQLOperation, GraphQLUpload
 from srht.validation import Validation
 from tempfile import NamedTemporaryFile
 from todosrht.access import get_tracker
@@ -17,7 +17,6 @@ from todosrht.trackers import get_recent_users
 from todosrht.types import Event, EventType, Ticket, TicketAccess, Visibility
 from todosrht.types import ParticipantType, UserAccess, User
 from todosrht.urls import tracker_url
-from todosrht.tracker_import import tracker_import
 
 settings = Blueprint("settings", __name__)
 
@@ -243,20 +242,57 @@ def export_POST(owner, name):
     if current_user.id != tracker.owner_id:
         abort(403)
 
+    upstream = get_origin("todo.sr.ht", external=True)
+
+    def participant_to_dict(self):
+        if self.participant_type == ParticipantType.user:
+            return {
+                "type": "user",
+                "user_id": self.user.id,
+                "canonical_name": self.user.canonical_name,
+                "name": self.user.username,
+            }
+        elif self.participant_type == ParticipantType.email:
+            return {
+                "type": "email",
+                "address": self.email,
+                "name": self.email_name,
+            }
+        elif self.participant_type == ParticipantType.external:
+            return {
+                "type": "external",
+                "external_id": self.external_id,
+                "external_url": self.external_url,
+            }
+        assert False
+
     dump = list()
     tickets = Ticket.query.filter(Ticket.tracker_id == tracker.id).all()
     for ticket in tickets:
-        td = ticket.to_dict()
-        td["upstream"] = get_origin("todo.sr.ht", external=True)
+        td = {
+            "id": ticket.scoped_id,
+            "created": ticket.created,
+            "updated": ticket.updated,
+            "submitter": participant_to_dict(ticket.submitter),
+            "ref": ticket.ref(),
+            "subject": ticket.title,
+            "body": ticket.description,
+            "status": ticket.status.name.upper(),
+            "resolution": ticket.resolution.name.upper(),
+            "labels": [l.name for l in ticket.labels],
+            "assignees": [u.to_dict(short=True) for u in ticket.assigned_users],
+        }
+        td["upstream"] = upstream
         if ticket.submitter.participant_type == ParticipantType.user:
             sigdata = OrderedDict({
-                "description": ticket.description,
-                "ref": ticket.ref(),
-                "submitter": ticket.submitter.user.canonical_name,
-                "title": ticket.title,
-                "upstream": get_origin("todo.sr.ht", external=True),
+                "tracker_id": tracker.id,
+                "ticket_id": ticket.scoped_id,
+                "subject": ticket.title,
+                "body": ticket.description,
+                "submitter_id": ticket.submitter.user.id,
+                "upstream": upstream,
             })
-            sigdata = json.dumps(sigdata)
+            sigdata = json.dumps(sigdata, separators=(',',':'))
             signature = sign_payload(sigdata)
             td.update(signature)
 
@@ -264,27 +300,64 @@ def export_POST(owner, name):
         if any(events):
             td["events"] = list()
         for event in events:
-            ev = event.to_dict()
-            ev["upstream"] = get_origin("todo.sr.ht", external=True)
+            ev = {
+                "id": event.id,
+                "created": event.created,
+                "event_type": [t.name.upper() for t in EventType if t in event.event_type],
+                "old_status": event.old_status.name.upper()
+                    if event.old_status else None,
+                "old_resolution": event.old_resolution.name.upper()
+                    if event.old_resolution else None,
+                "new_status": event.new_status.name.upper()
+                    if event.new_status else None,
+                "new_resolution": event.new_resolution.name.upper()
+                    if event.new_resolution else None,
+                "participant": participant_to_dict(event.participant)
+                    if event.participant else None,
+                "ticket_id": event.ticket.scoped_id
+                        if event.ticket else None,
+                "comment": {
+                    "id": event.comment.id,
+                    "created": event.comment.created,
+                    "author": participant_to_dict(event.comment.submitter),
+                    "text": event.comment.text,
+                } if event.comment else None,
+                "label": event.label.name if event.label else None,
+                "by_user": participant_to_dict(event.by_participant)
+                    if event.by_participant else None,
+                "from_ticket_id": event.from_ticket.scoped_id
+                    if event.from_ticket else None,
+            }
+            ev["upstream"] = upstream
             if (EventType.comment in event.event_type
                     and event.participant.participant_type == ParticipantType.user):
                 sigdata = OrderedDict({
+                    "tracker_id": tracker.id,
+                    "ticket_id": ticket.scoped_id,
                     "comment": event.comment.text,
-                    "id": event.id,
-                    "ticket": event.ticket.ref(),
-                    "user": event.participant.user.canonical_name,
-                    "upstream": get_origin("todo.sr.ht", external=True),
+                    "author_id": event.comment.submitter.user.id,
+                    "upstream": upstream
                 })
-                sigdata = json.dumps(sigdata)
+                sigdata = json.dumps(sigdata, separators=(',',':'))
                 signature = sign_payload(sigdata)
                 ev.update(signature)
             td["events"].append(ev)
         dump.append(td)
 
     dump = json.dumps({
-        "owner": tracker.owner.to_dict(),
+        "id": tracker.id,
+        "owner": tracker.owner.to_dict(short=True),
+        "created": tracker.created,
+        "updated": tracker.updated,
         "name": tracker.name,
-        "labels": [l.to_dict() for l in tracker.labels],
+        "description": tracker.description,
+        "labels": [{
+            "id": l.id,
+            "created": l.created,
+            "name": l.name,
+            "background_color": l.color,
+            "foreground_color": l.text_color,
+        } for l in tracker.labels],
         "tickets": dump,
     }, default=date_handler)
     with NamedTemporaryFile() as ntf:
@@ -304,22 +377,32 @@ def import_POST(owner, name):
     if current_user.id != tracker.owner_id:
         abort(403)
 
-    dump = request.files.get("dump")
     valid = Validation(request)
+    dump = request.files.get("dump")
     valid.expect(dump is not None,
             "Tracker dump file is required", field="dump")
+
     if not valid.ok:
         return render_template("tracker-import-export.html",
             view="import/export", tracker=tracker, **valid.kwargs)
 
-    try:
-        dump = dump.stream.read()
-        dump = gzip.decompress(dump)
-        dump = json.loads(dump)
-    except:
-        abort(400)
-    tracker_import.delay(dump, tracker.id)
+    op = GraphQLOperation("""
+        mutation ImportTrackerDump($trackerId: Int!, $dump: Upload!) {
+            importTrackerDump(trackerId: $trackerId, dump: $dump)
+        }
+    """)
 
-    tracker.import_in_progress = True
-    db.session.commit()
+    dump = GraphQLUpload(
+        dump.filename,
+        dump.stream,
+        "application/octet-stream",
+    )
+    op.var("trackerId", tracker.id)
+    op.var("dump", dump)
+    op.execute("todo.sr.ht", valid=valid)
+
+    if not valid.ok:
+        return render_template("tracker-import-export.html",
+            view="import/export", tracker=tracker, **valid.kwargs)
+
     return redirect(tracker_url(tracker))

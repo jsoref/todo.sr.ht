@@ -7,65 +7,51 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"log"
 	"strings"
 	"time"
 
+	"git.sr.ht/~sircmpwn/core-go/crypto"
 	"git.sr.ht/~sircmpwn/core-go/database"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/loaders"
 )
 
 type TrackerDump struct {
-	Owner   Owner    `json:"owner"`
-	Name    string   `json:"name"`
-	Labels  []Label  `json:"labels"`
-	Tickets []Ticket `json:"tickets"`
-}
-
-type Owner struct {
-	CanonicalName string `json:"canonical_name"`
-	Name          string `json:"name"`
-	Email         string `json:"email"`
-	URL           string `json:"url"`
-	Location      string `json:"location"`
-	Bio           string `json:"bio"`
+	ID          int       `json:"id"`
+	Owner       User      `json:"owner"`
+	Created     time.Time `json:"created"`
+	Updated     time.Time `json:"updated"`
+	Name        string    `json:"name"`
+	Description string    `json:"description"`
+	Labels      []Label   `json:"labels"`
+	Tickets     []Ticket  `json:"tickets"`
 }
 
 type Label struct {
-	Name   string `json:"name"`
-	Colors struct {
-		Background string `json:"background"`
-		Foreground string `json:"text"`
-	} `json:"colors"`
-	Created time.Time `json:"created"`
-	Tracker Tracker   `json:"tracker"`
-}
-
-type Tracker struct {
-	ID      int       `json:"id"`
-	Owner   User      `json:"owner"`
-	Created time.Time `json:"created"`
-	Updated time.Time `json:"updated"`
-	Name    string    `json:"name"`
+	ID              int       `json:"id"`
+	Created         time.Time `json:"created"`
+	Name            string    `json:"name"`
+	BackgroundColor string    `json:"background_color"`
+	ForegroundColor string    `json:"foreground_color"`
 }
 
 type Ticket struct {
-	ID         int          `json:"id"`
-	Ref        string       `json:"ref"`
-	Tracker    Tracker      `json:"tracker"`
-	Subject    string       `json:"title"`
-	Created    time.Time    `json:"created"`
-	Updated    time.Time    `json:"updated"`
-	Submitter  *Participant `json:"submitter"` // null in shorter ticket dicts
-	Body       string       `json:"description"`
-	Status     string       `json:"status"`
-	Resolution string       `json:"resolution"`
-	Labels     []string     `json:"labels"`
-	Assignees  []User       `json:"assignees"`
-	Upstream   string       `json:"upstream"`
-	Signature  string       `json:"X-Payload-Signature"`
-	Nonce      string       `json:"X-Payload-Nonce"`
-	Events     []Event      `json:"events"`
+	ID         int         `json:"id"`
+	Created    time.Time   `json:"created"`
+	Updated    time.Time   `json:"updated"`
+	Submitter  Participant `json:"submitter"`
+	Ref        string      `json:"ref"`
+	Subject    string      `json:"subject"`
+	Body       string      `json:"body"`
+	Status     string      `json:"status"`
+	Resolution string      `json:"resolution"`
+	Labels     []string    `json:"labels"`
+	Assignees  []User      `json:"assignees"`
+	Upstream   string      `json:"upstream"`
+	Signature  string      `json:"X-Payload-Signature"`
+	Nonce      string      `json:"X-Payload-Nonce"`
+	Events     []Event     `json:"events"`
 }
 
 type Event struct {
@@ -76,8 +62,7 @@ type Event struct {
 	OldResolution *string      `json:"old_resolution"`
 	NewStatus     *string      `json:"new_status"`
 	NewResolution *string      `json:"new_resolution"`
-	User          *Participant `json:"user"`
-	Ticket        *Ticket      `json:"ticket"`
+	Participant   *Participant `json:"participant"`
 	Comment       *Comment     `json:"comment"`
 	Label         *string      `json:"label"`
 	ByUser        *Participant `json:"by_user"`
@@ -89,6 +74,7 @@ type Event struct {
 
 type Participant struct {
 	Type          string `json:"type"`
+	UserID        int    `json:"user_id"`
 	CanonicalName string `json:"canonical_name"`
 	Name          string `json:"name"`
 	Address       string `json:"address"`
@@ -97,15 +83,33 @@ type Participant struct {
 }
 
 type User struct {
+	ID            int    `json:"id"`
 	CanonicalName string `json:"canonical_name"`
 	Name          string `json:"name"`
 }
 
 type Comment struct {
-	ID        int         `json:"id"`
-	Created   time.Time   `json:"created"`
-	Submitter Participant `json:"submitter"`
-	Text      string      `json:"text"`
+	ID      int         `json:"id"`
+	Created time.Time   `json:"created"`
+	Author  Participant `json:"author"`
+	Text    string      `json:"text"`
+}
+
+type TicketSignatureData struct {
+	TrackerID   int    `json:"tracker_id"`
+	TicketID    int    `json:"ticket_id"`
+	Subject     string `json:"subject"`
+	Body        string `json:"body"`
+	SubmitterID int    `json:"submitter_id"`
+	Upstream    string `json:"upstream"`
+}
+
+type CommentSignatureData struct {
+	TrackerID int    `json:"tracker_id"`
+	TicketID  int    `json:"ticket_id"`
+	Comment   string `json:"comment"`
+	AuthorID  int    `json:"author_id"`
+	Upstream  string `json:"upstream"`
 }
 
 func importParticipant(ctx context.Context, part Participant, upstream, ourUpstream string) (int, error) {
@@ -192,29 +196,9 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 		return err
 	}
 
-	// Create labels
-	labelIDs := map[string]int{}
-	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		for _, label := range tracker.Labels {
-			row := tx.QueryRowContext(ctx, `
-				INSERT INTO label (
-					created, updated, tracker_id, name, color, text_color
-				) VALUES (
-					$1, $1, $2, $3, $4, $5
-				) RETURNING id
-			`, label.Created, trackerID, label.Name, label.Colors.Background, label.Colors.Foreground)
-			var labelID int
-			if err := row.Scan(&labelID); err != nil {
-				return err
-			}
-			labelIDs[label.Name] = labelID
-		}
-		return nil
-	}); err != nil {
-		return err
-	}
-
 	defer func() {
+		r := recover()
+
 		if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 			_, err := tx.ExecContext(ctx, `
 				UPDATE tracker
@@ -225,9 +209,31 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 		}); err != nil {
 			panic(err)
 		}
+
+		if r != nil {
+			panic(r)
+		}
 	}()
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
+		// Create labels
+		labelIDs := map[string]int{}
+		for _, label := range tracker.Labels {
+			row := tx.QueryRowContext(ctx, `
+				INSERT INTO label (
+					created, updated, tracker_id, name, color, text_color
+				) VALUES (
+					$1, $1, $2, $3, $4, $5
+				) RETURNING id
+			`, label.Created, trackerID, label.Name,
+				label.BackgroundColor, label.ForegroundColor)
+			var labelID int
+			if err := row.Scan(&labelID); err != nil {
+				return err
+			}
+			labelIDs[label.Name] = labelID
+		}
+
 		var nextTicketID int
 		row := tx.QueryRowContext(ctx,
 			`SELECT next_ticket_id FROM tracker WHERE id = $1`,
@@ -244,9 +250,30 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 		var maxTicketID int
 
 		for _, ticket := range tracker.Tickets {
-			submitterID, err := importParticipant(ctx, *ticket.Submitter, ticket.Upstream, ourUpstream)
+			submitterID, err := importParticipant(ctx, ticket.Submitter, ticket.Upstream, ourUpstream)
 			if err != nil {
 				return err
+			}
+
+			ticketAuthenticity := model.AUTH_UNAUTHENTICATED
+			if ticket.Upstream == ourUpstream && ticket.Submitter.Type == "user" {
+				sigdata := TicketSignatureData{
+					TrackerID:   tracker.ID,
+					TicketID:    ticket.ID,
+					Subject:     ticket.Subject,
+					Body:        ticket.Body,
+					SubmitterID: ticket.Submitter.UserID,
+					Upstream:    ticket.Upstream,
+				}
+				payload, err := json.Marshal(sigdata)
+				if err != nil {
+					panic(err)
+				}
+				if crypto.VerifyWebhook(payload, ticket.Nonce, ticket.Signature) {
+					ticketAuthenticity = model.AUTH_AUTHENTIC
+				} else {
+					ticketAuthenticity = model.AUTH_TAMPERED
+				}
 			}
 
 			// Compute the max ticket ID. We can't use the number of tickets as
@@ -268,9 +295,9 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 				RETURNING id
 			`, ticket.Created, ticket.Updated, trackerID, ticket.ID,
 				submitterID, ticket.Subject, ticket.Body,
-				model.TicketStatus(strings.ToUpper(ticket.Status)).ToInt(),
-				model.TicketResolution(strings.ToUpper(ticket.Resolution)).ToInt(),
-				model.AUTH_UNAUTHENTICATED)
+				model.TicketStatus(ticket.Status).ToInt(),
+				model.TicketResolution(ticket.Resolution).ToInt(),
+				ticketAuthenticity)
 			var ticketPKID int
 			if err := row.Scan(&ticketPKID); err != nil {
 				return err
@@ -307,24 +334,49 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 
 				var eventType int
 				for _, etype := range event.EventType {
+					etype := model.EventType(etype)
+					if !etype.IsValid() {
+						fmt.Errorf("failed to import ticket #%d: invalid event type %s", ticket.ID, etype)
+					}
 					eventType |= eventTypeMap[etype]
 				}
 				if eventType == 0 {
 					return fmt.Errorf("failed to import ticket #%d: invalid ticket event", ticket.ID, eventType)
 				}
 
-				if event.User != nil {
-					userPartID, err := importParticipant(ctx, *event.User, event.Upstream, ourUpstream)
+				if event.Participant != nil {
+					eventPartID, err := importParticipant(ctx, *event.Participant, event.Upstream, ourUpstream)
 					if err != nil {
 						return err
 					}
-					partID = &userPartID
+					partID = &eventPartID
 				}
 
 				if eventType&model.EVENT_COMMENT != 0 {
-					submitterID, err := importParticipant(ctx, event.Comment.Submitter, event.Upstream, ourUpstream)
+					authorID, err := importParticipant(ctx, event.Comment.Author, event.Upstream, ourUpstream)
 					if err != nil {
 						return err
+					}
+
+					commentAuthenticity := model.AUTH_UNAUTHENTICATED
+					if event.Upstream == ourUpstream && event.Comment.Author.Type == "user" {
+						log.Println(event.Comment.Author.UserID)
+						sigdata := CommentSignatureData{
+							TrackerID: tracker.ID,
+							TicketID:  ticket.ID,
+							Comment:   event.Comment.Text,
+							AuthorID:  event.Comment.Author.UserID,
+							Upstream:  event.Upstream,
+						}
+						payload, err := json.Marshal(sigdata)
+						if err != nil {
+							panic(err)
+						}
+						if crypto.VerifyWebhook(payload, event.Nonce, event.Signature) {
+							commentAuthenticity = model.AUTH_AUTHENTIC
+						} else {
+							commentAuthenticity = model.AUTH_TAMPERED
+						}
 					}
 
 					row := tx.QueryRowContext(ctx, `
@@ -334,8 +386,8 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 						) VALUES (
 							$1, $1, $2, $3, $4, $5
 						) RETURNING id
-					`, event.Comment.Created, submitterID, ticketPKID, event.Comment.Text,
-						model.AUTH_UNAUTHENTICATED)
+					`, event.Comment.Created, authorID, ticketPKID, event.Comment.Text,
+						commentAuthenticity)
 					var _commentID int
 					if err := row.Scan(&_commentID); err != nil {
 						return err
@@ -453,14 +505,14 @@ func convertResolutionToInt(resolution *string) *int {
 	return &resolutionInt
 }
 
-var eventTypeMap = map[string]int{
-	"created":          model.EVENT_CREATED,
-	"comment":          model.EVENT_COMMENT,
-	"status_change":    model.EVENT_STATUS_CHANGE,
-	"label_added":      model.EVENT_LABEL_ADDED,
-	"label_removed":    model.EVENT_LABEL_REMOVED,
-	"assigned_user":    model.EVENT_ASSIGNED_USER,
-	"unassigned_user":  model.EVENT_UNASSIGNED_USER,
-	"user_mentioned":   model.EVENT_USER_MENTIONED,
-	"ticket_mentioned": model.EVENT_TICKET_MENTIONED,
+var eventTypeMap = map[model.EventType]int{
+	model.EventTypeCreated:         model.EVENT_CREATED,
+	model.EventTypeComment:         model.EVENT_COMMENT,
+	model.EventTypeStatusChange:    model.EVENT_STATUS_CHANGE,
+	model.EventTypeLabelAdded:      model.EVENT_LABEL_ADDED,
+	model.EventTypeLabelRemoved:    model.EVENT_LABEL_REMOVED,
+	model.EventTypeAssignedUser:    model.EVENT_ASSIGNED_USER,
+	model.EventTypeUnassignedUser:  model.EVENT_UNASSIGNED_USER,
+	model.EventTypeUserMentioned:   model.EVENT_USER_MENTIONED,
+	model.EventTypeTicketMentioned: model.EVENT_TICKET_MENTIONED,
 }
