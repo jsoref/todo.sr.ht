@@ -187,15 +187,6 @@ func importExternalParticipant(ctx context.Context, id, url string) (int, error)
 }
 
 func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUpstream string) error {
-	b, err := io.ReadAll(dump)
-	if err != nil {
-		return err
-	}
-	var tracker TrackerDump
-	if err := json.Unmarshal(b, &tracker); err != nil {
-		return err
-	}
-
 	defer func() {
 		r := recover()
 
@@ -214,6 +205,15 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 			panic(r)
 		}
 	}()
+
+	b, err := io.ReadAll(dump)
+	if err != nil {
+		return err
+	}
+	var tracker TrackerDump
+	if err := json.Unmarshal(b, &tracker); err != nil {
+		return err
+	}
 
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
 		// Create labels
