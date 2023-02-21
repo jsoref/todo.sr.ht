@@ -8,6 +8,27 @@ type Participant struct {
 	// Note: Right now we don't need any other fields
 }
 
+type ParticipantType string
+
+const (
+	ParticipantTypeUser     ParticipantType = "user"
+	ParticipantTypeEmail    ParticipantType = "email"
+	ParticipantTypeExternal ParticipantType = "external"
+)
+
+func ParticipantTypeFromString(participantType string) ParticipantType {
+	switch participantType {
+	case "user":
+		return ParticipantTypeUser
+	case "email":
+		return ParticipantTypeEmail
+	case "external":
+		return ParticipantTypeExternal
+	default:
+		panic("database invariant broken")
+	}
+}
+
 type EmailAddress struct {
 	Mailbox string  `json:"mailbox"`
 	Name    *string `json:"name"`

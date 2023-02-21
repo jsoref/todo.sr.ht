@@ -3,12 +3,12 @@ package graph
 import (
 	"context"
 	"database/sql"
+	"io"
 	"strings"
 	"text/template"
 
+	"git.sr.ht/~sircmpwn/core-go/client"
 	"git.sr.ht/~sircmpwn/core-go/config"
-	"git.sr.ht/~sircmpwn/core-go/email"
-	sq "github.com/Masterminds/squirrel"
 	"github.com/emersion/go-message/mail"
 
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph/model"
@@ -272,10 +272,42 @@ func (builder *EventBuilder) InsertNotifications(eventID int, commentID *int) {
 	}
 }
 
+func sendEmailNotification(ctx context.Context, username, message string) error {
+	var resp struct {
+		Ok bool
+	}
+	return client.Execute(ctx, "", "meta.sr.ht", client.GraphQLQuery{
+		Query: `
+		mutation sendEmail($username: String!, $message: String!) {
+			sendEmailNotification(username: $username, message: $message)
+		}`,
+		Variables: map[string]interface{}{
+			"username": username,
+			"message":  message,
+		},
+	}, &resp)
+}
+
+func sendEmailExternal(ctx context.Context, address, message string) error {
+	var resp struct {
+		Ok bool
+	}
+	return client.Execute(ctx, "", "meta.sr.ht", client.GraphQLQuery{
+		Query: `
+		mutation sendEmail($address: String!, $message: String!) {
+			sendEmailExternal(address: $address, message: $message)
+		}`,
+		Variables: map[string]interface{}{
+			"address": address,
+			"message": message,
+		},
+	}, &resp)
+}
+
 func (builder *EventBuilder) SendEmails(subject string,
 	template *template.Template, context interface{}) {
 	var (
-		rcpts                  []mail.Address
+		submitterType          string
 		submitterName          string
 		submitterEmail         string
 		notifySelf, copiedSelf bool
@@ -283,8 +315,9 @@ func (builder *EventBuilder) SendEmails(subject string,
 
 	row := builder.tx.QueryRowContext(builder.ctx, `
 		SELECT
+			part.participant_type,
 			CASE part.participant_type
-			WHEN 'user' THEN '~' || "user".username
+			WHEN 'user' THEN "user".username
 			WHEN 'email' THEN part.email_name
 			ELSE '' END,
 			CASE part.participant_type
@@ -298,71 +331,12 @@ func (builder *EventBuilder) SendEmails(subject string,
 		LEFT JOIN "user" ON "user".id = part.user_id
 		WHERE part.id = $1
 	`, builder.submitterID)
-	if err := row.Scan(&submitterName, &submitterEmail, &notifySelf); err != nil {
+	if err := row.Scan(&submitterType, &submitterName, &submitterEmail, &notifySelf); err != nil {
 		panic(err)
-	}
-
-	// XXX: It may be possible to implement this more efficiently by skipping
-	// the joins and pre-stashing the email details when inserting
-	// event_participants.
-	subs := sq.Select(`
-			CASE part.participant_type
-			WHEN 'user' THEN '~' || "user".username
-			WHEN 'email' THEN part.email_name
-			ELSE '' END
-		`, `
-			CASE part.participant_type
-			WHEN 'user' THEN "user".email
-			WHEN 'email' THEN part.email
-			ELSE '' END
-		`).
-		Distinct().
-		From(`event_participant evpart`).
-		Join(`participant part ON evpart.participant_id = part.id`).
-		LeftJoin(`"user" ON "user".id = part.user_id`)
-	rows, err := subs.
-		PlaceholderFormat(sq.Dollar).
-		RunWith(builder.tx).
-		QueryContext(builder.ctx)
-	if err != nil && err != sql.ErrNoRows {
-		panic(err)
-	}
-
-	set := make(map[string]interface{})
-	for rows.Next() {
-		var name, address string
-		if err := rows.Scan(&name, &address); err != nil {
-			panic(err)
-		}
-		if len(name) == 0 || len(address) == 0 {
-			continue
-		}
-		if address == submitterEmail {
-			if notifySelf {
-				copiedSelf = true
-			} else {
-				continue
-			}
-		}
-		if _, ok := set[address]; ok {
-			continue
-		}
-		set[address] = nil
-		rcpts = append(rcpts, mail.Address{
-			Name:    name,
-			Address: address,
-		})
-	}
-	if notifySelf && !copiedSelf {
-		rcpts = append(rcpts, mail.Address{
-			Name:    submitterName,
-			Address: submitterEmail,
-		})
 	}
 
 	var body strings.Builder
-	err = template.Execute(&body, context)
-	if err != nil {
+	if err := template.Execute(&body, context); err != nil {
 		panic(err)
 	}
 
@@ -387,7 +361,7 @@ func (builder *EventBuilder) SendEmails(subject string,
 	}
 
 	from := mail.Address{
-		Name:    submitterName,
+		Name:    "~" + submitterName,
 		Address: notifyFrom,
 	}
 	sender := mail.Address{
@@ -400,23 +374,101 @@ func (builder *EventBuilder) SendEmails(subject string,
 		Address: ticketRef,
 	}
 
-	for _, rcpt := range rcpts {
-		var header mail.Header
-		// TODO: List-Unsubscribe header
-		header.SetAddressList("To", []*mail.Address{&rcpt})
-		header.SetAddressList("From", []*mail.Address{&from})
-		header.SetAddressList("Reply-To", []*mail.Address{&ticketAddress})
-		header.SetAddressList("Sender", []*mail.Address{&sender})
-		if builder.eventType == model.EVENT_CREATED {
-			header.SetMessageID(ticketRef)
-		} else {
-			header.SetMsgIDList("In-Reply-To", []string{ticketRef})
-		}
-		header.SetSubject(subject)
+	// Generate the email, minus recipient
+	var header mail.Header
+	var message strings.Builder
+	// TODO: List-Unsubscribe header
+	header.SetAddressList("From", []*mail.Address{&from})
+	header.SetAddressList("Reply-To", []*mail.Address{&ticketAddress})
+	header.SetAddressList("Sender", []*mail.Address{&sender})
+	if builder.eventType == model.EVENT_CREATED {
+		header.SetMessageID(ticketRef)
+	} else {
+		header.SetMsgIDList("In-Reply-To", []string{ticketRef})
+	}
+	header.SetSubject(subject)
+	msgBodyWriter, err := mail.CreateSingleInlineWriter(&message, header)
+	if err != nil {
+		panic(err)
+	}
+	_, err = io.WriteString(msgBodyWriter, body.String())
+	if err != nil {
+		panic(err)
+	}
+	msgBodyWriter.Close()
 
-		// TODO: Fetch user PGP key (or send via meta.sr.ht API?)
-		err = email.EnqueueStd(builder.ctx, header,
-			strings.NewReader(body.String()), nil)
+	// XXX: It may be possible to implement this more efficiently by skipping
+	// the joins and pre-stashing the email details when inserting
+	// event_participants.
+	rows, err := builder.tx.QueryContext(builder.ctx, `
+		SELECT
+			part.participant_type,
+			CASE part.participant_type
+			WHEN 'user' THEN "user".username
+			WHEN 'email' THEN COALESCE(part.email_name, '')
+			ELSE '' END,
+			CASE part.participant_type
+			WHEN 'user' THEN "user".email
+			WHEN 'email' THEN part.email
+			ELSE '' END
+		DISTINCT
+		FROM event_participant evpart
+		JOIN participant part ON evpart.participant_id = part.id
+		LEFT JOIN "user" ON "user".id = part.user_id;
+	`)
+	if err != nil {
+		panic(err)
+	}
+
+	set := make(map[string]interface{})
+	for rows.Next() {
+		var participantTypeString, name, address string
+		if err := rows.Scan(&participantTypeString, &name, &address); err != nil {
+			panic(err)
+		}
+		participantType := model.ParticipantTypeFromString(participantTypeString)
+		if participantType == model.ParticipantTypeExternal {
+			continue
+		}
+		if address == submitterEmail {
+			if notifySelf {
+				copiedSelf = true
+			} else {
+				continue
+			}
+		}
+		if _, ok := set[address]; ok {
+			continue
+		}
+		set[address] = nil
+
+		switch participantType {
+		case model.ParticipantTypeUser:
+			err = sendEmailNotification(builder.ctx, name, message.String())
+		case model.ParticipantTypeEmail:
+			to := mail.Address{
+				Name:    name,
+				Address: address,
+			}
+			err = sendEmailExternal(builder.ctx, to.String(), message.String())
+		}
+		if err != nil {
+			panic(err)
+		}
+	}
+	if notifySelf && !copiedSelf {
+		var err error
+		participantType := model.ParticipantTypeFromString(submitterType)
+		switch participantType {
+		case model.ParticipantTypeUser:
+			err = sendEmailNotification(builder.ctx, submitterName, message.String())
+		case model.ParticipantTypeEmail:
+			to := mail.Address{
+				Name:    submitterName,
+				Address: submitterEmail,
+			}
+			err = sendEmailExternal(builder.ctx, to.String(), message.String())
+		}
 		if err != nil {
 			panic(err)
 		}
