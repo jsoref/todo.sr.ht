@@ -272,30 +272,14 @@ func (builder *EventBuilder) InsertNotifications(eventID int, commentID *int) {
 	}
 }
 
-func sendEmailNotification(ctx context.Context, username, message string) error {
-	var resp struct {
-		Ok bool
-	}
-	return client.Execute(ctx, "", "meta.sr.ht", client.GraphQLQuery{
-		Query: `
-		mutation sendEmail($username: String!, $message: String!) {
-			sendEmailNotification(username: $username, message: $message)
-		}`,
-		Variables: map[string]interface{}{
-			"username": username,
-			"message":  message,
-		},
-	}, &resp)
-}
-
-func sendEmailExternal(ctx context.Context, address, message string) error {
+func sendEmail(ctx context.Context, address, message string) error {
 	var resp struct {
 		Ok bool
 	}
 	return client.Execute(ctx, "", "meta.sr.ht", client.GraphQLQuery{
 		Query: `
 		mutation sendEmail($address: String!, $message: String!) {
-			sendEmailExternal(address: $address, message: $message)
+			sendEmail(address: $address, message: $message)
 		}`,
 		Variables: map[string]interface{}{
 			"address": address,
@@ -442,35 +426,25 @@ func (builder *EventBuilder) SendEmails(subject string,
 		}
 		set[address] = nil
 
-		switch participantType {
-		case model.ParticipantTypeUser:
-			err = sendEmailNotification(builder.ctx, name, message.String())
-		case model.ParticipantTypeEmail:
-			to := mail.Address{
-				Name:    name,
-				Address: address,
-			}
-			err = sendEmailExternal(builder.ctx, to.String(), message.String())
+		to := mail.Address{
+			Name:    name,
+			Address: address,
 		}
-		if err != nil {
+		if err := sendEmail(builder.ctx, to.String(), message.String()); err != nil {
 			panic(err)
 		}
 	}
 	if notifySelf && !copiedSelf {
-		var err error
 		participantType := model.ParticipantTypeFromString(submitterType)
-		switch participantType {
-		case model.ParticipantTypeUser:
-			err = sendEmailNotification(builder.ctx, submitterName, message.String())
-		case model.ParticipantTypeEmail:
+		if participantType != model.ParticipantTypeExternal {
 			to := mail.Address{
 				Name:    submitterName,
 				Address: submitterEmail,
 			}
-			err = sendEmailExternal(builder.ctx, to.String(), message.String())
-		}
-		if err != nil {
-			panic(err)
+			err := sendEmail(builder.ctx, to.String(), message.String())
+			if err != nil {
+				panic(err)
+			}
 		}
 	}
 }
