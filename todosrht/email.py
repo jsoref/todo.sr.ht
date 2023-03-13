@@ -1,11 +1,9 @@
 import os
 import textwrap
 from string import Template
-from srht.config import cfg, cfgi
+from srht.config import cfg
 from srht.crypto import internal_anon
-from srht.email import send_email
 from srht.graphql import exec_gql
-from srht.oauth import current_user
 from todosrht.types import ParticipantType
 
 origin = cfg("todo.sr.ht", "origin")
@@ -26,19 +24,18 @@ def notify(sub, template, subject, headers, **kwargs):
             **kwargs,
         })
     if to.participant_type == ParticipantType.email:
-        to = to.email
-        send_email(body, to, subject, **headers)
+        address = f"{to.email}"
     elif to.participant_type == ParticipantType.user:
-        user = to.user
-        to = user.username
-        msg = f"Subject: {subject}\n"
-        for hdr, val in headers.items():
-            msg += f"{hdr}: {val}\n"
-        msg += "\n" + body
-        email_mutation = """
-        mutation SendEmail($username: String!, $msg: String!) {
-            sendEmailNotification(username: $username, message: $msg)
-        }
-        """
-        r = exec_gql("meta.sr.ht", email_mutation, user=internal_anon,
-            username=to, msg=msg)
+        address = to.user.email
+
+    msg = f"Subject: {subject}\n"
+    for hdr, val in headers.items():
+        msg += f"{hdr}: {val}\n"
+    msg += "\n" + body
+    email_mutation = """
+    mutation SendEmail($address: String!, $msg: String!) {
+        sendEmail(address: $address, message: $msg)
+    }
+    """
+    r = exec_gql("meta.sr.ht", email_mutation, user=internal_anon,
+        address=address, msg=msg)
