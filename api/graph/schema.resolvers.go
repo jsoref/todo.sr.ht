@@ -1676,8 +1676,7 @@ func (r *mutationResolver) AssignUser(ctx context.Context, trackerID int, ticket
 		if err, ok := err.(*pq.Error); ok &&
 			err.Code == "23505" && // unique_violation
 			err.Constraint == "idx_ticket_assignee_unique" {
-			return valid.Error(ctx, "userId",
-				"This user is already assigned to this ticket")
+			return errors.New("This user is already assigned to this ticket")
 		} else if err != nil {
 			return err
 		}
@@ -1802,8 +1801,7 @@ func (r *mutationResolver) UnassignUser(ctx context.Context, trackerID int, tick
 			ticket.PKID, userID).
 			Scan(&taId)
 		if err == sql.ErrNoRows {
-			return valid.Error(ctx, "userId",
-				"This user is not assigned to this ticket")
+			return errors.New("This user is not assigned to this ticket")
 		} else if err != nil {
 			return err
 		}
@@ -1917,8 +1915,7 @@ func (r *mutationResolver) LabelTicket(ctx context.Context, trackerID int, ticke
 		if err, ok := err.(*pq.Error); ok &&
 			err.Code == "23505" && // unique_violation
 			err.Constraint == "ticket_label_pkey" {
-			return valid.Error(ctx, "userId",
-				"This label is already assigned to this ticket")
+			return errors.New("This label is already assigned to this ticket")
 		} else if err != nil {
 			return err
 		}
