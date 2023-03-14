@@ -2969,6 +2969,38 @@ func (r *trackerResolver) Tickets(ctx context.Context, obj *model.Tracker, curso
 	return &model.TicketCursor{tickets, cursor}, nil
 }
 
+// Label is the resolver for the label field.
+func (r *trackerResolver) Label(ctx context.Context, obj *model.Tracker, name string) (*model.Label, error) {
+	label := (&model.Label{}).As(`l`)
+	if err := database.WithTx(ctx, &sql.TxOptions{
+		Isolation: 0,
+		ReadOnly:  true,
+	}, func(tx *sql.Tx) error {
+		row := database.
+			Select(ctx, label).
+			From(`label l`).
+			Where(sq.And{
+				sq.Expr(`l.name = ?`, name),
+				sq.Expr(`l.tracker_id = ?`, obj.ID),
+			}).
+			RunWith(tx).
+			QueryRowContext(ctx)
+
+		if err := row.Scan(database.Scan(ctx, label)...); err != nil {
+			return err
+		}
+
+		return nil
+	}); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	return label, nil
+}
+
 // Labels is the resolver for the labels field.
 func (r *trackerResolver) Labels(ctx context.Context, obj *model.Tracker, cursor *coremodel.Cursor) (*model.LabelCursor, error) {
 	if cursor == nil {

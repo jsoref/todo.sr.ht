@@ -117,6 +117,7 @@ type Tracker {
 
   ticket(id: Int!): Ticket! @access(scope: TICKETS, kind: RO)
   tickets(cursor: Cursor): TicketCursor! @access(scope: TICKETS, kind: RO)
+  label(name: String!): Label
   labels(cursor: Cursor): LabelCursor!
 
   """
