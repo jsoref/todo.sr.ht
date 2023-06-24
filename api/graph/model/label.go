@@ -70,7 +70,7 @@ func (l *Label) QueryWithCursor(ctx context.Context, runner sq.BaseRunner,
 		q = q.Where(database.WithAlias(l.alias, "id")+"<= ?", next)
 	}
 	q = q.
-		OrderBy(database.WithAlias(l.alias, "id")).
+		OrderBy(database.WithAlias(l.alias, "id") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
 	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
