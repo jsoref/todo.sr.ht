@@ -97,7 +97,7 @@ func (si *SubscriptionInfo) QueryWithCursor(ctx context.Context, runner sq.BaseR
 		q = q.Where(database.WithAlias(si.alias, "id")+"<= ?", next)
 	}
 	q = q.
-		OrderBy(database.WithAlias(si.alias, "id")).
+		OrderBy(database.WithAlias(si.alias, "id") + " DESC").
 		Limit(uint64(cur.Count + 1))
 
 	if rows, err = q.RunWith(runner).QueryContext(ctx); err != nil {
