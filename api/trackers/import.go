@@ -337,7 +337,7 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 					eventType |= eventTypeMap[etype]
 				}
 				if eventType == 0 {
-					return fmt.Errorf("failed to import ticket #%d: invalid ticket event", ticket.ID, eventType)
+					return fmt.Errorf("failed to import ticket #%d: invalid ticket event", ticket.ID)
 				}
 
 				if event.Participant != nil {
