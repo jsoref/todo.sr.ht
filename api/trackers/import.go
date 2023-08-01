@@ -206,12 +206,8 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 		}
 	}()
 
-	b, err := io.ReadAll(dump)
-	if err != nil {
-		return err
-	}
 	var tracker TrackerDump
-	if err := json.Unmarshal(b, &tracker); err != nil {
+	if err := json.NewDecoder(dump).Decode(&tracker); err != nil {
 		return err
 	}
 
