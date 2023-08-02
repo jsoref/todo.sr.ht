@@ -8,6 +8,7 @@ require (
 	github.com/99designs/gqlgen v0.17.20
 	github.com/Masterminds/squirrel v1.4.0
 	github.com/emersion/go-message v0.15.0
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.3.0
 	github.com/kr/text v0.2.0 // indirect
 	github.com/lib/pq v1.8.0

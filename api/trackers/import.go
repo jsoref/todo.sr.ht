@@ -23,9 +23,9 @@ type TrackerDump struct {
 	Created     time.Time `json:"created"`
 	Updated     time.Time `json:"updated"`
 	Name        string    `json:"name"`
-	Description string    `json:"description"`
-	Labels      []Label   `json:"labels"`
-	Tickets     []Ticket  `json:"tickets"`
+	Description string    `json:"description,omitempty"`
+	Labels      []Label   `json:"labels,omitempty"`
+	Tickets     []Ticket  `json:"tickets,omitempty"`
 }
 
 type Label struct {
@@ -43,43 +43,43 @@ type Ticket struct {
 	Submitter  Participant `json:"submitter"`
 	Ref        string      `json:"ref"`
 	Subject    string      `json:"subject"`
-	Body       string      `json:"body"`
+	Body       string      `json:"body,omitempty"`
 	Status     string      `json:"status"`
 	Resolution string      `json:"resolution"`
-	Labels     []string    `json:"labels"`
-	Assignees  []User      `json:"assignees"`
+	Labels     []string    `json:"labels,omitempty"`
+	Assignees  []User      `json:"assignees,omitempty"`
 	Upstream   string      `json:"upstream"`
-	Signature  string      `json:"X-Payload-Signature"`
-	Nonce      string      `json:"X-Payload-Nonce"`
-	Events     []Event     `json:"events"`
+	Signature  string      `json:"X-Payload-Signature,omitempty"`
+	Nonce      string      `json:"X-Payload-Nonce,omitempty"`
+	Events     []Event     `json:"events,omitempty"`
 }
 
 type Event struct {
 	ID            int          `json:"id"`
 	Created       time.Time    `json:"created"`
 	EventType     []string     `json:"event_type"`
-	OldStatus     *string      `json:"old_status"`
-	OldResolution *string      `json:"old_resolution"`
-	NewStatus     *string      `json:"new_status"`
-	NewResolution *string      `json:"new_resolution"`
-	Participant   *Participant `json:"participant"`
-	Comment       *Comment     `json:"comment"`
-	Label         *string      `json:"label"`
-	ByUser        *Participant `json:"by_user"`
-	FromTicket    *Ticket      `json:"from_ticket"`
+	OldStatus     string       `json:"old_status,omitempty"`
+	OldResolution string       `json:"old_resolution,omitempty"`
+	NewStatus     string       `json:"new_status,omitempty"`
+	NewResolution string       `json:"new_resolution,omitempty"`
+	Participant   *Participant `json:"participant,omitempty"`
+	Comment       *Comment     `json:"comment,omitempty"`
+	Label         *string      `json:"label,omitempty"`
+	ByUser        *Participant `json:"by_user,omitempty"`
+	FromTicket    *Ticket      `json:"from_ticket,omitempty"`
 	Upstream      string       `json:"upstream"`
-	Signature     string       `json:"X-Payload-Signature"`
-	Nonce         string       `json:"X-Payload-Nonce"`
+	Signature     string       `json:"X-Payload-Signature,omitempty"`
+	Nonce         string       `json:"X-Payload-Nonce,omitempty"`
 }
 
 type Participant struct {
 	Type          string `json:"type"`
-	UserID        int    `json:"user_id"`
-	CanonicalName string `json:"canonical_name"`
-	Name          string `json:"name"`
-	Address       string `json:"address"`
-	ExternalID    string `json:"external_id"`
-	ExternalURL   string `json:"external_url"`
+	UserID        int    `json:"user_id,omitempty"`
+	CanonicalName string `json:"canonical_name,omitempty"`
+	Name          string `json:"name,omitempty"`
+	Address       string `json:"address,omitempty"`
+	ExternalID    string `json:"external_id,omitempty"`
+	ExternalURL   string `json:"external_url,omitempty"`
 }
 
 type User struct {
@@ -465,39 +465,41 @@ func importTrackerDump(ctx context.Context, trackerID int, dump io.Reader, ourUp
 	return nil
 }
 
-func convertStatus(status *string) *model.TicketStatus {
-	if status == nil {
+func convertStatus(status string) *model.TicketStatus {
+	if status == "" {
 		return nil
 	}
-	*status = strings.ToUpper(*status)
-	return (*model.TicketStatus)(status)
+	status = strings.ToUpper(status)
+	modelStatus := model.TicketStatus(status)
+	return &modelStatus
 }
 
-func convertStatusToInt(status *string) *int {
-	if status == nil {
+func convertStatusToInt(status string) *int {
+	if status == "" {
 		statusInt := model.STATUS_REPORTED
 		return &statusInt
 	}
-	*status = strings.ToUpper(*status)
-	statusInt := (model.TicketStatus)(*status).ToInt()
+	status = strings.ToUpper(status)
+	statusInt := model.TicketStatus(status).ToInt()
 	return &statusInt
 }
 
-func convertResolution(resolution *string) *model.TicketResolution {
-	if resolution == nil {
+func convertResolution(resolution string) *model.TicketResolution {
+	if resolution == "" {
 		return nil
 	}
-	*resolution = strings.ToUpper(*resolution)
-	return (*model.TicketResolution)(resolution)
+	resolution = strings.ToUpper(resolution)
+	modelRes := model.TicketResolution(resolution)
+	return &modelRes
 }
 
-func convertResolutionToInt(resolution *string) *int {
-	if resolution == nil {
+func convertResolutionToInt(resolution string) *int {
+	if resolution == "" {
 		resolutionInt := model.RESOLVED_UNRESOLVED
 		return &resolutionInt
 	}
-	*resolution = strings.ToUpper(*resolution)
-	resolutionInt := (model.TicketResolution)(*resolution).ToInt()
+	resolution = strings.ToUpper(resolution)
+	resolutionInt := model.TicketResolution(resolution).ToInt()
 	return &resolutionInt
 }
 

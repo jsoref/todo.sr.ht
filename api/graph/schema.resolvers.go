@@ -3111,8 +3111,14 @@ func (r *trackerResolver) Acls(ctx context.Context, obj *model.Tracker, cursor *
 }
 
 // Export is the resolver for the export field.
-func (r *trackerResolver) Export(ctx context.Context, obj *model.Tracker) (string, error) {
-	panic(fmt.Errorf("not implemented")) // TODO
+func (r *trackerResolver) Export(ctx context.Context, obj *model.Tracker) (*model.URL, error) {
+	origin := config.GetOrigin(config.ForContext(ctx), "todo.sr.ht", true)
+	uri := fmt.Sprintf("%s/query/tracker/%d.json.gz", origin, obj.ID)
+	url, err := url.Parse(uri)
+	if err != nil {
+		panic(err)
+	}
+	return &model.URL{url}, nil
 }
 
 // Webhooks is the resolver for the webhooks field.

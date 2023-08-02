@@ -2,12 +2,16 @@ package main
 
 import (
 	"context"
+	"log"
+	"net/http"
+	"strconv"
 
 	"git.sr.ht/~sircmpwn/core-go/config"
 	"git.sr.ht/~sircmpwn/core-go/server"
 	"git.sr.ht/~sircmpwn/core-go/webhooks"
 	work "git.sr.ht/~sircmpwn/dowork"
 	"github.com/99designs/gqlgen/graphql"
+	"github.com/go-chi/chi"
 
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/account"
 	"git.sr.ht/~sircmpwn/todo.sr.ht/api/graph"
@@ -40,7 +44,7 @@ func main() {
 	webhookQueue := webhooks.NewQueue(schema)
 	legacyWebhooks := webhooks.NewLegacyQueue()
 
-	server.NewServer("todo.sr.ht", appConfig).
+	gsrv := server.NewServer("todo.sr.ht", appConfig).
 		WithDefaultMiddleware().
 		WithMiddleware(
 			loaders.Middleware,
@@ -55,6 +59,23 @@ func main() {
 			trackersQueue,
 			webhookQueue.Queue,
 			legacyWebhooks.Queue,
-		).
-		Run()
+		)
+
+	gsrv.Router().Get("/query/tracker/{id}.json.gz", func(w http.ResponseWriter, r *http.Request) {
+		id, err := strconv.Atoi(chi.URLParam(r, "id"))
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte("Invalid tracker ID\r\n"))
+			return
+		}
+
+		w.Header().Set("Content-Type", "application/gzip")
+		w.Header().Set("Content-Disposition", `attachment; filename="tracker.json.gz"`)
+		if err := trackers.ExportDump(r.Context(), id, w); err != nil {
+			log.Printf("Tracker export failed: %v", err)
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+	})
+
+	gsrv.Run()
 }
