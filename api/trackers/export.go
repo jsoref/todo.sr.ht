@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 
@@ -23,6 +24,11 @@ func ExportDump(ctx context.Context, trackerID int, w io.Writer) error {
 	if err != nil {
 		return err
 	}
+
+	if tracker == nil {
+		return errors.New("access denied")
+	}
+
 	owner, err := loaders.ForContext(ctx).UsersByID.Load(tracker.OwnerID)
 	if err != nil {
 		return err
@@ -98,7 +104,7 @@ func signDump(tracker *TrackerDump) {
 
 		for j := range ticket.Events {
 			event := &ticket.Events[j]
-			if event.Participant.Type == "user" && event.Comment != nil {
+			if event.Participant != nil && event.Participant.Type == "user" && event.Comment != nil {
 				signCommentEvent(event, tracker.ID, ticket.ID)
 			}
 		}
