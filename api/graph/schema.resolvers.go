@@ -150,7 +150,7 @@ func (r *labelUpdateResolver) Label(ctx context.Context, obj *model.LabelUpdate)
 }
 
 // CreateTracker is the resolver for the createTracker field.
-func (r *mutationResolver) CreateTracker(ctx context.Context, name string, description *string, visibility model.Visibility, importArg *graphql.Upload) (*model.Tracker, error) {
+func (r *mutationResolver) CreateTracker(ctx context.Context, name string, description *string, visibility model.Visibility, importUpload *graphql.Upload) (*model.Tracker, error) {
 	validation := valid.New(ctx)
 	validation.Expect(trackerNameRE.MatchString(name), "Name must match %s", trackerNameRE.String()).
 		WithField("name").
@@ -161,9 +161,16 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 	validation.Expect(description == nil || len(*description) < 8192,
 		"Description must be fewer than 8192 characters").
 		WithField("description")
-	validation.Expect(importArg == nil, "TODO: imports").WithField("import") // TODO
 	if !validation.Ok() {
 		return nil, nil
+	}
+
+	var importReader *gzip.Reader
+	if importUpload != nil {
+		var err error
+		if importReader, err = gzip.NewReader(importUpload.File); err != nil {
+			return nil, err
+		}
 	}
 
 	user := auth.ForContext(ctx)
@@ -177,15 +184,15 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 		row := tx.QueryRowContext(ctx, `
 			INSERT INTO tracker (
 				created, updated,
-				owner_id, name, description, visibility
+				owner_id, name, description, visibility, import_in_progress
 			) VALUES (
 				NOW() at time zone 'utc',
 				NOW() at time zone 'utc',
-				$1, $2, $3, $4
+				$1, $2, $3, $4, $5
 			)
 			RETURNING id, owner_id, created, updated, name, description,
 				visibility, default_access;
-		`, user.UserID, name, description, visibility.String())
+		`, user.UserID, name, description, visibility.String(), importReader != nil)
 
 		if err := row.Scan(&tracker.ID, &tracker.OwnerID, &tracker.Created,
 			&tracker.Updated, &tracker.Name, &tracker.Description,
@@ -215,6 +222,9 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 	}
 	webhooks.DeliverLegacyTrackerEvent(ctx, &tracker, "tracker:create")
 	webhooks.DeliverUserTrackerEvent(ctx, model.WebhookEventTrackerCreated, &tracker)
+	if importReader != nil {
+		trackers.ImportTrackerDump(ctx, tracker.ID, importReader)
+	}
 	return &tracker, nil
 }
 
