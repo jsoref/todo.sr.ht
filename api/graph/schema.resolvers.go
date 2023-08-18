@@ -2050,12 +2050,22 @@ func (r *mutationResolver) ImportTrackerDump(ctx context.Context, trackerID int,
 		return false, err
 	}
 	if err := database.WithTx(ctx, nil, func(tx *sql.Tx) error {
-		_, err := tx.ExecContext(ctx, `
+		result, err := tx.ExecContext(ctx, `
 			UPDATE tracker
 			SET import_in_progress = true
 			WHERE id = $1 AND owner_id = $2
 		`, trackerID, auth.ForContext(ctx).UserID)
-		return err
+		if err != nil {
+			return err
+		}
+		n, err := result.RowsAffected()
+		if err != nil {
+			panic(err) // PostgreSQL should always support RowsAffected
+		}
+		if n != 1 {
+			return fmt.Errorf("Access denied")
+		}
+		return nil
 	}); err != nil {
 		return false, err
 	}
