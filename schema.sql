@@ -38,7 +38,7 @@ CREATE TYPE webhook_event AS ENUM (
 );
 
 CREATE TABLE "user" (
-	id serial PRIMARY KEY,
+	id integer PRIMARY KEY,
 	username character varying(256) UNIQUE,
 	created timestamp without time zone NOT NULL,
 	updated timestamp without time zone NOT NULL,
