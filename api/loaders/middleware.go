@@ -760,7 +760,7 @@ var (
 			}
 
 			fragment userDetails on User {
-				created, updated
+				id, created, updated
 				username, email
 				url, location, bio
 				userType, suspensionNotice
@@ -775,6 +775,7 @@ func escapeUsername(name string) string {
 }
 
 type UserInfo struct {
+	Id               int       `json:"id"`
 	Created          time.Time `json:"created"`
 	Updated          time.Time `json:"updated"`
 	Username         string    `json:"username"`
@@ -842,7 +843,7 @@ func fetchParticipantsByUsername(ctx context.Context) func(names []string) ([]*m
 
 			if len(toFetch) != 0 {
 				stmt, err = tx.Prepare(pq.CopyIn(`user`,
-					"created", "updated", "username", "email",
+					"id", "created", "updated", "username", "email",
 					"user_type", "url", "location", "bio",
 					"suspension_notice"))
 				if err != nil {
@@ -869,7 +870,7 @@ func fetchParticipantsByUsername(ctx context.Context) func(names []string) ([]*m
 					if details == nil {
 						continue
 					}
-					_, err = stmt.Exec(details.Created, details.Updated,
+					_, err = stmt.Exec(details.Id, details.Created, details.Updated,
 						details.Username, details.Email,
 						// TODO: canonicalize user type case
 						strings.ToLower(details.UserType),
