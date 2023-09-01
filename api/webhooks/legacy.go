@@ -161,7 +161,7 @@ func mkparticipant(part model.Entity) *ParticipantWebhookPayload {
 			ExternalURL: url,
 		}
 	}
-	panic("unreacahble")
+	panic("unreachable")
 }
 
 func DeliverLegacyTrackerEvent(ctx context.Context,
