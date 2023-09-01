@@ -94,7 +94,7 @@ def test_mentions_in_ticket_description(mailbox):
     myself: {submitter.identifier}
     user one: {p1.identifier}
     user two: {p2.identifier}
-    nonexistant user: ~hopefullythisuserdoesnotexist
+    nonexistent user: ~hopefullythisuserdoesnotexist
     subscriber: {subscriber.identifier}
     ticket one: #{t1.scoped_id}
     ticket two: {tracker.name}#{t2.scoped_id}
