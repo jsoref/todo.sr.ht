@@ -31,7 +31,7 @@ class MailHandler:
         #   ~username/tracker@todo.sr.ht
         #     or (for shitty MTAs):
         #   u.username.tracker@todo.sr.ht
-        # Ticket (participating in dicsussion):
+        # Ticket (participating in discussion):
         #   ~username/tracker/1234@todo.sr.ht
         #     or (for shitty MTAs):
         #   u.username.tracker.1234@todo.sr.ht
