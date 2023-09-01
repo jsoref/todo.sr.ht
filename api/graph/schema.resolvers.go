@@ -155,7 +155,7 @@ func (r *mutationResolver) CreateTracker(ctx context.Context, name string, descr
 	validation.Expect(trackerNameRE.MatchString(name), "Name must match %s", trackerNameRE.String()).
 		WithField("name").
 		And(name != "." && name != ".." && name != ".git" && name != ".hg",
-			"This is a reserved name and cannot be used for user trakcers.").
+			"This is a reserved name and cannot be used for user trackers.").
 		WithField("name")
 	// TODO: Unify description limits
 	validation.Expect(description == nil || len(*description) < 8192,
