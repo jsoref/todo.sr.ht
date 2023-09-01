@@ -122,7 +122,7 @@ def test_ticket_search(client):
     assert search("!submitter:leia") == [ticket3, ticket2, ticket1]
     assert search("!submitter:han") == [ticket5, ticket4, ticket3]
 
-    # Search by asignee
+    # Search by assignee
     assert search("assigned:luke") == [ticket2, ticket1]
     assert search("assigned:leia") == [ticket3, ticket2]
     assert search("!assigned:luke") == [ticket5, ticket4, ticket3]

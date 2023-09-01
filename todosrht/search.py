@@ -35,7 +35,7 @@ def submitter_filter(value, current_user):
             Participant.user.has(User.username.ilike(value.lstrip("~")))
         )
 
-def asignee_filter(value, current_user):
+def assignee_filter(value, current_user):
     if value == "me" and current_user:
         return Ticket.assigned_users.contains(current_user)
     else:
@@ -99,7 +99,7 @@ def apply_search(query, search_string, current_user):
     query = search.apply_terms(query, search_terms, default_filter, key_fns={
         "status": status_filter,
         "submitter": lambda v: submitter_filter(v, current_user),
-        "assigned": lambda v: asignee_filter(v, current_user),
+        "assigned": lambda v: assignee_filter(v, current_user),
         "label": label_filter,
         "no": no_filter,
     })
