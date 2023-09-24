@@ -234,6 +234,7 @@
               id="label_id"
               name="label_id"
               class="form-control {{ valid.cls("label_id") }}"
+              required
             >
               <option value="">-- Pick one --</option>
               {% for label in tracker.labels if label not in ticket.labels %}

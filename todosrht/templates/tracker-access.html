@@ -90,6 +90,7 @@
           autocomplete="off"
           list="user-list"
           value="{{username or ""}}"
+          required
         />
         <datalist id="user-list">
           {% for u in recent_users %}

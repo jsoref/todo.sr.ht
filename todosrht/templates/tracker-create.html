@@ -22,7 +22,8 @@
           id="name"
           class="form-control {{valid.cls("name")}}"
           value="{{ name or "" }}"
-          aria-describedby="name-help" />
+          aria-describedby="name-help"
+          required />
         {{valid.summary("name")}}
       </div>
       <div class="form-group">

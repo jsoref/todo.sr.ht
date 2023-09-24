@@ -53,7 +53,8 @@
                id="color"
                name="color"
                style="height: 2.2rem"
-               value="{{ color or "#ffffff" }}" />
+               value="{{ color or "#ffffff" }}"
+               required />
             {{valid.summary("color")}}
           </div>
         </div>
@@ -66,7 +67,8 @@
                maxlength="2048"
                id="name"
                name="name"
-               value="{{ name or "" }}" />
+               value="{{ name or "" }}"
+               required />
             {{valid.summary("name")}}
           </div>
         </div>

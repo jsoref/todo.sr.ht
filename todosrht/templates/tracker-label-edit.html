@@ -45,7 +45,8 @@
                  id="color"
                  name="color"
                  style="height: 2.2rem"
-                 value="{{ valid.kwargs.color or label.color }}" />
+                 value="{{ valid.kwargs.color or label.color }}"
+                 required />
               {{valid.summary("color")}}
             </div>
           </div>
@@ -58,7 +59,8 @@
                  maxlength="2048"
                  id="name"
                  name="name"
-                 value="{{ valid.kwargs.name or label.name }}" />
+                 value="{{ valid.kwargs.name or label.name }}"
+                 required />
               {{valid.summary("name")}}
             </div>
           </div>
