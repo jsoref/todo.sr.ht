@@ -62,9 +62,8 @@ def details_POST(owner, name):
         abort(403)
 
     valid = Validation(request)
-    rewrite = lambda value: None if value == "" else value
     input = {
-        key: rewrite(valid.source[key]) for key in [
+        key: valid.source[key] for key in [
             "description", "visibility",
         ] if valid.source.get(key) is not None
     }
