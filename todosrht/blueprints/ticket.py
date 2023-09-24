@@ -164,6 +164,9 @@ def ticket_comment_POST(owner, name, ticket_id):
             abort(403)
     else:
         text = valid.require("comment")
+        valid.expect(not text or 3 <= len(text) <= 16384,
+                "Comment must be between 3 and 16384 characters.",
+                field="comment")
 
     if resolve:
         try:
