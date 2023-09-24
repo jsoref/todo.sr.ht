@@ -159,8 +159,11 @@ def ticket_comment_POST(owner, name, ticket_id):
     reopen = valid.optional("reopen")
     preview = valid.optional("preview")
 
-    if (resolve or reopen) and TicketAccess.edit not in access:
-        abort(403)
+    if (resolve or reopen):
+        if TicketAccess.edit not in access:
+            abort(403)
+    else:
+        text = valid.require("comment")
 
     if resolve:
         try:
